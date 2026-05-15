@@ -4,3 +4,4 @@ dist
 .env.local
 bun.lockb
 /project-planning
+server/src/generated

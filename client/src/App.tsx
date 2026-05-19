@@ -1,21 +1,15 @@
-import { useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
+import LoginPage from './pages/LoginPage'
+import HomePage from './pages/HomePage'
 
-function App() {
-  const [status, setStatus] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then(res => res.json())
-      .then(data => setStatus(data.status))
-      .catch(() => setStatus('error'))
-  }, [])
-
+export default function App() {
   return (
-    <div>
-      <h1>Helpdesk</h1>
-      <p>Server status: {status ?? 'checking...'}</p>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
-
-export default App

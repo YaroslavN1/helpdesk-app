@@ -1,4 +1,9 @@
 import { betterAuth } from 'better-auth'
+
+if (!process.env.BETTER_AUTH_SECRET) {
+  throw new Error('BETTER_AUTH_SECRET environment variable is required')
+}
+
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { prisma } from './prisma'
 

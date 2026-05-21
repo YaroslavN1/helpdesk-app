@@ -3,5 +3,6 @@ dist
 .env
 .env.local
 bun.lockb
-project-planning
 .idea
+.agents
+.claude

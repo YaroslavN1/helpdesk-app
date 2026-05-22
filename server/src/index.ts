@@ -19,6 +19,7 @@ app.all('/api/auth/*splat', rateLimit({
   standardHeaders: 'draft-8',
   legacyHeaders: false,
   message: 'Too many requests, please try again later',
+  skip: () => process.env.NODE_ENV === 'test',
 }), toNodeHandler(auth))
 
 app.use(express.json())

@@ -30,7 +30,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'bun --hot src/index.ts',
+      command: 'bun src/index.ts',
       cwd: path.join(__dirname, 'server'),
       url: `http://localhost:${SERVER_PORT}/api/health`,
       reuseExistingServer: !process.env.CI,
@@ -44,10 +44,13 @@ export default defineConfig({
       },
     },
     {
-      command: 'bunx vite',
+      command: `bunx vite --port ${CLIENT_PORT}`,
       cwd: path.join(__dirname, 'client'),
       url: `http://localhost:${CLIENT_PORT}`,
       reuseExistingServer: !process.env.CI,
+      env: {
+        VITE_API_PROXY_TARGET: `http://localhost:${SERVER_PORT}`,
+      },
     },
   ],
 })

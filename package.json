@@ -6,6 +6,16 @@
   "scripts": {
     "dev": "bun --filter '*' dev",
     "client": "bun --filter client dev",
-    "server": "bun --filter server dev"
+    "server": "bun --filter server dev",
+    "test:e2e": "bunx playwright test",
+    "test:e2e:ui": "bunx playwright test --ui",
+    "test:e2e:debug": "bunx playwright test --debug"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^25.9.1",
+    "@types/pg": "^8.20.0",
+    "dotenv": "^17.4.2",
+    "pg": "^8.21.0"
   }
 }

@@ -6,3 +6,9 @@ bun.lockb
 .idea
 .agents
 .claude
+
+# Playwright
+playwright-report/
+e2e/test-results/
+.playwright/
+.env.test

@@ -48,7 +48,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   └── seed-agent.ts   # creates agent user (SEED_AGENT_EMAIL / SEED_AGENT_PASSWORD / SEED_AGENT_NAME)
 │   └── tsconfig.json
 ├── e2e/                  # Playwright end-to-end tests
-│   ├── global-setup.ts   # creates helpdesk_test DB, runs migrations, truncates tables, seeds admin + agent
+│   ├── global-setup.ts   # creates helpdesk_test DB (or truncates if exists), runs migrations, seeds admin + agent
 │   └── (tests go here)
 ├── project-planning/     # Scope, tech stack, implementation plan
 ├── .env.test             # E2E env vars (single source of truth)
@@ -97,11 +97,6 @@ ProtectedRoute             → redirects to /login if no session
 
 ## E2E Testing
 All e2e test writing must be delegated to the **`e2e-test-writer`** agent — never write Playwright tests inline.
-
-Invoke it after implementing any new page, feature, or significant UI change:
-```
-use the e2e-test-writer agent to write tests for <feature>
-```
 
 The agent owns all Playwright knowledge: test structure, selector strategy, auth helpers, global setup, env vars, ports, and the `helpdesk_test` database setup. Run tests with `bun test:e2e`.
 

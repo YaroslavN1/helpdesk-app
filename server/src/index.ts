@@ -4,6 +4,8 @@ import helmet from 'helmet'
 import { rateLimit } from 'express-rate-limit'
 import { toNodeHandler } from 'better-auth/node'
 import { auth } from './lib/auth'
+import { prisma } from './lib/prisma'
+import { requireAuth, requireAdmin } from './lib/middleware'
 
 const app = express()
 const PORT = process.env.PORT ?? 3000
@@ -25,6 +27,14 @@ app.use(express.json())
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' })
+})
+
+app.get('/api/users', requireAuth, requireAdmin, async (_req, res) => {
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, email: true, role: true, createdAt: true },
+    orderBy: { createdAt: 'asc' },
+  })
+  res.json(users)
 })
 
 app.listen(PORT, () => {

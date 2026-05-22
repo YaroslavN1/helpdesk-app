@@ -7,28 +7,27 @@ const SERVER_DIR = path.join(__dirname, '../server')
 export default async function globalSetup() {
   validateEnvVariables()
 
-  const testDbUrl = process.env.TEST_DATABASE_URL!
-  const testAuthSecret = process.env.TEST_BETTER_AUTH_SECRET!
+  const testDbUrl = process.env.DATABASE_URL!
 
-  console.log('[global-setup] Creating test database...')
+  console.log('[global-setup] Preparing test database...')
+
   await createTestDatabaseIfNeeded(testDbUrl)
-  runMigrations(testDbUrl)
-
-  console.log('[global-setup] Resetting test database...')
+  runMigrations()
   await resetDatabase(testDbUrl)
+  seedAdminUser()
+  seedAgentUser()
 
-  console.log('[global-setup] Seeding test database...')
-  seedAdminUser(testDbUrl, testAuthSecret)
-  seedAgentUser(testDbUrl, testAuthSecret)
   console.log('[global-setup] Test database ready.')
 }
 
 function validateEnvVariables() {
   const required = [
-    'TEST_DATABASE_URL',
-    'TEST_BETTER_AUTH_SECRET',
-    'TEST_SEED_ADMIN_EMAIL',
-    'TEST_SEED_ADMIN_PASSWORD',
+    'DATABASE_URL',
+    'BETTER_AUTH_SECRET',
+    'SEED_ADMIN_EMAIL',
+    'SEED_ADMIN_PASSWORD',
+    'SEED_AGENT_EMAIL',
+    'SEED_AGENT_PASSWORD',
   ]
   const missingVariables = required.filter(k => !process.env[k])
   if (missingVariables.length) {
@@ -52,10 +51,9 @@ async function createTestDatabaseIfNeeded(testDbUrl: string) {
   await client.end()
 }
 
-function runMigrations(testDbUrl: string) {
+function runMigrations() {
   execSync('bunx prisma migrate deploy', {
     cwd: SERVER_DIR,
-    env: { ...process.env, DATABASE_URL: testDbUrl },
     stdio: 'inherit',
   })
 }
@@ -69,35 +67,10 @@ async function resetDatabase(testDbUrl: string) {
   await client.end()
 }
 
-function seedAdminUser(testDbUrl: string, testAuthSecret: string) {
-  execSync('bun src/seed-admin.ts', {
-    cwd: SERVER_DIR,
-    env: {
-      ...process.env,
-      DATABASE_URL: testDbUrl,
-      BETTER_AUTH_SECRET: testAuthSecret,
-      BETTER_AUTH_URL: 'http://localhost:3000',
-      TRUSTED_ORIGIN: 'http://localhost:5173',
-      SEED_ADMIN_EMAIL: process.env.TEST_SEED_ADMIN_EMAIL!,
-      SEED_ADMIN_PASSWORD: process.env.TEST_SEED_ADMIN_PASSWORD!,
-    },
-    stdio: 'inherit',
-  })
+function seedAdminUser() {
+  execSync('bun src/seed-admin.ts', { cwd: SERVER_DIR, stdio: 'inherit' })
 }
 
-function seedAgentUser(testDbUrl: string, testAuthSecret: string) {
-  execSync('bun src/seed-agent.ts', {
-    cwd: SERVER_DIR,
-    env: {
-      ...process.env,
-      DATABASE_URL: testDbUrl,
-      BETTER_AUTH_SECRET: testAuthSecret,
-      BETTER_AUTH_URL: 'http://localhost:3000',
-      TRUSTED_ORIGIN: 'http://localhost:5173',
-      SEED_AGENT_EMAIL: 'agent@test.com',
-      SEED_AGENT_PASSWORD: 'AgentPass1!',
-      SEED_AGENT_NAME: 'Test Agent',
-    },
-    stdio: 'inherit',
-  })
+function seedAgentUser() {
+  execSync('bun src/seed-agent.ts', { cwd: SERVER_DIR, stdio: 'inherit' })
 }

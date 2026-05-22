@@ -9,6 +9,7 @@ const CLIENT_PORT = 5174
 
 export default defineConfig({
   testDir: './e2e',
+  outputDir: './e2e/test-results',
   globalSetup: './e2e/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

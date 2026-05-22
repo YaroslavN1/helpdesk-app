@@ -50,7 +50,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   ├── global-setup.ts   # creates helpdesk_test DB, runs migrations, truncates, seeds admin
 │   └── (tests go here)
 ├── project-planning/     # Scope, tech stack, implementation plan
-├── .env.test             # E2E env vars (single source of truth — see E2E Testing section)
+├── .env.test             # E2E env vars (single source of truth)
 ├── playwright.config.ts  # Playwright config; loads .env.test via dotenv
 └── package.json          # Bun workspaces root
 ```
@@ -102,23 +102,14 @@ ProtectedRoute             → redirects to /login if no session
 - Tailwind tokens (`text-muted-foreground`, `text-destructive`, `bg-background`, etc.) are defined as CSS vars in `src/index.css` — prefer these over hard-coded colors
 
 ## E2E Testing
-- **Framework:** Playwright (`@playwright/test`), Chromium only
-- **Test directory:** `e2e/` — add test files here
-- **Config:** `playwright.config.ts` at root
-- **Test database:** `helpdesk_test` (separate from dev `helpdesk` DB)
-- **Env vars:** defined in `.env.test` at the project root — loaded by `playwright.config.ts` via dotenv
-  ```
-  TEST_DATABASE_URL         # postgres connection string for helpdesk_test
-  TEST_BETTER_AUTH_SECRET   # auth secret used by the test server and seed
-  TEST_SEED_ADMIN_EMAIL     # admin credentials seeded before each run
-  TEST_SEED_ADMIN_PASSWORD
-  ```
-- **Global setup** (`e2e/global-setup.ts`) runs before every test run:
-  1. Validates all required env vars are present (throws a clear error listing any missing)
-  2. Creates `helpdesk_test` database if it doesn't exist, then runs `prisma migrate deploy`
-  3. Truncates all tables for a clean slate
-  4. Seeds the admin user via `server/src/seed.ts`
-- **Web servers:** Playwright starts both the Express server (`:3001`) and Vite (`:5174`) automatically, pointing the server at `helpdesk_test`. These ports are intentionally different from dev (`:3000` / `:5173`) so both can run simultaneously. Locally, existing servers are reused if already running (`reuseExistingServer: true`).
+All e2e test writing must be delegated to the **`e2e-test-writer`** agent — never write Playwright tests inline.
+
+Invoke it after implementing any new page, feature, or significant UI change:
+```
+use the e2e-test-writer agent to write tests for <feature>
+```
+
+The agent owns all Playwright knowledge: test structure, selector strategy, auth helpers, global setup, env vars, and the `helpdesk_test` database setup. Run tests with `bun test:e2e`.
 
 ## Docs
 Always use **context7** to fetch up-to-date documentation before working with any library or framework — including Express, React, Prisma, Vite, Bun, shadcn/ui, and the Anthropic SDK. Do not rely on training data alone for API signatures or configuration options.

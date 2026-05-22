@@ -11,9 +11,8 @@ export default async function globalSetup() {
 
   console.log('[global-setup] Preparing test database...')
 
-  await createTestDatabaseIfNeeded(testDbUrl)
+  await prepareTestDatabase(testDbUrl)
   runMigrations()
-  await resetDatabase(testDbUrl)
   seedAdminUser()
   seedAgentUser()
 
@@ -37,17 +36,36 @@ function validateEnvVariables() {
   }
 }
 
-async function createTestDatabaseIfNeeded(testDbUrl: string) {
+async function prepareTestDatabase(testDbUrl: string) {
   const adminUrl = testDbUrl.replace(/\/helpdesk_test(\?.*)?$/, '/postgres$1')
   const client = new Client({ connectionString: adminUrl })
   await client.connect()
   const { rows } = await client.query(
     "SELECT 1 FROM pg_database WHERE datname = 'helpdesk_test'"
   )
+  await client.end()
+
   if (!rows.length) {
-    await client.query('CREATE DATABASE helpdesk_test')
-    console.log('[global-setup] Created test database helpdesk_test')
+    await createTestDatabase(adminUrl)
+  } else {
+    await resetTestDatabase(testDbUrl)
   }
+}
+
+async function createTestDatabase(adminUrl: string) {
+  const client = new Client({ connectionString: adminUrl })
+  await client.connect()
+  await client.query('CREATE DATABASE helpdesk_test')
+  await client.end()
+  console.log('[global-setup] Created test database helpdesk_test')
+}
+
+async function resetTestDatabase(testDbUrl: string) {
+  const client = new Client({ connectionString: testDbUrl })
+  await client.connect()
+  await client.query(
+    'TRUNCATE TABLE "session", "account", "verification", "user" CASCADE'
+  )
   await client.end()
 }
 
@@ -56,15 +74,6 @@ function runMigrations() {
     cwd: SERVER_DIR,
     stdio: 'inherit',
   })
-}
-
-async function resetDatabase(testDbUrl: string) {
-  const client = new Client({ connectionString: testDbUrl })
-  await client.connect()
-  await client.query(
-    'TRUNCATE TABLE "session", "account", "verification", "user" CASCADE'
-  )
-  await client.end()
 }
 
 function seedAdminUser() {

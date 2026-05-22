@@ -18,7 +18,8 @@ export default async function globalSetup() {
   await resetDatabase(testDbUrl)
 
   console.log('[global-setup] Seeding test database...')
-  seedDatabase(testDbUrl, testAuthSecret)
+  seedAdminUser(testDbUrl, testAuthSecret)
+  seedAgentUser(testDbUrl, testAuthSecret)
   console.log('[global-setup] Test database ready.')
 }
 
@@ -68,8 +69,8 @@ async function resetDatabase(testDbUrl: string) {
   await client.end()
 }
 
-function seedDatabase(testDbUrl: string, testAuthSecret: string) {
-  execSync('bun src/seed.ts', {
+function seedAdminUser(testDbUrl: string, testAuthSecret: string) {
+  execSync('bun src/seed-admin.ts', {
     cwd: SERVER_DIR,
     env: {
       ...process.env,
@@ -79,6 +80,23 @@ function seedDatabase(testDbUrl: string, testAuthSecret: string) {
       TRUSTED_ORIGIN: 'http://localhost:5173',
       SEED_ADMIN_EMAIL: process.env.TEST_SEED_ADMIN_EMAIL!,
       SEED_ADMIN_PASSWORD: process.env.TEST_SEED_ADMIN_PASSWORD!,
+    },
+    stdio: 'inherit',
+  })
+}
+
+function seedAgentUser(testDbUrl: string, testAuthSecret: string) {
+  execSync('bun src/seed-agent.ts', {
+    cwd: SERVER_DIR,
+    env: {
+      ...process.env,
+      DATABASE_URL: testDbUrl,
+      BETTER_AUTH_SECRET: testAuthSecret,
+      BETTER_AUTH_URL: 'http://localhost:3000',
+      TRUSTED_ORIGIN: 'http://localhost:5173',
+      SEED_AGENT_EMAIL: 'agent@test.com',
+      SEED_AGENT_PASSWORD: 'AgentPass1!',
+      SEED_AGENT_NAME: 'Test Agent',
     },
     stdio: 'inherit',
   })

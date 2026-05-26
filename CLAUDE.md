@@ -58,12 +58,14 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 
 ## Dev Commands
 ```bash
-bun dev             # start both client and server in parallel
-bun client          # start client only  (http://localhost:5173)
-bun server          # start server only  (http://localhost:3000)
-bun test:e2e        # run Playwright E2E tests (headless)
-bun test:e2e:ui     # run Playwright E2E tests with interactive UI
-bun test:e2e:debug  # run Playwright E2E tests in debug mode
+bun dev               # start both client and server in parallel
+bun client            # start client only  (http://localhost:5173)
+bun server            # start server only  (http://localhost:3000)
+bun test:unit         # run Vitest unit tests (one-shot)
+bun test:unit:watch   # run Vitest unit tests in watch mode
+bun test:e2e          # run Playwright E2E tests (headless)
+bun test:e2e:ui       # run Playwright E2E tests with interactive UI
+bun test:e2e:debug    # run Playwright E2E tests in debug mode
 ```
 
 ## Authentication
@@ -94,6 +96,16 @@ ProtectedRoute             → redirects to /login if no session
 - Import using the `@/` alias: `import { Button } from '@/components/ui/button'`
 - Use `cn()` from `@/lib/utils` for conditional/merged class names
 - Tailwind tokens (`text-muted-foreground`, `text-destructive`, `bg-background`, etc.) are defined as CSS vars in `src/index.css` — prefer these over hard-coded colors
+
+## Unit Testing
+All unit test writing must be delegated to the **`unit-test-writer`** agent — never write Vitest/React Testing Library tests inline.
+
+The agent owns all unit testing knowledge: Vitest config, jsdom environment, `fetch` mocking with `vi.stubGlobal`, `act()` warning patterns, selector strategy, and the setup file at `client/src/test/setup.ts`. Run tests with `bun test:unit`.
+
+Key conventions owned by the agent:
+- Test files live next to the component: `UsersPage.tsx` → `UsersPage.test.tsx`
+- Use a never-resolving fetch mock for synchronous-state tests (avoids `act()` warnings)
+- Put all assertions that depend on the same async state inside one `waitFor` callback
 
 ## E2E Testing
 All e2e test writing must be delegated to the **`e2e-test-writer`** agent — never write Playwright tests inline.

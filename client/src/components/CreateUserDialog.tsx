@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { CircleAlert, Plus } from 'lucide-react'
 
 export type User = { id: string; name: string; email: string; role: 'admin' | 'agent'; createdAt: string }
 
@@ -61,10 +62,10 @@ export function CreateUserDialog({ onCreated }: Props) {
 
   return (
     <>
-      <Button onClick={openDialog}>+ Create user</Button>
+      <Button onClick={openDialog}><Plus className="size-4" />New user</Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Create user</DialogTitle>
           </DialogHeader>
@@ -76,6 +77,7 @@ export function CreateUserDialog({ onCreated }: Props) {
                   id="name"
                   placeholder="Jane Smith"
                   autoComplete="off"
+                  aria-invalid={!!errors.name}
                   {...register('name')}
                 />
                 {errors.name && (
@@ -89,6 +91,7 @@ export function CreateUserDialog({ onCreated }: Props) {
                   type="email"
                   placeholder="jane@example.com"
                   autoComplete="off"
+                  aria-invalid={!!errors.email}
                   {...register('email')}
                 />
                 {errors.email && (
@@ -102,6 +105,7 @@ export function CreateUserDialog({ onCreated }: Props) {
                   type="password"
                   placeholder="••••••••"
                   autoComplete="new-password"
+                  aria-invalid={!!errors.password}
                   {...register('password')}
                 />
                 {errors.password && (
@@ -109,7 +113,8 @@ export function CreateUserDialog({ onCreated }: Props) {
                 )}
               </div>
               {submitError && (
-                <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
+                <p className="flex items-center gap-2 text-sm text-destructive bg-destructive/5 border border-destructive/20 rounded-md px-3 py-2">
+                  <CircleAlert className="size-4 shrink-0" />
                   {submitError}
                 </p>
               )}

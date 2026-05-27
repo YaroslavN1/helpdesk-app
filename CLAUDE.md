@@ -9,7 +9,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 - **Runtime / package manager:** Bun
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (style: base-nova, neutral base color)
 - **Backend:** Express 5, TypeScript (run directly with Bun)
-- **Validation:** Use Zod 4 for request body validation on the server and form validation on the client
+- **Validation:** Zod 4 — schemas that are used on both client and server live in `core/src/schemas/`; server-only or client-only schemas can be defined locally
 - **Database:** PostgreSQL, Prisma ORM, pgvector extension
 - **Auth:** Better Auth — email/password only, sign-up disabled, database sessions via HTTP-only cookie
 - **Email:** SendGrid or Mailgun (TBD) — inbound webhook + transactional sending
@@ -39,6 +39,11 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   ├── components.json     # shadcn/ui config
 │   ├── vite.config.ts      # proxies /api → localhost:3000; @ alias → ./src
 │   └── tsconfig.json       # @ path alias configured
+├── core/                 # Shared TypeScript — schemas, types used by both client and server
+│   ├── package.json        # name: @helpdesk/core; exports: ./src/index.ts
+│   └── src/
+│       ├── schemas/        # Zod schemas (one file per domain entity, e.g. user.ts)
+│       └── index.ts        # re-exports everything from schemas/
 ├── server/               # Express backend
 │   ├── src/
 │   │   ├── lib/
@@ -91,6 +96,9 @@ ProtectedRoute             → redirects to /login if no session
 - **ProtectedRoute** — checks `authClient.useSession()`; shows a loading spinner while pending
 - **AdminRoute** — checks `session.user.role === 'admin'`; no loading state needed (always runs after ProtectedRoute resolves)
 - **Layout** — owns the page shell (Navbar + main wrapper); page components only render their own content
+
+## Shared Schemas (`core/`)
+Zod schemas shared between client and server go in `core/src/schemas/` (one file per domain entity), re-exported from `core/src/index.ts`. Import via `@helpdesk/core` in either package.
 
 ## UI Components
 - Add shadcn components with `bunx shadcn@latest add <component>` (run from `client/`)

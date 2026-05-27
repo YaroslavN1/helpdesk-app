@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { hashPassword } from 'better-auth/crypto'
-import { z } from 'zod'
 import { UserRole } from '../generated/prisma/enums'
+import { createUserSchema } from '@helpdesk/core'
 import { prisma } from '../lib/prisma'
 import { requireAuth, requireAdmin } from '../lib/middleware'
 
@@ -15,11 +15,6 @@ usersRouter.get('/', requireAuth, requireAdmin, async (_req, res) => {
   res.json(users)
 })
 
-const createUserSchema = z.object({
-  name: z.string().trim().min(3, 'Name must be at least 3 characters'),
-  email: z.email('Valid email is required'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-})
 
 usersRouter.post('/', requireAuth, requireAdmin, async (req, res) => {
   const parsed = createUserSchema.safeParse(req.body)

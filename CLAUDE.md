@@ -22,15 +22,17 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 ├── client/               # React frontend (Vite)
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── ui/           # shadcn/ui components
-│   │   │   ├── AdminRoute.tsx  # redirects non-admins to /
-│   │   │   ├── Layout.tsx      # Navbar + <main> wrapper (Outlet)
-│   │   │   ├── Navbar.tsx      # top nav; admin-only Users link
-│   │   │   └── ProtectedRoute.tsx  # redirects unauthenticated to /login
+│   │   │   ├── ui/                   # shadcn/ui components
+│   │   │   ├── AdminRoute.tsx        # redirects non-admins to /
+│   │   │   ├── CreateUserDialog.tsx  # dialog + form; exports User type
+│   │   │   ├── Layout.tsx            # Navbar + <main> wrapper (Outlet)
+│   │   │   ├── Navbar.tsx            # top nav; admin-only Users link
+│   │   │   ├── ProtectedRoute.tsx    # redirects unauthenticated to /login
+│   │   │   └── UsersTable.tsx        # users table with loading/error states
 │   │   ├── pages/
 │   │   │   ├── HomePage.tsx
 │   │   │   ├── LoginPage.tsx
-│   │   │   └── UsersPage.tsx   # /users — admin only
+│   │   │   └── UsersPage.tsx         # /users — admin only; fetches users
 │   │   ├── lib/
 │   │   │   ├── auth-client.ts  # Better Auth client with inferAdditionalFields
 │   │   │   └── utils.ts        # cn() helper (clsx + tailwind-merge)

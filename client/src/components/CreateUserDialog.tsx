@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createUserSchema, type CreateUserInput } from '@helpdesk/core'
@@ -12,16 +12,17 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CircleAlert, Plus } from 'lucide-react'
+import { CircleAlert } from 'lucide-react'
 
 export type User = { id: string; name: string; email: string; role: 'admin' | 'agent'; createdAt: string }
 
 interface Props {
+  open: boolean
+  onOpenChange: (open: boolean) => void
   onCreated: (user: User) => void
 }
 
-export function CreateUserDialog({ onCreated }: Props) {
-  const [open, setOpen] = useState(false)
+export function CreateUserDialog({ open, onOpenChange, onCreated }: Props) {
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const {
@@ -31,11 +32,12 @@ export function CreateUserDialog({ onCreated }: Props) {
     formState: { errors, isSubmitting },
   } = useForm<CreateUserInput>({ resolver: zodResolver(createUserSchema) })
 
-  function openDialog() {
-    reset()
-    setSubmitError(null)
-    setOpen(true)
-  }
+  useEffect(() => {
+    if (open) {
+      reset()
+      setSubmitError(null)
+    }
+  }, [open, reset])
 
   async function onSubmit(data: CreateUserInput) {
     setSubmitError(null)
@@ -54,17 +56,14 @@ export function CreateUserDialog({ onCreated }: Props) {
       }
 
       onCreated(body as User)
-      setOpen(false)
+      onOpenChange(false)
     } catch {
       setSubmitError('Failed to create user')
     }
   }
 
   return (
-    <>
-      <Button onClick={openDialog}><Plus className="size-4" />New user</Button>
-
-      <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Create user</DialogTitle>
@@ -120,7 +119,7 @@ export function CreateUserDialog({ onCreated }: Props) {
               )}
             </div>
             <DialogFooter className="mt-4">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
@@ -130,6 +129,5 @@ export function CreateUserDialog({ onCreated }: Props) {
           </form>
         </DialogContent>
       </Dialog>
-    </>
   )
 }

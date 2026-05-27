@@ -9,6 +9,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 - **Runtime / package manager:** Bun
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (style: base-nova, neutral base color)
 - **Backend:** Express 5, TypeScript (run directly with Bun)
+- **Validation:** Use Zod 4 for request body validation on the server and form validation on the client
 - **Database:** PostgreSQL, Prisma ORM, pgvector extension
 - **Auth:** Better Auth — email/password only, sign-up disabled, database sessions via HTTP-only cookie
 - **Email:** SendGrid or Mailgun (TBD) — inbound webhook + transactional sending

@@ -1,0 +1,130 @@
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { createUserSchema, type CreateUserInput } from '@helpdesk/core'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+
+export type User = { id: string; name: string; email: string; role: 'admin' | 'agent'; createdAt: string }
+
+interface Props {
+  onCreated: (user: User) => void
+}
+
+export function CreateUserDialog({ onCreated }: Props) {
+  const [open, setOpen] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateUserInput>({ resolver: zodResolver(createUserSchema) })
+
+  function openDialog() {
+    reset()
+    setSubmitError(null)
+    setOpen(true)
+  }
+
+  async function onSubmit(data: CreateUserInput) {
+    setSubmitError(null)
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      const body = await res.json() as User | { error: string }
+
+      if (!res.ok) {
+        setSubmitError('error' in body ? body.error : 'Failed to create user')
+        return
+      }
+
+      onCreated(body as User)
+      setOpen(false)
+    } catch {
+      setSubmitError('Failed to create user')
+    }
+  }
+
+  return (
+    <>
+      <Button onClick={openDialog}>+ Create user</Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create user</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} noValidate>
+            <div className="space-y-4 py-2">
+              <div className="space-y-1">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  placeholder="Jane Smith"
+                  autoComplete="off"
+                  {...register('name')}
+                />
+                {errors.name && (
+                  <p className="text-xs text-destructive">{errors.name.message}</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="jane@example.com"
+                  autoComplete="off"
+                  {...register('email')}
+                />
+                {errors.email && (
+                  <p className="text-xs text-destructive">{errors.email.message}</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  {...register('password')}
+                />
+                {errors.password && (
+                  <p className="text-xs text-destructive">{errors.password.message}</p>
+                )}
+              </div>
+              {submitError && (
+                <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
+                  {submitError}
+                </p>
+              )}
+            </div>
+            <DialogFooter className="mt-4">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Creating…' : 'Create user'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}

@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import UsersPage from './UsersPage'
 
@@ -110,6 +111,49 @@ describe('UsersPage', () => {
 
     await waitFor(() =>
       expect(screen.getByText('Network error')).toBeInTheDocument(),
+    )
+  })
+})
+
+describe('CreateUserDialog', () => {
+  function setup() {
+    vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
+    const user = userEvent.setup()
+    render(<UsersPage />)
+    return user
+  }
+
+  it('shows the dialog when the "New user" button is clicked', async () => {
+    const user = setup()
+
+    await user.click(screen.getByRole('button', { name: /new user/i }))
+
+    expect(screen.getByRole('heading', { name: 'Create user' })).toBeInTheDocument()
+  })
+
+  it('hides the dialog when Escape is pressed', async () => {
+    const user = setup()
+
+    await user.click(screen.getByRole('button', { name: /new user/i }))
+    expect(screen.getByRole('heading', { name: 'Create user' })).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: 'Create user' })).not.toBeInTheDocument(),
+    )
+  })
+
+  it('hides the dialog when clicking outside', async () => {
+    const user = setup()
+
+    await user.click(screen.getByRole('button', { name: /new user/i }))
+    expect(screen.getByRole('heading', { name: 'Create user' })).toBeInTheDocument()
+
+    await user.click(document.querySelector('[data-slot="dialog-overlay"]')!)
+
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: 'Create user' })).not.toBeInTheDocument(),
     )
   })
 })

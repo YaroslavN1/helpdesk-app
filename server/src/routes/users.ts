@@ -1,7 +1,6 @@
 import { Router } from 'express'
 import { hashPassword } from 'better-auth/crypto'
-import { UserRole } from '../generated/prisma/enums'
-import { createUserSchema, editUserSchema } from '@helpdesk/core'
+import { createUserSchema, editUserSchema, UserRole } from '@helpdesk/core'
 import { prisma } from '../lib/prisma'
 import { requireAuth, requireAdmin } from '../lib/middleware'
 
@@ -9,6 +8,7 @@ export const usersRouter = Router()
 
 usersRouter.get('/', requireAuth, requireAdmin, async (_req, res) => {
   const users = await prisma.user.findMany({
+    where: { deletedAt: null },
     select: { id: true, name: true, email: true, role: true, createdAt: true },
     orderBy: { createdAt: 'asc' },
   })
@@ -95,5 +95,29 @@ usersRouter.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('[PATCH /api/users/:id]', err)
     res.status(500).json({ error: 'Failed to update user' })
+  }
+})
+
+usersRouter.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
+  const id = req.params['id'] as string
+
+  try {
+    const target = await prisma.user.findUnique({ where: { id, deletedAt: null } })
+    if (!target) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    if (target.role === UserRole.admin) {
+      res.status(403).json({ error: 'Admin users cannot be deleted' })
+      return
+    }
+
+    await prisma.user.update({ where: { id }, data: { deletedAt: new Date() } })
+    await prisma.session.deleteMany({ where: { userId: id } })
+    res.status(204).send()
+  } catch (err) {
+    console.error('[DELETE /api/users/:id]', err)
+    res.status(500).json({ error: 'Failed to delete user' })
   }
 })

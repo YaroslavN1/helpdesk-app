@@ -44,8 +44,9 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 ├── core/                 # Shared TypeScript — schemas, types used by both client and server
 │   ├── package.json        # name: @helpdesk/core; exports: ./src/index.ts
 │   └── src/
+│       ├── constants/      # Shared constants (e.g. role.ts — UserRole enum)
 │       ├── schemas/        # Zod schemas (one file per domain entity, e.g. user.ts)
-│       └── index.ts        # re-exports everything from schemas/
+│       └── index.ts        # re-exports everything from schemas/ and constants/
 ├── server/               # Express backend
 │   ├── src/
 │   │   ├── lib/
@@ -99,8 +100,12 @@ ProtectedRoute             → redirects to /login if no session
 - **AdminRoute** — checks `session.user.role === 'admin'`; no loading state needed (always runs after ProtectedRoute resolves)
 - **Layout** — owns the page shell (Navbar + main wrapper); page components only render their own content
 
-## Shared Schemas (`core/`)
-Zod schemas shared between client and server go in `core/src/schemas/` (one file per domain entity), re-exported from `core/src/index.ts`. Import via `@helpdesk/core` in either package.
+## Shared Code (`core/`)
+Import via `@helpdesk/core` in either the client or server package.
+
+- **Schemas** — Zod schemas shared between client and server go in `core/src/schemas/` (one file per domain entity, e.g. `user.ts`), re-exported from `core/src/index.ts`.
+- **Constants** — Shared constants go in `core/src/constants/` (one file per domain, e.g. `role.ts`), re-exported from `core/src/index.ts`.
+- **`UserRole` enum** — Always import from `@helpdesk/core`, never hardcode `'admin'` or `'agent'` strings. Used in client components, server routes, and `auth.ts`.
 
 ## UI Components
 - Add shadcn components with `bunx shadcn@latest add <component>` (run from `client/`)

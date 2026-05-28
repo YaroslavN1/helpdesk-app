@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -8,15 +9,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { type User } from '@/components/CreateUserDialog'
+import { Pencil } from 'lucide-react'
+import { type User } from '@/components/UserForm'
 
 interface Props {
   users: User[]
   loading: boolean
   error: string | null
+  onEdit: (user: User) => void
 }
 
-export function UsersTable({ users, loading, error }: Props) {
+export function UsersTable({ users, loading, error, onEdit }: Props) {
   return (
     <>
       {loading && (
@@ -28,6 +31,7 @@ export function UsersTable({ users, loading, error }: Props) {
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Joined</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -37,6 +41,7 @@ export function UsersTable({ users, loading, error }: Props) {
                   <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell />
                 </TableRow>
               ))}
             </TableBody>
@@ -59,6 +64,7 @@ export function UsersTable({ users, loading, error }: Props) {
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Joined</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -77,6 +83,11 @@ export function UsersTable({ users, loading, error }: Props) {
                       month: 'short',
                       day: 'numeric',
                     })}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Button variant="ghost" size="icon" onClick={() => onEdit(user)} aria-label="Edit user">
+                      <Pencil className="size-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

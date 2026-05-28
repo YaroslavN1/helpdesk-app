@@ -115,7 +115,7 @@ describe('UsersPage', () => {
   })
 })
 
-describe('CreateUserDialog', () => {
+describe('UserForm — create user', () => {
   function setup() {
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
     const user = userEvent.setup()
@@ -155,5 +155,103 @@ describe('CreateUserDialog', () => {
     await waitFor(() =>
       expect(screen.queryByRole('heading', { name: 'Create user' })).not.toBeInTheDocument(),
     )
+  })
+
+  it('appends the new user to the table after successful creation', async () => {
+    const NEW_USER = { id: '3', name: 'New Person', email: 'new@example.com', role: 'agent' as const, createdAt: '2024-06-01T00:00:00.000Z' }
+    mockFetch(USERS)
+    const user = userEvent.setup()
+    render(<UsersPage />)
+    await waitFor(() => expect(screen.getByText(USERS[0].name)).toBeInTheDocument())
+
+    mockFetch(NEW_USER)
+    await user.click(screen.getByRole('button', { name: /new user/i }))
+    await user.type(screen.getByLabelText('Name'), NEW_USER.name)
+    await user.type(screen.getByLabelText('Email'), NEW_USER.email)
+    await user.type(screen.getByLabelText('Password'), 'password123')
+    await user.click(screen.getByRole('button', { name: 'Create user' }))
+
+    await waitFor(() => expect(screen.getByText(NEW_USER.name)).toBeInTheDocument())
+  })
+})
+
+describe('UserForm — edit user', () => {
+  async function setup() {
+    mockFetch(USERS)
+    const user = userEvent.setup()
+    render(<UsersPage />)
+    await waitFor(() => expect(screen.getByText(USERS[0].name)).toBeInTheDocument())
+    return user
+  }
+
+  it('shows the "Edit user" dialog when an edit button is clicked', async () => {
+    const user = await setup()
+
+    await user.click(screen.getAllByRole('button', { name: 'Edit user' })[0])
+
+    expect(screen.getByRole('heading', { name: 'Edit user' })).toBeInTheDocument()
+  })
+
+  it('pre-populates name and email from the selected user', async () => {
+    const user = await setup()
+
+    await user.click(screen.getAllByRole('button', { name: 'Edit user' })[0])
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Name')).toHaveValue(USERS[0].name)
+      expect(screen.getByLabelText('Email')).toHaveValue(USERS[0].email)
+    })
+  })
+
+  it('shows the password hint in edit mode', async () => {
+    const user = await setup()
+
+    await user.click(screen.getAllByRole('button', { name: 'Edit user' })[0])
+
+    expect(screen.getByText('(leave blank to keep current)')).toBeInTheDocument()
+  })
+
+  it('opens with the correct user when a different row edit button is clicked', async () => {
+    const user = await setup()
+
+    await user.click(screen.getAllByRole('button', { name: 'Edit user' })[1])
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Name')).toHaveValue(USERS[1].name)
+      expect(screen.getByLabelText('Email')).toHaveValue(USERS[1].email)
+    })
+  })
+
+  it('updates the user row in the table after a successful edit', async () => {
+    const UPDATED = { ...USERS[0], name: 'Updated Name' }
+    const user = await setup()
+
+    mockFetch(UPDATED)
+    await user.click(screen.getAllByRole('button', { name: 'Edit user' })[0])
+    await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue(USERS[0].name))
+
+    await user.clear(screen.getByLabelText('Name'))
+    await user.type(screen.getByLabelText('Name'), 'Updated Name')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => expect(screen.getByText('Updated Name')).toBeInTheDocument())
+    expect(screen.queryByText(USERS[0].name)).not.toBeInTheDocument()
+  })
+
+  it('resets to an empty form when "New user" is opened after closing an edit dialog', async () => {
+    const user = await setup()
+
+    await user.click(screen.getAllByRole('button', { name: 'Edit user' })[0])
+    await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue(USERS[0].name))
+
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Edit user' })).not.toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /new user/i }))
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Name')).toHaveValue('')
+      expect(screen.getByLabelText('Email')).toHaveValue('')
+    })
   })
 })

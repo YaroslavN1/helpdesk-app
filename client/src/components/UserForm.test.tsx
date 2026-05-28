@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { CreateUserDialog, type User } from './CreateUserDialog'
+import { UserForm, type User } from './UserForm'
 
 const NEW_USER: User = {
   id: '3',
@@ -27,12 +27,12 @@ beforeEach(() => {
 
 function setup() {
   const onOpenChange = vi.fn()
-  const onCreated = vi.fn()
+  const onSaved = vi.fn()
   const user = userEvent.setup()
   render(
-    <CreateUserDialog open={true} onOpenChange={onOpenChange} onCreated={onCreated} />,
+    <UserForm form={{ mode: 'create', user: null }} onOpenChange={onOpenChange} onSaved={onSaved} />,
   )
-  return { user, onOpenChange, onCreated }
+  return { user, onOpenChange, onSaved }
 }
 
 async function fillForm(
@@ -45,7 +45,7 @@ async function fillForm(
   await user.type(screen.getByLabelText('Password'), password)
 }
 
-describe('CreateUserDialog — form rendering', () => {
+describe('UserForm — form rendering', () => {
   it('renders name, email, and password fields', () => {
     setup()
     expect(screen.getByLabelText('Name')).toBeInTheDocument()
@@ -60,7 +60,7 @@ describe('CreateUserDialog — form rendering', () => {
   })
 })
 
-describe('CreateUserDialog — validation', () => {
+describe('UserForm — validation', () => {
   it('shows all field errors when submitting an empty form', async () => {
     const { user } = setup()
 
@@ -104,7 +104,7 @@ describe('CreateUserDialog — validation', () => {
   })
 })
 
-describe('CreateUserDialog — submission', () => {
+describe('UserForm — submission', () => {
   it('POSTs to /api/users with the correct body', async () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true,
@@ -125,13 +125,13 @@ describe('CreateUserDialog — submission', () => {
     )
   })
 
-  it('calls onCreated with the returned user on success', async () => {
+  it('calls onSaved with the returned user on success', async () => {
     mockFetch(NEW_USER)
-    const { user, onCreated } = setup()
+    const { user, onSaved } = setup()
     await fillForm(user)
     await user.click(screen.getByRole('button', { name: 'Create user' }))
 
-    await waitFor(() => expect(onCreated).toHaveBeenCalledWith(NEW_USER))
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith(NEW_USER))
   })
 
   it('calls onOpenChange(false) to close after successful creation', async () => {
@@ -177,7 +177,7 @@ describe('CreateUserDialog — submission', () => {
   })
 })
 
-describe('CreateUserDialog — loading state', () => {
+describe('UserForm — loading state', () => {
   it('shows "Creating…" on the submit button and disables Cancel while submitting', async () => {
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
     const { user } = setup()
@@ -191,7 +191,7 @@ describe('CreateUserDialog — loading state', () => {
   })
 })
 
-describe('CreateUserDialog — Cancel', () => {
+describe('UserForm — Cancel', () => {
   it('calls onOpenChange(false) when Cancel is clicked', async () => {
     const { user, onOpenChange } = setup()
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -200,12 +200,12 @@ describe('CreateUserDialog — Cancel', () => {
   })
 })
 
-describe('CreateUserDialog — reset on reopen', () => {
+describe('UserForm — reset on reopen', () => {
   it('clears validation errors when the dialog is reopened', async () => {
     const onOpenChange = vi.fn()
     const user = userEvent.setup()
     const { rerender } = render(
-      <CreateUserDialog open={true} onOpenChange={onOpenChange} onCreated={vi.fn()} />,
+      <UserForm form={{ mode: 'create', user: null }} onOpenChange={onOpenChange} onSaved={vi.fn()} />,
     )
 
     await user.click(screen.getByRole('button', { name: 'Create user' }))
@@ -213,8 +213,8 @@ describe('CreateUserDialog — reset on reopen', () => {
       expect(screen.getByText('Name must be at least 3 characters')).toBeInTheDocument(),
     )
 
-    rerender(<CreateUserDialog open={false} onOpenChange={onOpenChange} onCreated={vi.fn()} />)
-    rerender(<CreateUserDialog open={true} onOpenChange={onOpenChange} onCreated={vi.fn()} />)
+    rerender(<UserForm form={null} onOpenChange={onOpenChange} onSaved={vi.fn()} />)
+    rerender(<UserForm form={{ mode: 'create', user: null }} onOpenChange={onOpenChange} onSaved={vi.fn()} />)
 
     await waitFor(() =>
       expect(screen.queryByText('Name must be at least 3 characters')).not.toBeInTheDocument(),

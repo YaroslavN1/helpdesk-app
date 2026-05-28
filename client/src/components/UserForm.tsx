@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { createUserSchema } from '@helpdesk/core'
+import { createUserSchema, UserRole } from '@helpdesk/core'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label'
 import { CircleAlert } from 'lucide-react'
 
 type FormValues = { name: string; email: string; password: string }
-export type User = { id: string; name: string; email: string; role: 'admin' | 'agent'; createdAt: string }
+export type User = { id: string; name: string; email: string; role: UserRole; createdAt: string }
 export type FormState = { mode: 'create'; user: null } | { mode: 'edit'; user: User }
 
 interface Props {

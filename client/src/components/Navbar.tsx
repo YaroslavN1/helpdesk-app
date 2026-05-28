@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router'
 import { authClient } from '../lib/auth-client'
+import { UserRole } from '@helpdesk/core'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 
@@ -17,7 +18,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <Link to="/" className="font-semibold">Helpdesk</Link>
-          {session?.user.role === 'admin' && (
+          {session?.user.role === UserRole.admin && (
             <Link to="/users" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Users
             </Link>

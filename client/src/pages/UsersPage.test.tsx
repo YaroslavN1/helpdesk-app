@@ -175,7 +175,7 @@ describe('UserForm — create user', () => {
   })
 })
 
-describe('UserForm — edit user', () => {
+describe('UserForm — Edit user', () => {
   async function setup() {
     mockFetch(USERS)
     const user = userEvent.setup()
@@ -256,7 +256,7 @@ describe('UserForm — edit user', () => {
   })
 })
 
-describe('Delete user', () => {
+describe('UserForm - Delete user', () => {
   async function setup() {
     mockFetch(USERS)
     const user = userEvent.setup()

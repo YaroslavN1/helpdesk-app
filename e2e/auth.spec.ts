@@ -1,33 +1,13 @@
-import { test, expect, type BrowserContext } from '@playwright/test'
-
-// ---------------------------------------------------------------------------
-// Constants — pulled from .env.test (loaded by playwright.config.ts)
-// ---------------------------------------------------------------------------
-
-const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL!
-const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD!
-
-const AGENT_EMAIL = 'agent@test.com'
-const AGENT_PASSWORD = 'AgentPass1!'
-const AGENT_NAME = 'Test Agent'
-
-/**
- * Performs a real browser login for `credentials` inside `context`, then
- * closes the page.  Subsequent pages opened from the same context will carry
- * the auth cookie automatically.
- */
-async function loginInContext(
-  context: BrowserContext,
-  credentials: { email: string; password: string }
-): Promise<void> {
-  const page = await context.newPage()
-  await page.goto('/login')
-  await page.getByLabel('Email').fill(credentials.email)
-  await page.getByLabel('Password').fill(credentials.password)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page).toHaveURL('/')
-  await page.close()
-}
+import { test, expect } from '@playwright/test'
+import {
+  ADMIN_EMAIL,
+  ADMIN_PASSWORD,
+  AGENT_EMAIL,
+  AGENT_PASSWORD,
+  AGENT_NAME,
+  loginAsAdmin,
+  loginAsAgent,
+} from './helpers'
 
 // ---------------------------------------------------------------------------
 // Test suite
@@ -61,16 +41,15 @@ test.describe('Authentication', () => {
 
     test('already-authenticated user visiting /login is redirected to /', async ({
       page,
-      context,
     }) => {
-      await loginInContext(context, { email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
+      await loginAsAdmin(page)
 
       await page.goto('/login')
       await expect(page).toHaveURL('/')
     })
 
-    test('session persists across a full page reload', async ({ page, context }) => {
-      await loginInContext(context, { email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
+    test('session persists across a full page reload', async ({ page }) => {
+      await loginAsAdmin(page)
 
       await page.goto('/')
       await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
@@ -99,8 +78,6 @@ test.describe('Authentication', () => {
       await page.getByRole('button', { name: 'Sign in' }).click()
 
       await expect(page).toHaveURL('/login')
-      // Better Auth returns "Invalid email or password." for bad credentials;
-      // LoginPage falls back to that text when error.message is falsy.
       await expect(page.getByText(/invalid email or password/i)).toBeVisible()
     })
 
@@ -115,25 +92,7 @@ test.describe('Authentication', () => {
       await expect(page.getByText(/invalid email or password/i)).toBeVisible()
     })
 
-    test('empty email field shows a client-side validation error', async ({ page }) => {
-      await page.getByLabel('Password').fill(ADMIN_PASSWORD)
-      await page.getByRole('button', { name: 'Sign in' }).click()
-
-      await expect(page).toHaveURL('/login')
-      await expect(page.getByText('Email is required')).toBeVisible()
-    })
-
-    test('empty password field shows a client-side validation error', async ({
-      page,
-    }) => {
-      await page.getByLabel('Email').fill(ADMIN_EMAIL)
-      await page.getByRole('button', { name: 'Sign in' }).click()
-
-      await expect(page).toHaveURL('/login')
-      await expect(page.getByText('Password is required')).toBeVisible()
-    })
-
-    test('both fields empty shows validation errors for both', async ({ page }) => {
+    test('empty password and email fields shows validation errors for both', async ({ page }) => {
       await page.getByRole('button', { name: 'Sign in' }).click()
 
       await expect(page).toHaveURL('/login')
@@ -153,8 +112,6 @@ test.describe('Authentication', () => {
     test('whitespace-only email is rejected with a validation error', async ({
       page,
     }) => {
-      // Browsers normalise type="email" input — whitespace collapses to empty,
-      // which zod's .min(1, 'Email is required') catches.
       await page.getByLabel('Email').fill('   ')
       await page.getByLabel('Password').fill(ADMIN_PASSWORD)
       await page.getByRole('button', { name: 'Sign in' }).click()
@@ -189,9 +146,8 @@ test.describe('Authentication', () => {
   test.describe('Sign-out', () => {
     test('clicking Sign out clears the session and redirects to /login', async ({
       page,
-      context,
     }) => {
-      await loginInContext(context, { email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
+      await loginAsAdmin(page)
 
       await page.goto('/')
       await page.getByRole('button', { name: 'Sign out' }).click()
@@ -201,9 +157,8 @@ test.describe('Authentication', () => {
 
     test('after sign-out, navigating to / redirects to /login', async ({
       page,
-      context,
     }) => {
-      await loginInContext(context, { email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
+      await loginAsAdmin(page)
 
       await page.goto('/')
       await page.getByRole('button', { name: 'Sign out' }).click()
@@ -215,9 +170,8 @@ test.describe('Authentication', () => {
 
     test('after sign-out, browser back button does not restore the session', async ({
       page,
-      context,
     }) => {
-      await loginInContext(context, { email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
+      await loginAsAdmin(page)
 
       await page.goto('/')
       await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
@@ -225,9 +179,6 @@ test.describe('Authentication', () => {
       await page.getByRole('button', { name: 'Sign out' }).click()
       await expect(page).toHaveURL('/login')
 
-      // goBack() may land on about:blank (if sign-out used replace navigation)
-      // or on / (which ProtectedRoute redirects to /login). Either way the
-      // Dashboard must not be visible — the session is gone.
       await page.goBack()
       await expect(page.getByRole('heading', { name: 'Dashboard' })).not.toBeVisible()
     })
@@ -252,9 +203,8 @@ test.describe('Authentication', () => {
 
     test('authenticated agent visiting /users is redirected to /', async ({
       page,
-      context,
     }) => {
-      await loginInContext(context, { email: AGENT_EMAIL, password: AGENT_PASSWORD })
+      await loginAsAgent(page)
 
       await page.goto('/users')
       await expect(page).toHaveURL('/')
@@ -263,9 +213,8 @@ test.describe('Authentication', () => {
 
     test('authenticated admin visiting /users is allowed', async ({
       page,
-      context,
     }) => {
-      await loginInContext(context, { email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
+      await loginAsAdmin(page)
 
       await page.goto('/users')
       await expect(page).toHaveURL('/users')
@@ -274,9 +223,8 @@ test.describe('Authentication', () => {
 
     test('unknown route redirects to / for authenticated users', async ({
       page,
-      context,
     }) => {
-      await loginInContext(context, { email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
+      await loginAsAdmin(page)
 
       await page.goto('/this-route-does-not-exist')
       // Catch-all <Navigate to="/" /> → ProtectedRoute passes → HomePage
@@ -297,22 +245,22 @@ test.describe('Authentication', () => {
   // -------------------------------------------------------------------------
 
   test.describe('Navbar role-based content', () => {
-    test('admin sees the Users nav link', async ({ page, context }) => {
-      await loginInContext(context, { email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
+    test('admin sees the Users nav link', async ({ page }) => {
+      await loginAsAdmin(page)
 
       await page.goto('/')
       await expect(page.getByRole('link', { name: 'Users' })).toBeVisible()
     })
 
-    test('agent does not see the Users nav link', async ({ page, context }) => {
-      await loginInContext(context, { email: AGENT_EMAIL, password: AGENT_PASSWORD })
+    test('agent does not see the Users nav link', async ({ page }) => {
+      await loginAsAgent(page)
 
       await page.goto('/')
       await expect(page.getByRole('link', { name: 'Users' })).not.toBeVisible()
     })
 
-    test("navbar displays the signed-in user's name", async ({ page, context }) => {
-      await loginInContext(context, { email: AGENT_EMAIL, password: AGENT_PASSWORD })
+    test("navbar displays the signed-in user's name", async ({ page }) => {
+      await loginAsAgent(page)
 
       await page.goto('/')
       await expect(page.getByText(AGENT_NAME, { exact: true })).toBeVisible()
@@ -324,21 +272,11 @@ test.describe('Authentication', () => {
   // -------------------------------------------------------------------------
 
   test.describe('Session and security', () => {
-    test('navigating directly to /login when already logged in redirects to /', async ({
-      page,
-      context,
-    }) => {
-      await loginInContext(context, { email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
-
-      await page.goto('/login')
-      await expect(page).toHaveURL('/')
-    })
 
     test('session cookie is HTTP-only and not accessible via document.cookie', async ({
       page,
-      context,
     }) => {
-      await loginInContext(context, { email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
+      await loginAsAdmin(page)
 
       await page.goto('/')
 

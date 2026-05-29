@@ -9,7 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Pencil } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
+import { UserRole } from '@helpdesk/core'
 import { type User } from '@/components/UserForm'
 
 interface Props {
@@ -17,9 +18,10 @@ interface Props {
   loading: boolean
   error: string | null
   onEdit: (user: User) => void
+  onDelete: (user: User) => void
 }
 
-export function UsersTable({ users, loading, error, onEdit }: Props) {
+export function UsersTable({ users, loading, error, onEdit, onDelete }: Props) {
   return (
     <>
       {loading && (
@@ -31,7 +33,7 @@ export function UsersTable({ users, loading, error, onEdit }: Props) {
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Joined</TableHead>
-                <TableHead className="text-center">Actions</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -64,7 +66,7 @@ export function UsersTable({ users, loading, error, onEdit }: Props) {
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Joined</TableHead>
-                <TableHead className="text-center">Actions</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -73,7 +75,7 @@ export function UsersTable({ users, loading, error, onEdit }: Props) {
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
                   <TableCell>
-                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                    <Badge variant={user.role === UserRole.admin ? 'default' : 'secondary'}>
                       {user.role}
                     </Badge>
                   </TableCell>
@@ -84,10 +86,21 @@ export function UsersTable({ users, loading, error, onEdit }: Props) {
                       day: 'numeric',
                     })}
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell>
                     <Button variant="ghost" size="icon" onClick={() => onEdit(user)} aria-label="Edit user">
                       <Pencil className="size-4" />
                     </Button>
+                    {user.role !== UserRole.admin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDelete(user)}
+                        aria-label="Delete user"
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

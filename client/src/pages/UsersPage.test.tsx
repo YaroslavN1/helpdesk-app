@@ -255,3 +255,94 @@ describe('UserForm — edit user', () => {
     })
   })
 })
+
+describe('Delete user', () => {
+  async function setup() {
+    mockFetch(USERS)
+    const user = userEvent.setup()
+    render(<UsersPage />)
+    await waitFor(() => expect(screen.getByText(USERS[0].name)).toBeInTheDocument())
+    return user
+  }
+
+  it('hides the delete button for admin users and shows it for agents', async () => {
+    await setup()
+
+    const deleteButtons = screen.getAllByRole('button', { name: 'Delete user' })
+    expect(deleteButtons).toHaveLength(1)
+  })
+
+  it('opens the confirmation dialog when the delete button is clicked', async () => {
+    const user = await setup()
+
+    await user.click(screen.getByRole('button', { name: 'Delete user' }))
+
+    expect(screen.getByRole('heading', { name: 'Delete user' })).toBeInTheDocument()
+  })
+
+  it('shows the user name in the dialog description', async () => {
+    const user = await setup()
+
+    await user.click(screen.getByRole('button', { name: 'Delete user' }))
+
+    await waitFor(() => {
+      const dialog = screen.getByRole('alertdialog')
+      expect(dialog).toHaveTextContent(USERS[1].name)
+    })
+  })
+
+  it('closes the dialog and makes no DELETE fetch call when Cancel is clicked', async () => {
+    const user = await setup()
+
+    await user.click(screen.getByRole('button', { name: 'Delete user' }))
+    expect(screen.getByRole('heading', { name: 'Delete user' })).toBeInTheDocument()
+
+    const fetchSpy = vi.fn().mockReturnValue(new Promise(() => {}))
+    vi.stubGlobal('fetch', fetchSpy)
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: 'Delete user' })).not.toBeInTheDocument(),
+    )
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('removes the user row and closes the dialog after a successful deletion', async () => {
+    const user = await setup()
+
+    await user.click(screen.getByRole('button', { name: 'Delete user' }))
+    expect(screen.getByRole('heading', { name: 'Delete user' })).toBeInTheDocument()
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(null) }))
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => {
+      expect(screen.queryByText(USERS[1].name)).not.toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Delete user' })).not.toBeInTheDocument()
+    })
+  })
+
+  it('shows the error message in the dialog and keeps the dialog open on API failure', async () => {
+    const user = await setup()
+
+    await user.click(screen.getByRole('button', { name: 'Delete user' }))
+    expect(screen.getByRole('heading', { name: 'Delete user' })).toBeInTheDocument()
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        json: () => Promise.resolve({ error: 'Something went wrong' }),
+      }),
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Something went wrong')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Delete user' })).toBeInTheDocument()
+    })
+  })
+})

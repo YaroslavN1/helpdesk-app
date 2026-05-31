@@ -1,15 +1,12 @@
 import { Navigate, Outlet } from 'react-router'
 import { authClient } from '@/lib/auth-client'
+import LoadingScreen from '@/components/LoadingScreen'
 
 export default function ProtectedRoute() {
   const { data: session, isPending } = authClient.useSession()
 
   if (isPending) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        Loading…
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   if (!session) {

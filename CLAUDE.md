@@ -9,6 +9,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 - **Runtime / package manager:** Bun
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (style: base-nova, neutral base color)
 - **Backend:** Express 5, TypeScript (run directly with Bun)
+- **Validation:** Zod 4 — schemas that are used on both client and server live in `core/src/schemas/`; server-only or client-only schemas can be defined locally
 - **Database:** PostgreSQL, Prisma ORM, pgvector extension
 - **Auth:** Better Auth — email/password only, sign-up disabled, database sessions via HTTP-only cookie
 - **Email:** SendGrid or Mailgun (TBD) — inbound webhook + transactional sending
@@ -21,15 +22,19 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 ├── client/               # React frontend (Vite)
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── ui/           # shadcn/ui components
-│   │   │   ├── AdminRoute.tsx  # redirects non-admins to /
-│   │   │   ├── Layout.tsx      # Navbar + <main> wrapper (Outlet)
-│   │   │   ├── Navbar.tsx      # top nav; admin-only Users link
-│   │   │   └── ProtectedRoute.tsx  # redirects unauthenticated to /login
+│   │   │   ├── ui/                    # shadcn/ui components
+│   │   │   ├── AdminRoute.tsx         # redirects non-admins to /; shows <LoadingScreen /> while pending
+│   │   │   ├── ConfirmationDialog.tsx # generic alert-dialog for destructive confirmations
+│   │   │   ├── Layout.tsx             # Navbar + <main> wrapper (Outlet)
+│   │   │   ├── LoadingScreen.tsx      # full-screen "Loading…" used by route guards and LoginPage
+│   │   │   ├── Navbar.tsx             # top nav; admin-only Users link
+│   │   │   ├── ProtectedRoute.tsx     # redirects unauthenticated to /login; shows <LoadingScreen /> while pending
+│   │   │   ├── UserForm.tsx           # create/edit dialog + form; exports User and FormState types
+│   │   │   └── UsersTable.tsx         # users table with loading/error/data states; edit + delete actions
 │   │   ├── pages/
 │   │   │   ├── HomePage.tsx
 │   │   │   ├── LoginPage.tsx
-│   │   │   └── UsersPage.tsx   # /users — admin only
+│   │   │   └── UsersPage.tsx         # /users — admin only; fetches users
 │   │   ├── lib/
 │   │   │   ├── auth-client.ts  # Better Auth client with inferAdditionalFields
 │   │   │   └── utils.ts        # cn() helper (clsx + tailwind-merge)
@@ -38,18 +43,26 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   ├── components.json     # shadcn/ui config
 │   ├── vite.config.ts      # proxies /api → localhost:3000; @ alias → ./src
 │   └── tsconfig.json       # @ path alias configured
+├── core/                 # Shared TypeScript — schemas, types used by both client and server
+│   ├── package.json        # name: @helpdesk/core; exports: ./src/index.ts
+│   └── src/
+│       ├── constants/      # Shared constants (e.g. role.ts — UserRole enum)
+│       ├── schemas/        # Zod schemas (one file per domain entity, e.g. user.ts)
+│       └── index.ts        # re-exports everything from schemas/ and constants/
 ├── server/               # Express backend
 │   ├── src/
 │   │   ├── lib/
 │   │   │   ├── auth.ts     # Better Auth config (Prisma adapter, additionalFields)
 │   │   │   └── prisma.ts
 │   │   ├── index.ts
-│   │   ├── seed-admin.ts   # creates admin user (SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD)
+│   │   ├── seed-admin.ts   # creates admin user (SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD / SEED_ADMIN_NAME)
 │   │   └── seed-agent.ts   # creates agent user (SEED_AGENT_EMAIL / SEED_AGENT_PASSWORD / SEED_AGENT_NAME)
 │   └── tsconfig.json
 ├── e2e/                  # Playwright end-to-end tests
+│   ├── helpers.ts        # shared constants (ADMIN_*, AGENT_*) and loginAsAdmin / loginAsAgent helpers
 │   ├── global-setup.ts   # creates helpdesk_test DB (or truncates if exists), runs migrations, seeds admin + agent
-│   └── (tests go here)
+│   ├── auth.spec.ts      # authentication, session, route protection, navbar role visibility
+│   └── users.spec.ts     # UsersPage rendering, API protection, create / edit / delete flows
 ├── project-planning/     # Scope, tech stack, implementation plan
 ├── .env.test             # E2E env vars (single source of truth)
 ├── playwright.config.ts  # Playwright config; loads .env.test via dotenv
@@ -87,9 +100,16 @@ ProtectedRoute             → redirects to /login if no session
               └── /users   → UsersPage
 * → redirect to /
 ```
-- **ProtectedRoute** — checks `authClient.useSession()`; shows a loading spinner while pending
-- **AdminRoute** — checks `session.user.role === 'admin'`; no loading state needed (always runs after ProtectedRoute resolves)
+- **ProtectedRoute** — checks `authClient.useSession()`; shows `<LoadingScreen />` while pending
+- **AdminRoute** — checks `session.user.role === 'admin'`; also shows `<LoadingScreen />` while pending (session resolves in ProtectedRoute first, but AdminRoute re-reads it for the role check)
 - **Layout** — owns the page shell (Navbar + main wrapper); page components only render their own content
+
+## Shared Code (`core/`)
+Import via `@helpdesk/core` in either the client or server package.
+
+- **Schemas** — Zod schemas shared between client and server go in `core/src/schemas/` (one file per domain entity, e.g. `user.ts`), re-exported from `core/src/index.ts`.
+- **Constants** — Shared constants go in `core/src/constants/` (one file per domain, e.g. `role.ts`), re-exported from `core/src/index.ts`.
+- **`UserRole` enum** — Always import from `@helpdesk/core`, never hardcode `'admin'` or `'agent'` strings. Used in client components, server routes, and `auth.ts`.
 
 ## UI Components
 - Add shadcn components with `bunx shadcn@latest add <component>` (run from `client/`)
@@ -111,6 +131,11 @@ Key conventions owned by the agent:
 All e2e test writing must be delegated to the **`e2e-test-writer`** agent — never write Playwright tests inline.
 
 The agent owns all Playwright knowledge: test structure, selector strategy, auth helpers, global setup, env vars, ports, and the `helpdesk_test` database setup. Run tests with `bun test:e2e`.
+
+Key conventions the agent must follow:
+- Shared helpers live in `e2e/helpers.ts` — import `loginAsAdmin(page)` / `loginAsAgent(page)` instead of calling credentials manually; add new shared helpers there
+- `createUser(page)` is a local helper in `users.spec.ts` that generates its own unique name/email and returns `{ name, email }`; tests should destructure only what they use
+- When asserting table cells by name or email, always pass `{ exact: true }` to `getByRole` to avoid partial/case-insensitive matches hitting multiple cells
 
 ## Docs
 Always use **context7** to fetch up-to-date documentation before working with any library or framework — including Express, React, Prisma, Vite, Bun, shadcn/ui, and the Anthropic SDK. Do not rely on training data alone for API signatures or configuration options.

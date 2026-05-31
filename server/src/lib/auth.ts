@@ -5,6 +5,8 @@ if (!process.env.BETTER_AUTH_SECRET) {
 }
 
 import { prismaAdapter } from 'better-auth/adapters/prisma'
+import { createAuthMiddleware, APIError } from 'better-auth/api'
+import { UserRole } from '@helpdesk/core'
 import { prisma } from './prisma'
 
 export const auth = betterAuth({
@@ -14,11 +16,22 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       role: {
-        type: ['admin', 'agent'] as const,
+        type: [UserRole.admin, UserRole.agent],
         required: true,
-        defaultValue: 'agent',
+        defaultValue: UserRole.agent,
         input: false,
       },
     },
+  },
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== '/sign-in/email') return
+      const email = ctx.body?.email as string | undefined
+      if (!email) return
+      const user = await prisma.user.findUnique({ where: { email } })
+      if (user?.deletedAt) {
+        throw new APIError('UNAUTHORIZED', { message: 'Invalid email or password' })
+      }
+    }),
   },
 })

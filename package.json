@@ -2,7 +2,7 @@
   "name": "helpdesk",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["client", "server"],
+  "workspaces": ["client", "server", "core"],
   "scripts": {
     "dev": "bun --filter '*' dev",
     "client": "bun --filter client dev",

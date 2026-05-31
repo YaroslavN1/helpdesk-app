@@ -1,21 +1,17 @@
 import { useEffect, useState } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-
-type User = { id: string; name: string; email: string; role: 'admin' | 'agent'; createdAt: string }
+import { UserForm, type User, type FormState } from '@/components/UserForm'
+import { UsersTable } from '@/components/UsersTable'
+import { ConfirmationDialog } from '@/components/ConfirmationDialog'
+import { Button } from '@/components/ui/button'
+import { Plus } from 'lucide-react'
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [userFormState, setUserFormState] = useState<FormState | null>(null)
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/users', { credentials: 'include' })
@@ -28,75 +24,64 @@ export default function UsersPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  function handleSaved(savedUser: User) {
+    setUsers((prev) =>
+      userFormState?.mode === 'edit'
+        ? prev.map((user) => (user.id === savedUser.id ? savedUser : user))
+        : [...prev, savedUser]
+    )
+  }
+
+  async function handleDeleteConfirm() {
+    if (!userToDelete) return
+    setDeleteError(null)
+
+    try {
+      const res = await fetch(`/api/users/${userToDelete.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+
+      if (!res.ok) {
+        const json = await res.json() as { error?: string }
+        setDeleteError(json.error ?? 'Failed to delete user')
+        return
+      }
+
+      setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id))
+      setUserToDelete(null)
+    } catch {
+      setDeleteError('Failed to delete user')
+    }
+  }
+
   return (
     <>
-      <h2 className="text-2xl font-bold tracking-tight">Users</h2>
-
-      {loading && (
-        <div className="mt-6 rounded-xl border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Joined</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.from({ length: 4 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
-      {error && (
-        <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2 mt-4">
-          {error}
-        </p>
-      )}
-
-      {!loading && !error && (
-        <div className="mt-6 rounded-xl border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Joined</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                  <TableCell>
-                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {new Date(user.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold tracking-tight">Users</h2>
+        <Button onClick={() => setUserFormState({ mode: 'create', user: null })}><Plus className="size-4" />New user</Button>
+      </div>
+      <UsersTable
+        users={users}
+        loading={loading}
+        error={error}
+        onEdit={(user) => setUserFormState({ mode: 'edit', user })}
+        onDelete={(user) => { setDeleteError(null); setUserToDelete(user) }}
+      />
+      <UserForm
+        form={userFormState}
+        onOpenChange={(open) => { if (!open) setUserFormState(null) }}
+        onSaved={handleSaved}
+      />
+      <ConfirmationDialog
+        open={userToDelete !== null}
+        title="Delete user"
+        description={<>Are you sure you want to delete <strong>{userToDelete?.name}</strong>? This action cannot be undone.</>}
+        confirmLabel="Delete"
+        error={deleteError}
+        onConfirm={() => { void handleDeleteConfirm() }}
+        onOpenChange={(open) => { if (!open) { setDeleteError(null); setUserToDelete(null) } }}
+      />
     </>
   )
 }

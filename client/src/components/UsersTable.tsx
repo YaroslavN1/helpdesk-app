@@ -1,3 +1,4 @@
+import { formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -80,11 +81,7 @@ export function UsersTable({ users, loading, error, onEdit, onDelete }: Props) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {new Date(user.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
+                    {formatDate(user.createdAt)}
                   </TableCell>
                   <TableCell>
                     <Button variant="ghost" size="icon" onClick={() => onEdit(user)} aria-label="Edit user">

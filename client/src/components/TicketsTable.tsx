@@ -1,3 +1,4 @@
+import { formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -124,11 +125,7 @@ export function TicketsTable({ tickets, loading, error }: Props) {
                     {ticket.assignedTo?.name ?? <span className="italic">Unassigned</span>}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {new Date(ticket.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
+                    {formatDate(ticket.createdAt)}
                   </TableCell>
                 </TableRow>
               ))}

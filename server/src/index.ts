@@ -6,6 +6,7 @@ import { toNodeHandler } from 'better-auth/node'
 import { auth } from './lib/auth'
 import usersRouter from './routes/users'
 import webhooksRouter from './routes/webhooks'
+import ticketsRouter from './routes/tickets'
 
 const app = express()
 const PORT = process.env.PORT ?? 3000
@@ -31,6 +32,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/users', usersRouter)
 app.use('/api/webhooks', webhooksRouter)
+app.use('/api/tickets', ticketsRouter)
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)

@@ -6,7 +6,7 @@ import {
   AGENT_EMAIL,
   loginAsAdmin,
   loginAsAgent,
-} from './helpers'
+} from '../helpers'
 
 const SERVER_BASE_URL = 'http://localhost:3001'
 

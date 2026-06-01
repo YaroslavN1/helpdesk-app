@@ -20,3 +20,12 @@ export async function requireAdmin(_req: Request, res: Response, next: NextFunct
   }
   next()
 }
+
+export function requireWebhookSecret(req: Request, res: Response, next: NextFunction) {
+  const secret = process.env.WEBHOOK_SECRET
+  if (secret && req.headers['x-webhook-secret'] !== secret) {
+    res.status(401).json({ error: 'Invalid webhook secret' })
+    return
+  }
+  next()
+}

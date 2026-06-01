@@ -7,7 +7,7 @@ import {
   AGENT_NAME,
   loginAsAdmin,
   loginAsAgent,
-} from './helpers'
+} from '../helpers'
 
 // ---------------------------------------------------------------------------
 // Test suite

@@ -4,7 +4,8 @@ import helmet from 'helmet'
 import { rateLimit } from 'express-rate-limit'
 import { toNodeHandler } from 'better-auth/node'
 import { auth } from './lib/auth'
-import { usersRouter } from './routes/users'
+import usersRouter from './routes/users'
+import webhooksRouter from './routes/webhooks'
 
 const app = express()
 const PORT = process.env.PORT ?? 3000
@@ -29,6 +30,7 @@ app.get('/api/health', (_req, res) => {
 })
 
 app.use('/api/users', usersRouter)
+app.use('/api/webhooks', webhooksRouter)
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)

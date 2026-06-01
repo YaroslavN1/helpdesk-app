@@ -52,8 +52,13 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 ├── server/               # Express backend
 │   ├── src/
 │   │   ├── lib/
-│   │   │   ├── auth.ts     # Better Auth config (Prisma adapter, additionalFields)
-│   │   │   └── prisma.ts
+│   │   │   ├── auth.ts       # Better Auth config (Prisma adapter, additionalFields)
+│   │   │   ├── middleware.ts # requireAuth / requireAdmin Express middleware
+│   │   │   ├── prisma.ts
+│   │   │   └── validate.ts   # validate(schema, body, res) — Zod validation helper for routes
+│   │   ├── routes/
+│   │   │   ├── users.ts
+│   │   │   └── webhooks.ts
 │   │   ├── index.ts
 │   │   ├── seed-admin.ts   # creates admin user (SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD / SEED_ADMIN_NAME)
 │   │   └── seed-agent.ts   # creates agent user (SEED_AGENT_EMAIL / SEED_AGENT_PASSWORD / SEED_AGENT_NAME)
@@ -110,6 +115,22 @@ Import via `@helpdesk/core` in either the client or server package.
 - **Schemas** — Zod schemas shared between client and server go in `core/src/schemas/` (one file per domain entity, e.g. `user.ts`), re-exported from `core/src/index.ts`.
 - **Constants** — Shared constants go in `core/src/constants/` (one file per domain, e.g. `role.ts`), re-exported from `core/src/index.ts`.
 - **`UserRole` enum** — Always import from `@helpdesk/core`, never hardcode `'admin'` or `'agent'` strings. Used in client components, server routes, and `auth.ts`.
+
+## Server Utilities (`server/src/lib/`)
+
+- **`validate.ts`** — Use `validate(schema, req.body, res)` whenever a route needs to validate a request body with Zod. It calls `safeParse`, sends a `400` with the first error message if invalid, and returns `null` so the route can `return` early. Returns the typed parsed data on success.
+
+  ```ts
+  import { validate } from '../lib/validate'
+
+  const data = validate(mySchema, req.body, res)
+  if (!data) return
+  // data is fully typed here
+  ```
+
+  Never write the `safeParse` / `issues[0].message` block inline — always use this helper.
+
+- **`middleware.ts`** — `requireAuth` and `requireAdmin` Express middleware. Session is stored in `res.locals.session` after `requireAuth`.
 
 ## UI Components
 - Add shadcn components with `bunx shadcn@latest add <component>` (run from `client/`)

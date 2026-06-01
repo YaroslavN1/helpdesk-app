@@ -3,6 +3,7 @@ import { hashPassword } from 'better-auth/crypto'
 import { createUserSchema, editUserSchema, UserRole } from '@helpdesk/core'
 import { prisma } from '../lib/prisma'
 import { requireAuth, requireAdmin } from '../lib/middleware'
+import { validate } from '../lib/validate'
 
 export const usersRouter = Router()
 
@@ -16,12 +17,9 @@ usersRouter.get('/', requireAuth, requireAdmin, async (_req, res) => {
 })
 
 usersRouter.post('/', requireAuth, requireAdmin, async (req, res) => {
-  const parsed = createUserSchema.safeParse(req.body)
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0].message })
-    return
-  }
-  const { name, email, password } = parsed.data
+  const data = validate(createUserSchema, req.body, res)
+  if (!data) return
+  const { name, email, password } = data
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
@@ -56,12 +54,9 @@ usersRouter.post('/', requireAuth, requireAdmin, async (req, res) => {
 })
 
 usersRouter.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
-  const parsed = editUserSchema.safeParse(req.body)
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0].message })
-    return
-  }
-  const { name, email, password } = parsed.data
+  const data = validate(editUserSchema, req.body, res)
+  if (!data) return
+  const { name, email, password } = data
   const id = req.params['id'] as string
 
   try {

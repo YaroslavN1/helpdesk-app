@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { inboundEmailSchema, TicketStatus } from '@helpdesk/core'
 import { prisma } from '../lib/prisma'
 import { requireWebhookSecret } from '../lib/middleware'
+import { validate } from '../lib/validate'
 
 function normalizeSubject(subject: string): string {
   return subject.replace(/^((re|fwd?)\s*:\s*)+/i, '').trim()
@@ -10,13 +11,10 @@ function normalizeSubject(subject: string): string {
 export const webhooksRouter = Router()
 
 webhooksRouter.post('/inbound-email', requireWebhookSecret, async (req, res) => {
-  const parsed = inboundEmailSchema.safeParse(req.body)
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0].message })
-    return
-  }
+  const data = validate(inboundEmailSchema, req.body, res)
+  if (!data) return
 
-  const { from, fromName, subject: rawSubject, body, htmlBody } = parsed.data
+  const { from, fromName, subject: rawSubject, body, htmlBody } = data
   const subject = normalizeSubject(rawSubject)
 
   try {

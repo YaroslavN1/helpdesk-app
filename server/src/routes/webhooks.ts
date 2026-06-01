@@ -8,9 +8,9 @@ function normalizeSubject(subject: string): string {
   return subject.replace(/^((re|fwd?)\s*:\s*)+/i, '').trim()
 }
 
-export const webhooksRouter = Router()
+const router = Router()
 
-webhooksRouter.post('/inbound-email', requireWebhookSecret, async (req, res) => {
+router.post('/inbound-email', requireWebhookSecret, async (req, res) => {
   const data = validate(inboundEmailSchema, req.body, res)
   if (!data) return
 
@@ -27,3 +27,5 @@ webhooksRouter.post('/inbound-email', requireWebhookSecret, async (req, res) => 
     res.status(500).json({ error: 'Failed to create ticket' })
   }
 })
+
+export default router

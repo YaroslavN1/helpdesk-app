@@ -4,8 +4,8 @@ import helmet from 'helmet'
 import { rateLimit } from 'express-rate-limit'
 import { toNodeHandler } from 'better-auth/node'
 import { auth } from './lib/auth'
-import { usersRouter } from './routes/users'
-import { webhooksRouter } from './routes/webhooks'
+import usersRouter from './routes/users'
+import webhooksRouter from './routes/webhooks'
 
 const app = express()
 const PORT = process.env.PORT ?? 3000

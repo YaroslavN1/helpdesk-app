@@ -1,16 +1,17 @@
 import { Navigate, Outlet } from 'react-router'
 import { authClient } from '@/lib/auth-client'
-import LoadingScreen from '@/components/LoadingScreen'
+import { UserRole } from '@helpdesk/core'
+import LoadingScreen from '@/components/layout/LoadingScreen'
 
-export default function ProtectedRoute() {
+export default function AdminRoute() {
   const { data: session, isPending } = authClient.useSession()
 
   if (isPending) {
     return <LoadingScreen />
   }
 
-  if (!session) {
-    return <Navigate to="/login" replace />
+  if (session?.user.role !== UserRole.admin) {
+    return <Navigate to="/" replace />
   }
 
   return <Outlet />

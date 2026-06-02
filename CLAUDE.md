@@ -23,17 +23,24 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── ui/                    # shadcn/ui components
-│   │   │   ├── AdminRoute.tsx         # redirects non-admins to /; shows <LoadingScreen /> while pending
-│   │   │   ├── ConfirmationDialog.tsx # generic alert-dialog for destructive confirmations
-│   │   │   ├── Layout.tsx             # Navbar + <main> wrapper (Outlet)
-│   │   │   ├── LoadingScreen.tsx      # full-screen "Loading…" used by route guards and LoginPage
-│   │   │   ├── Navbar.tsx             # top nav; admin-only Users link
-│   │   │   ├── ProtectedRoute.tsx     # redirects unauthenticated to /login; shows <LoadingScreen /> while pending
-│   │   │   ├── UserForm.tsx           # create/edit dialog + form; exports User and FormState types
-│   │   │   └── UsersTable.tsx         # users table with loading/error/data states; edit + delete actions
+│   │   │   ├── common/
+│   │   │   │   └── ConfirmationDialog.tsx # generic alert-dialog for destructive confirmations
+│   │   │   ├── layout/
+│   │   │   │   ├── Layout.tsx             # Navbar + <main> wrapper (Outlet)
+│   │   │   │   ├── LoadingScreen.tsx      # full-screen "Loading…" used by route guards and LoginPage
+│   │   │   │   └── Navbar.tsx             # top nav; admin-only Users link
+│   │   │   ├── routing/
+│   │   │   │   ├── AdminRoute.tsx         # redirects non-admins to /; shows <LoadingScreen /> while pending
+│   │   │   │   └── ProtectedRoute.tsx     # redirects unauthenticated to /login; shows <LoadingScreen /> while pending
+│   │   │   ├── tickets/
+│   │   │   │   └── TicketsTable.tsx       # tickets table with loading/error/data states
+│   │   │   └── users/
+│   │   │       ├── UserForm.tsx           # create/edit dialog + form; exports User and FormState types
+│   │   │       └── UsersTable.tsx         # users table with loading/error/data states; edit + delete actions
 │   │   ├── pages/
 │   │   │   ├── HomePage.tsx
 │   │   │   ├── LoginPage.tsx
+│   │   │   ├── TicketsPage.tsx       # /tickets — any authenticated user; fetches tickets
 │   │   │   └── UsersPage.tsx         # /users — admin only; fetches users
 │   │   ├── lib/
 │   │   │   ├── auth-client.ts  # Better Auth client with inferAdditionalFields
@@ -50,6 +57,11 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │       ├── schemas/        # Zod schemas (one file per domain entity, e.g. user.ts)
 │       └── index.ts        # re-exports everything from schemas/ and constants/
 ├── server/               # Express backend
+│   ├── prisma/
+│   │   ├── migrations/
+│   │   ├── schema.prisma
+│   │   ├── seed-admin.ts   # creates admin user (SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD)
+│   │   └── seed-agent.ts   # creates agent user (SEED_AGENT_EMAIL / SEED_AGENT_PASSWORD / SEED_AGENT_NAME)
 │   ├── src/
 │   │   ├── lib/
 │   │   │   ├── auth.ts       # Better Auth config (Prisma adapter, additionalFields)
@@ -59,9 +71,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   ├── routes/
 │   │   │   ├── users.ts
 │   │   │   └── webhooks.ts
-│   │   ├── index.ts
-│   │   ├── seed-admin.ts   # creates admin user (SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD / SEED_ADMIN_NAME)
-│   │   └── seed-agent.ts   # creates agent user (SEED_AGENT_EMAIL / SEED_AGENT_PASSWORD / SEED_AGENT_NAME)
+│   │   └── index.ts
 │   └── tsconfig.json
 ├── e2e/                  # Playwright end-to-end tests
 │   ├── helpers.ts        # shared constants (ADMIN_*, AGENT_*) and loginAsAdmin / loginAsAgent helpers
@@ -90,7 +100,7 @@ bun test:e2e:debug    # run Playwright E2E tests in debug mode
 - **Library:** Better Auth — email/password only, sign-up disabled, HTTP-only cookie sessions
 - **Roles:** `UserRole` enum — `admin` | `agent`. Exposed via `additionalFields` in `server/src/lib/auth.ts`; typed on the client via `inferAdditionalFields<typeof auth>()` in `auth-client.ts`
 - **Client usage:** `authClient.signIn.email({ email, password })` to sign in; `authClient.useSession()` hook for session/role
-- **Seeding:** `server/src/seed-admin.ts` and `server/src/seed-agent.ts` — see those files for env var names
+- **Seeding:** `server/prisma/seed-admin.ts` and `server/prisma/seed-agent.ts` — see those files for env var names
 - **Full auth implementation details** (env vars, security posture, route guard patterns) live in `.claude/agents/security-reviewer.md`
 - **All authentication changes must be delegated to the `security-reviewer` agent** — it holds the complete auth context and security requirements
 

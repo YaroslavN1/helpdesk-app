@@ -1,5 +1,5 @@
 import { TicketStatus, TicketCategory } from '@helpdesk/core'
-import { type Ticket } from '@/components/TicketsTable'
+import { type Ticket } from '@/components/tickets/TicketsTable'
 
 export const TICKETS: Ticket[] = [
   {

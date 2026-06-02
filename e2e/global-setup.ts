@@ -68,9 +68,9 @@ function runMigrations() {
 }
 
 function seedAdminUser() {
-  execSync('bun src/seed-admin.ts', { cwd: SERVER_DIR, stdio: 'inherit' })
+  execSync('bun prisma/seed-admin.ts', { cwd: SERVER_DIR, stdio: 'inherit' })
 }
 
 function seedAgentUser() {
-  execSync('bun src/seed-agent.ts', { cwd: SERVER_DIR, stdio: 'inherit' })
+  execSync('bun prisma/seed-agent.ts', { cwd: SERVER_DIR, stdio: 'inherit' })
 }

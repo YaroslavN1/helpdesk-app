@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router'
-import { authClient } from '../lib/auth-client'
+import { authClient } from '@/lib/auth-client'
 import { UserRole } from '@helpdesk/core'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table'
 import { Pencil, Trash2 } from 'lucide-react'
 import { UserRole } from '@helpdesk/core'
-import { type User } from '@/components/UserForm'
+import { type User } from '@/components/users/UserForm'
 
 interface Props {
   users: User[]

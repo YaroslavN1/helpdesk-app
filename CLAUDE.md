@@ -23,17 +23,24 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── ui/                    # shadcn/ui components
-│   │   │   ├── AdminRoute.tsx         # redirects non-admins to /; shows <LoadingScreen /> while pending
-│   │   │   ├── ConfirmationDialog.tsx # generic alert-dialog for destructive confirmations
-│   │   │   ├── Layout.tsx             # Navbar + <main> wrapper (Outlet)
-│   │   │   ├── LoadingScreen.tsx      # full-screen "Loading…" used by route guards and LoginPage
-│   │   │   ├── Navbar.tsx             # top nav; admin-only Users link
-│   │   │   ├── ProtectedRoute.tsx     # redirects unauthenticated to /login; shows <LoadingScreen /> while pending
-│   │   │   ├── UserForm.tsx           # create/edit dialog + form; exports User and FormState types
-│   │   │   └── UsersTable.tsx         # users table with loading/error/data states; edit + delete actions
+│   │   │   ├── common/
+│   │   │   │   └── ConfirmationDialog.tsx # generic alert-dialog for destructive confirmations
+│   │   │   ├── layout/
+│   │   │   │   ├── Layout.tsx             # Navbar + <main> wrapper (Outlet)
+│   │   │   │   ├── LoadingScreen.tsx      # full-screen "Loading…" used by route guards and LoginPage
+│   │   │   │   └── Navbar.tsx             # top nav; admin-only Users link
+│   │   │   ├── routing/
+│   │   │   │   ├── AdminRoute.tsx         # redirects non-admins to /; shows <LoadingScreen /> while pending
+│   │   │   │   └── ProtectedRoute.tsx     # redirects unauthenticated to /login; shows <LoadingScreen /> while pending
+│   │   │   ├── tickets/
+│   │   │   │   └── TicketsTable.tsx       # tickets table with loading/error/data states
+│   │   │   └── users/
+│   │   │       ├── UserForm.tsx           # create/edit dialog + form; exports User and FormState types
+│   │   │       └── UsersTable.tsx         # users table with loading/error/data states; edit + delete actions
 │   │   ├── pages/
 │   │   │   ├── HomePage.tsx
 │   │   │   ├── LoginPage.tsx
+│   │   │   ├── TicketsPage.tsx       # /tickets — any authenticated user; fetches tickets
 │   │   │   └── UsersPage.tsx         # /users — admin only; fetches users
 │   │   ├── lib/
 │   │   │   ├── auth-client.ts  # Better Auth client with inferAdditionalFields

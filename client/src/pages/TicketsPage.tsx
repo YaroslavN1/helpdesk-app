@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { TicketsTable, type Ticket } from '@/components/TicketsTable'
+import { TicketsTable, type Ticket } from '@/components/tickets/TicketsTable'
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([])

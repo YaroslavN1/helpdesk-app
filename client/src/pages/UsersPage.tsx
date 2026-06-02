@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { UserForm, type User, type FormState } from '@/components/UserForm'
-import { UsersTable } from '@/components/UsersTable'
-import { ConfirmationDialog } from '@/components/ConfirmationDialog'
+import { UserForm, type User, type FormState } from '@/components/users/UserForm'
+import { UsersTable } from '@/components/users/UsersTable'
+import { ConfirmationDialog } from '@/components/common/ConfirmationDialog'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 

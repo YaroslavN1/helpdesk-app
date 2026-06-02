@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
-import { prisma } from './lib/prisma'
+import { prisma } from '../src/lib/prisma'
 
 const email = process.env.SEED_AGENT_EMAIL
 const password = process.env.SEED_AGENT_PASSWORD

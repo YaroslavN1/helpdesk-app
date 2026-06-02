@@ -1,7 +1,7 @@
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
-import { prisma } from './lib/prisma'
-import { UserRole } from './generated/prisma/enums'
+import { prisma } from '../src/lib/prisma'
+import { UserRole } from '../src/generated/prisma/enums'
 
 const email = process.env.SEED_ADMIN_EMAIL
 const password = process.env.SEED_ADMIN_PASSWORD

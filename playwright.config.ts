@@ -31,7 +31,7 @@ export default defineConfig({
       command: 'bun src/index.ts',
       cwd: path.join(__dirname, 'server'),
       url: `http://localhost:${SERVER_PORT}/api/health`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       env: {
         PORT: String(SERVER_PORT),
         NODE_ENV: 'test',
@@ -41,7 +41,7 @@ export default defineConfig({
       command: `bunx vite --port ${CLIENT_PORT}`,
       cwd: path.join(__dirname, 'client'),
       url: `http://localhost:${CLIENT_PORT}`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
     },
   ],
 })

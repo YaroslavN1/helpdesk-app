@@ -82,9 +82,9 @@ test.describe('Tickets page', () => {
       await loginAsAdmin(page)
       await page.goto('/tickets')
 
-      const row = page.getByRole('row').filter({ hasText: `#${ticket.id}` })
+      const row = page.getByRole('row').filter({ hasText: String(ticket.id) })
 
-      await expect(row.getByText(`#${ticket.id}`)).toBeVisible()
+      await expect(row.getByText(String(ticket.id))).toBeVisible()
       await expect(row.getByText(defaultTicketPayload.subject)).toBeVisible()
       await expect(row.getByText(defaultTicketPayload.fromName)).toBeVisible()
       await expect(row.getByText(defaultTicketPayload.from)).toBeVisible()

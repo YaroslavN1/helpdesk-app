@@ -97,7 +97,7 @@ export function TicketsTable({ tickets, loading, error }: Props) {
               )}
               {tickets.map((ticket) => (
                 <TableRow key={ticket.id}>
-                  <TableCell className="font-mono text-muted-foreground">#{ticket.id}</TableCell>
+                  <TableCell className="font-mono text-muted-foreground">{ticket.id}</TableCell>
                   <TableCell className="font-medium max-w-xs truncate">{ticket.subject}</TableCell>
                   <TableCell>
                     <div className="text-sm">{ticket.fromName}</div>

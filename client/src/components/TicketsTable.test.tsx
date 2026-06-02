@@ -55,7 +55,7 @@ describe('TicketsTable — loaded state', () => {
   it('renders ticket id, subject, fromName, and fromEmail', () => {
     render(<TicketsTable tickets={TICKETS} loading={false} error={null} />)
 
-    expect(screen.getByText('#1')).toBeInTheDocument()
+    expect(screen.getByText('1')).toBeInTheDocument()
     expect(screen.getByText('Cannot log in to my account')).toBeInTheDocument()
     expect(screen.getByText('Alice Smith')).toBeInTheDocument()
     expect(screen.getByText('alice@example.com')).toBeInTheDocument()

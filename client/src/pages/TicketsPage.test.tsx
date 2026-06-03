@@ -23,7 +23,7 @@ describe('TicketsPage', () => {
     vi.stubGlobal('fetch', fetchSpy)
     render(<TicketsPage />)
 
-    expect(fetchSpy).toHaveBeenCalledWith('/api/tickets', { credentials: 'include' })
+    expect(fetchSpy).toHaveBeenCalledWith('/api/tickets?sortBy=createdAt&sortOrder=desc', { credentials: 'include' })
   })
 
   it('shows skeleton rows while fetch is pending', () => {

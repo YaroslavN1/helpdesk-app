@@ -128,7 +128,7 @@ Import via `@helpdesk/core` in either the client or server package.
 
 ## Server Utilities (`server/src/lib/`)
 
-- **`validate.ts`** — Use `validate(schema, req.body, res)` whenever a route needs to validate a request body with Zod. It calls `safeParse`, sends a `400` with the first error message if invalid, and returns `null` so the route can `return` early. Returns the typed parsed data on success.
+- **`validate.ts`** — Use `validate(schema, input, res)` whenever a route needs to validate input with Zod. Works for both `req.body` and `req.query`. It calls `safeParse`, sends a `400` with the first error message if invalid, and returns `null` so the route can `return` early. Returns the typed parsed data on success.
 
   ```ts
   import { validate } from '../lib/validate'
@@ -136,6 +136,9 @@ Import via `@helpdesk/core` in either the client or server package.
   const data = validate(mySchema, req.body, res)
   if (!data) return
   // data is fully typed here
+
+  const query = validate(querySchema, req.query, res)
+  if (!query) return
   ```
 
   Never write the `safeParse` / `issues[0].message` block inline — always use this helper.
@@ -167,6 +170,8 @@ Key conventions owned by the agent:
 Use sparingly — only when unit tests cannot cover the scenario. All e2e test writing must be delegated to the **`e2e-test-writer`** agent — never write Playwright tests inline.
 
 The agent owns all Playwright knowledge: test structure, selector strategy, auth helpers, global setup, env vars, ports, and the `helpdesk_test` database setup. Run tests with `bun test:e2e`.
+
+**Ports:** E2E tests run against a dedicated test server — client on `http://localhost:5174`, API server on `http://localhost:3001`. These differ from the dev ports (5173 / 3000). Always read the exact URLs from `process.env` (set in `.env.test`) rather than hardcoding.
 
 Key conventions the agent must follow:
 - Shared helpers live in `e2e/helpers.ts` — import `loginAsAdmin(page)` / `loginAsAgent(page)` instead of calling credentials manually; add new shared helpers there

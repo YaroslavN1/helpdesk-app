@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { formatDate } from '@/lib/utils'
 import { SortableHead } from './SortableHead'
 import { Badge } from '@/components/ui/badge'
@@ -11,41 +10,37 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { TicketStatus, TicketCategory, TICKET_DEFAULT_SORT_COLUMN, DEFAULT_SORT_ORDER, SORT_ORDERS, type Ticket, type SortColumn, type SortOrder, type TicketsSort } from '@helpdesk/core'
+import {
+  TicketStatus,
+  TICKET_CATEGORY_LABELS,
+  SORT_ORDERS,
+  type Ticket,
+  type SortColumn,
+  type SortOrder,
+  type TicketsSort,
+} from '@helpdesk/core'
 
 interface Props {
   tickets: Ticket[]
   loading: boolean
   error: string | null
+  sort: TicketsSort
   onSortChange: (sort: TicketsSort) => void
 }
 
-function formatCategory(category: TicketCategory): string {
-  const raw = category.replace(/_/g, ' ')
-  return raw.charAt(0).toUpperCase() + raw.slice(1)
-}
-
-
-export function TicketsTable({ tickets, loading, error, onSortChange }: Props) {
-  const [sort, setSort] = useState<TicketsSort>({
-    column: TICKET_DEFAULT_SORT_COLUMN,
-    order: DEFAULT_SORT_ORDER,
-  })
-
+export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Props) {
   function handleSortChange(column: SortColumn) {
-    const newSort: TicketsSort = {
+    onSortChange({
       column,
       order: column === sort.column
         ? SORT_ORDERS.find(order => order !== sort.order) as SortOrder
         : SORT_ORDERS[0],
-    }
-    setSort(newSort)
-    onSortChange(newSort)
+    })
   }
 
   return (
     <>
-      <div className="mt-6 rounded-xl border overflow-hidden">
+      <div className="mt-4 rounded-xl border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -100,7 +95,7 @@ export function TicketsTable({ tickets, loading, error, onSortChange }: Props) {
                 </TableCell>
                 <TableCell>
                   {ticket.category ? (
-                    <Badge variant="outline">{formatCategory(ticket.category)}</Badge>
+                    <Badge variant="outline">{TICKET_CATEGORY_LABELS[ticket.category]}</Badge>
                   ) : (
                     <span className="text-muted-foreground text-sm">—</span>
                   )}

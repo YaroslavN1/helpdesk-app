@@ -38,7 +38,7 @@ const SKELETON_CELLS = [
 ]
 
 const COLUMNS = [
-  { sortable: true,  column: 'id',        label: '#',           className: 'w-16' },
+  { sortable: true,  column: 'id',        label: 'Id',          className: 'w-16' },
   { sortable: true,  column: 'subject',   label: 'Subject' },
   { sortable: true,  column: 'fromName',  label: 'From' },
   { sortable: true,  column: 'status',    label: 'Status' },

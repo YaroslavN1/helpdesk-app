@@ -51,7 +51,7 @@ describe('TicketsTable — loaded state', () => {
   it('renders column headers', () => {
     renderTicketsTable()
 
-    expect(screen.getByText('#')).toBeInTheDocument()
+    expect(screen.getByText('Id')).toBeInTheDocument()
     expect(screen.getByText('Subject')).toBeInTheDocument()
     expect(screen.getByText('From')).toBeInTheDocument()
     expect(screen.getByText('Status')).toBeInTheDocument()
@@ -166,7 +166,7 @@ describe('TicketsTable — sorting', () => {
     const onSortChange = vi.fn()
     renderTicketsTable({ onSortChange })
 
-    await userEvent.click(screen.getByRole('button', { name: /#/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^id$/i }))
 
     expect(onSortChange).toHaveBeenCalledWith({ column: 'id', order: 'asc' })
   })

@@ -6,6 +6,7 @@ import {
   TICKET_STATUSES,
   TICKET_CATEGORIES,
   TICKET_CATEGORY_LABELS,
+  DEFAULT_FILTERS,
   type TicketsFilters,
 } from '@helpdesk/core'
 
@@ -19,12 +20,12 @@ const statusOptions = TICKET_STATUSES.map(status => ({ value: status, label: sta
 const categoryOptions = TICKET_CATEGORIES.map(category => ({ value: category, label: TICKET_CATEGORY_LABELS[category] }))
 
 export function TicketsFilters({ filters, onFiltersChange, loading }: Props) {
-  const isFilter = !!(filters.status?.length) || !!(filters.category?.length) || !!filters.search
+  const isFilter = filters.status.length > 0 || filters.category.length > 0 || !!filters.search
 
   return (
     <div className="mt-6 flex items-center gap-2">
       <InputDebounced
-        value={filters.search ?? ''}
+        value={filters.search}
         onChange={search => onFiltersChange({ ...filters, search })}
         placeholder="Search tickets…"
         className="w-56"
@@ -33,7 +34,7 @@ export function TicketsFilters({ filters, onFiltersChange, loading }: Props) {
       <MultiSelect
         label="Status"
         options={statusOptions}
-        selected={filters.status ?? []}
+        selected={filters.status}
         onChange={status => onFiltersChange({ ...filters, status })}
         disabled={loading}
         testId="status-filter"
@@ -42,14 +43,14 @@ export function TicketsFilters({ filters, onFiltersChange, loading }: Props) {
       <MultiSelect
         label="Category"
         options={categoryOptions}
-        selected={filters.category ?? []}
+        selected={filters.category}
         onChange={category => onFiltersChange({ ...filters, category })}
         disabled={loading}
         testId="category-filter"
       />
 
       {isFilter && (
-        <Button variant="ghost" size="default" onClick={() => onFiltersChange({})} disabled={loading}>
+        <Button variant="ghost" size="default" onClick={() => onFiltersChange(DEFAULT_FILTERS)} disabled={loading}>
           <X className="h-3.5 w-3.5" />
           Clear filters
         </Button>

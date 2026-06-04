@@ -6,6 +6,7 @@ import {
   SortColumn,
   SortOrder,
   DEFAULT_PAGE_SIZE,
+  DEFAULT_FILTERS,
   type Ticket,
   type TicketsSort,
   type TicketsFilters as FiltersState,
@@ -21,11 +22,11 @@ export default function TicketsPage() {
   const [error, setError] = useState<string | null>(null)
   const [params, setParams] = useState<{ sort: TicketsSort; filters: FiltersState; page: number }>({
     sort: defaultSort,
-    filters: {},
+    filters: DEFAULT_FILTERS,
     page: 1,
   })
 
-  function fetchTickets(sort: TicketsSort, filters: FiltersState = {}, page = 1) {
+  function fetchTickets(sort: TicketsSort, filters: FiltersState = DEFAULT_FILTERS, page = 1) {
     setLoading(true)
     setError(null)
 
@@ -36,8 +37,8 @@ export default function TicketsPage() {
     query.set('pageSize', String(DEFAULT_PAGE_SIZE))
 
     if (filters.search) query.set('search', filters.search)
-    for (const status of (filters.status ?? [])) query.append('status', status)
-    for (const category of (filters.category ?? [])) query.append('category', category)
+    for (const status of filters.status) query.append('status', status)
+    for (const category of filters.category) query.append('category', category)
 
     fetch(`/api/tickets?${query}`, { credentials: 'include' })
       .then((res) => {

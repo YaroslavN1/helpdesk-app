@@ -20,10 +20,11 @@ export const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
 }
 
 export type TicketsFilters = {
-  search?: string
-  status?: TicketStatus[]
-  category?: TicketCategory[]
+  search: string
+  status: TicketStatus[]
+  category: TicketCategory[]
 }
+export const DEFAULT_FILTERS: TicketsFilters = { search: '', status: [], category: [] }
 
 export const SortOrder = { asc: 'asc', desc: 'desc' } as const
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]

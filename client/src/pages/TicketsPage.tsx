@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { TicketsFilters } from '@/components/tickets/TicketsFilters'
 import { TicketsTable } from '@/components/tickets/TicketsTable'
-import { TicketsPagination } from '@/components/tickets/TicketsPagination'
+import { Pagination } from '@/components/ui/pagination'
 import {
   SortColumn,
   SortOrder,
@@ -84,7 +84,7 @@ export default function TicketsPage() {
         sort={params.sort}
         onSortChange={handleSortChange}
       />
-      <TicketsPagination
+      <Pagination
         page={params.page}
         pageSize={DEFAULT_PAGE_SIZE}
         total={total}

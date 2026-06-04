@@ -31,7 +31,7 @@ function getPageRange(page: number, totalPages: number): (number | '...')[] {
   return pages
 }
 
-export function TicketsPagination({ page, pageSize, total, onPageChange, loading }: Props) {
+export function Pagination({ page, pageSize, total, onPageChange, loading }: Props) {
   const totalPages = Math.ceil(total / pageSize)
   if (totalPages <= 1) return null
 

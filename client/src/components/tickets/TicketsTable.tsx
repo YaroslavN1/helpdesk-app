@@ -27,6 +27,16 @@ interface Props {
   onSortChange: (sort: TicketsSort) => void
 }
 
+const SKELETON_CELLS = [
+  'h-4 w-8',
+  'h-4 w-48',
+  'h-4 w-36',
+  'h-5 w-14 rounded-full',
+  'h-5 w-28 rounded-full',
+  'h-4 w-24',
+  'h-4 w-24',
+]
+
 const COLUMNS = [
   { sortable: true,  column: 'id',        label: '#',           className: 'w-16' },
   { sortable: true,  column: 'subject',   label: 'Subject' },
@@ -69,13 +79,9 @@ export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Pr
             {loading && (
               Array.from({ length: 4 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-36" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-28 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  {SKELETON_CELLS.map((className, index) => (
+                    <TableCell key={index}><Skeleton className={className} /></TableCell>
+                  ))}
                 </TableRow>
               ))
             )}

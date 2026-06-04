@@ -1,12 +1,11 @@
 import { formatDate } from '@/lib/utils'
-import { SortableHead } from './SortableHead'
+import { SortableHead } from '@/components/ui/sortable-head'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
@@ -28,10 +27,20 @@ interface Props {
   onSortChange: (sort: TicketsSort) => void
 }
 
+const COLUMNS = [
+  { sortable: true,  column: 'id',        label: '#',           className: 'w-16' },
+  { sortable: true,  column: 'subject',   label: 'Subject' },
+  { sortable: true,  column: 'fromName',  label: 'From' },
+  { sortable: true,  column: 'status',    label: 'Status' },
+  { sortable: true,  column: 'category',  label: 'Category' },
+  { sortable: false,                      label: 'Assigned to' },
+  { sortable: true,  column: 'createdAt', label: 'Received' },
+] as const
+
 export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Props) {
-  function handleSortChange(column: SortColumn) {
+  function handleSortChange(column: string) {
     onSortChange({
-      column,
+      column: column as SortColumn,
       order: column === sort.column
         ? SORT_ORDERS.find(order => order !== sort.order) as SortOrder
         : SORT_ORDERS[0],
@@ -44,13 +53,16 @@ export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Pr
         <Table>
           <TableHeader>
             <TableRow>
-              <SortableHead column="id" label="#" sort={sort} loading={loading} onSortChange={handleSortChange} className="w-16" />
-              <SortableHead column="subject" label="Subject" sort={sort} loading={loading} onSortChange={handleSortChange} />
-              <SortableHead column="fromName" label="From" sort={sort} loading={loading} onSortChange={handleSortChange} />
-              <SortableHead column="status" label="Status" sort={sort} loading={loading} onSortChange={handleSortChange} />
-              <SortableHead column="category" label="Category" sort={sort} loading={loading} onSortChange={handleSortChange} />
-              <TableHead>Assigned to</TableHead>
-              <SortableHead column="createdAt" label="Received" sort={sort} loading={loading} onSortChange={handleSortChange} />
+              {COLUMNS.map(col => (
+                <SortableHead
+                  key={col.label}
+                  {...col}
+                  activeColumn={sort.column}
+                  activeOrder={sort.order}
+                  loading={loading}
+                  onSortChange={handleSortChange}
+                />
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>

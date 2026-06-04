@@ -36,6 +36,7 @@ export function TicketsFilters({ filters, onFiltersChange, loading }: Props) {
         selected={filters.status ?? []}
         onChange={status => onFiltersChange({ ...filters, status })}
         disabled={loading}
+        testId="status-filter"
       />
 
       <MultiSelect
@@ -44,6 +45,7 @@ export function TicketsFilters({ filters, onFiltersChange, loading }: Props) {
         selected={filters.category ?? []}
         onChange={category => onFiltersChange({ ...filters, category })}
         disabled={loading}
+        testId="category-filter"
       />
 
       {isFilter && (

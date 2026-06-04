@@ -14,11 +14,12 @@ interface Props<T extends string> {
   selected: T[]
   onChange: (selected: T[]) => void
   disabled?: boolean
+  testId?: string
 }
 
 const checkboxItemClass = 'flex cursor-default select-none items-center gap-2 rounded-md px-2 py-1.5 outline-none data-highlighted:bg-muted'
 
-export function MultiSelect<T extends string>({ label, options, selected, onChange, disabled }: Props<T>) {
+export function MultiSelect<T extends string>({ label, options, selected, onChange, disabled, testId }: Props<T>) {
   function updateSelected(value: T) {
     const updatedSelected = selected.includes(value)
       ? selected.filter(item => item !== value)
@@ -29,6 +30,7 @@ export function MultiSelect<T extends string>({ label, options, selected, onChan
     <Menu.Root>
       <Menu.Trigger
         disabled={disabled}
+        data-testid={testId}
         className={cn(buttonVariants({ variant: 'outline', size: 'default' }), 'gap-1.5')}
       >
         {selected.length > 0 && (
@@ -48,6 +50,7 @@ export function MultiSelect<T extends string>({ label, options, selected, onChan
                 checked={selected.includes(option.value)}
                 onCheckedChange={() => updateSelected(option.value)}
                 closeOnClick={false}
+                data-testid="multiselect-item"
                 className={checkboxItemClass}
               >
                 <Menu.CheckboxItemIndicator className="flex h-3.5 w-3.5 items-center justify-center">

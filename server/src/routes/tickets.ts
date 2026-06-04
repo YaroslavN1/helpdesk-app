@@ -28,9 +28,12 @@ router.get('/', requireAuth, async (req, res) => {
   if (!query) return
   const { sortBy, sortOrder, search, status, category, page, pageSize } = query
 
+  const searchId = search ? parseInt(search, 10) : NaN
+
   const where: Prisma.TicketWhereInput = {
     ...(search && {
       OR: [
+        ...(!isNaN(searchId) ? [{ id: { equals: searchId } }] : []),
         { subject: { contains: search, mode: 'insensitive' } },
         { fromName: { contains: search, mode: 'insensitive' } },
         { fromEmail: { contains: search, mode: 'insensitive' } },

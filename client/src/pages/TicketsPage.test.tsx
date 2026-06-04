@@ -4,7 +4,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import TicketsPage from './TicketsPage'
 import { TICKETS } from '@/test/fixtures'
 
-function mockFetch(payload: typeof TICKETS | null = TICKETS, ok = true) {
+const PAGINATED_TICKETS = { tickets: TICKETS, total: TICKETS.length }
+
+function mockFetch(payload: typeof PAGINATED_TICKETS | null = PAGINATED_TICKETS, ok = true) {
   const fetchSpy = vi.fn().mockResolvedValue({
     ok,
     json: () => Promise.resolve(payload),
@@ -23,7 +25,10 @@ describe('TicketsPage', () => {
     vi.stubGlobal('fetch', fetchSpy)
     render(<TicketsPage />)
 
-    expect(fetchSpy).toHaveBeenCalledWith('/api/tickets?sortBy=createdAt&sortOrder=desc', { credentials: 'include' })
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/tickets?sortBy=createdAt&sortOrder=desc&page=1&pageSize=10',
+      { credentials: 'include' },
+    )
   })
 
   it('shows skeleton rows while fetch is pending', () => {
@@ -183,7 +188,110 @@ describe('TicketsPage — filtering', () => {
 
     await waitFor(() => {
       const lastCall = fetchSpy.mock.calls[fetchSpy.mock.calls.length - 1]
-      expect(lastCall?.[0]).toBe('/api/tickets?sortBy=createdAt&sortOrder=desc')
+      expect(lastCall?.[0]).toBe('/api/tickets?sortBy=createdAt&sortOrder=desc&page=1&pageSize=10')
     })
+  })
+})
+
+describe('TicketsPage — pagination', () => {
+  it('does not render pagination when total fits on one page', async () => {
+    mockFetch({ tickets: TICKETS, total: TICKETS.length })
+    render(<TicketsPage />)
+
+    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument())
+
+    expect(screen.queryByTestId('pagination-summary')).not.toBeInTheDocument()
+  })
+
+  it('renders pagination summary when there are multiple pages', async () => {
+    mockFetch({ tickets: TICKETS, total: 50 })
+    render(<TicketsPage />)
+
+    await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
+  })
+
+  it('re-fetches with page=2 when the second page button is clicked', async () => {
+    const user = userEvent.setup()
+    const fetchSpy = mockFetch({ tickets: TICKETS, total: 50 })
+    render(<TicketsPage />)
+
+    await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
+
+    await user.click(screen.getByRole('button', { name: '2' }))
+
+    await waitFor(() => {
+      const calls = fetchSpy.mock.calls.map(([url]) => url as string)
+      expect(calls.some(url => url.includes('page=2'))).toBe(true)
+    })
+  })
+
+  it('previous button is disabled on page 1', async () => {
+    mockFetch({ tickets: TICKETS, total: 50 })
+    render(<TicketsPage />)
+
+    await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
+
+    const prevButton = Array.from(document.querySelectorAll('button')).find(
+      button => button.querySelector('.lucide-chevron-left'),
+    )
+    expect(prevButton).toBeDefined()
+    expect(prevButton).toBeDisabled()
+  })
+
+  it('re-fetches with page=2 when the next button is clicked', async () => {
+    const user = userEvent.setup()
+    const fetchSpy = mockFetch({ tickets: TICKETS, total: 50 })
+    render(<TicketsPage />)
+
+    await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
+
+    const nextButton = Array.from(document.querySelectorAll('button')).find(
+      button => button.querySelector('.lucide-chevron-right'),
+    )!
+    await user.click(nextButton)
+
+    await waitFor(() => {
+      const calls = fetchSpy.mock.calls.map(([url]) => url as string)
+      expect(calls.some(url => url.includes('page=2'))).toBe(true)
+    })
+  })
+
+  it('re-fetches with page=1 when the previous button is clicked from page 2', async () => {
+    const user = userEvent.setup()
+    const fetchSpy = mockFetch({ tickets: TICKETS, total: 50 })
+    render(<TicketsPage />)
+
+    await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
+
+    await user.click(screen.getByRole('button', { name: '2' }))
+    await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 11–20 of 50'))
+
+    const prevButton = Array.from(document.querySelectorAll('button')).find(
+      button => button.querySelector('.lucide-chevron-left'),
+    )!
+    await user.click(prevButton)
+
+    await waitFor(() => {
+      const calls = fetchSpy.mock.calls.map(([url]) => url as string)
+      expect(calls.some(url => url.includes('page=1'))).toBe(true)
+    })
+  })
+
+  it('next button is disabled on the last page', async () => {
+    const user = userEvent.setup()
+    mockFetch({ tickets: TICKETS, total: 20 })
+    render(<TicketsPage />)
+
+    await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 20'))
+
+    await user.click(screen.getByRole('button', { name: '2' }))
+
+    await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 11–20 of 20'))
+
+    const nextButton = Array.from(document.querySelectorAll('button')).find(
+      button => button.querySelector('.lucide-chevron-right'),
+    )
+    expect(nextButton).toBeDefined()
+    expect(nextButton).toBeDisabled()
   })
 })

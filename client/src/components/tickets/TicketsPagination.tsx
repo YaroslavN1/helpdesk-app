@@ -40,7 +40,7 @@ export function TicketsPagination({ page, pageSize, total, onPageChange, loading
 
   return (
     <div className="flex items-center justify-between mt-4">
-      <p className="text-sm text-muted-foreground">
+      <p data-testid="pagination-summary" className="text-sm text-muted-foreground">
         Showing {from}–{to} of {total}
       </p>
       <div className="flex items-center gap-1">

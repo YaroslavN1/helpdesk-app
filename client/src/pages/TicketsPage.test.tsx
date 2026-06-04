@@ -1,8 +1,13 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { MemoryRouter } from 'react-router'
 import TicketsPage from './TicketsPage'
 import { TICKETS } from '@/test/fixtures'
+
+function renderPage(url = '/') {
+  return render(<MemoryRouter initialEntries={[url]}><TicketsPage /></MemoryRouter>)
+}
 
 const PAGINATED_TICKETS = { tickets: TICKETS, total: TICKETS.length }
 
@@ -23,7 +28,7 @@ describe('TicketsPage', () => {
   it('calls /api/tickets with credentials include', () => {
     const fetchSpy = vi.fn().mockReturnValue(new Promise(() => {}))
     vi.stubGlobal('fetch', fetchSpy)
-    render(<TicketsPage />)
+    renderPage()
 
     expect(fetchSpy).toHaveBeenCalledWith(
       '/api/tickets?sortBy=createdAt&sortOrder=desc&page=1&pageSize=10',
@@ -33,14 +38,14 @@ describe('TicketsPage', () => {
 
   it('shows skeleton rows while fetch is pending', () => {
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
-    render(<TicketsPage />)
+    renderPage()
 
     expect(document.querySelectorAll('tbody tr')).toHaveLength(4)
   })
 
   it('hides skeleton rows after fetch resolves', async () => {
     mockFetch()
-    render(<TicketsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument())
 
@@ -49,14 +54,14 @@ describe('TicketsPage', () => {
 
   it('renders the page heading', () => {
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
-    render(<TicketsPage />)
+    renderPage()
 
     expect(screen.getByRole('heading', { name: 'Tickets' })).toBeInTheDocument()
   })
 
   it('renders ticket rows after fetch resolves successfully', async () => {
     mockFetch()
-    render(<TicketsPage />)
+    renderPage()
 
     await waitFor(() => {
       expect(screen.getByText('Alice Smith')).toBeInTheDocument()
@@ -68,7 +73,7 @@ describe('TicketsPage', () => {
 
   it('shows an error message when fetch returns a non-ok response', async () => {
     mockFetch(null, false)
-    render(<TicketsPage />)
+    renderPage()
 
     await waitFor(() =>
       expect(screen.getByText('Failed to load tickets')).toBeInTheDocument(),
@@ -77,7 +82,7 @@ describe('TicketsPage', () => {
 
   it('shows an error message when fetch throws a network error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')))
-    render(<TicketsPage />)
+    renderPage()
 
     await waitFor(() =>
       expect(screen.getByText('Network error')).toBeInTheDocument(),
@@ -88,7 +93,7 @@ describe('TicketsPage', () => {
 describe('TicketsPage — filtering', () => {
   it('renders the search input and Status / Category filter buttons after the initial fetch resolves', async () => {
     mockFetch()
-    render(<TicketsPage />)
+    renderPage()
 
     expect(screen.getByPlaceholderText('Search tickets…')).toBeInTheDocument()
     expect(screen.getByTestId('status-filter')).toBeInTheDocument()
@@ -98,7 +103,7 @@ describe('TicketsPage — filtering', () => {
   it('re-fetches with correct query params after typing in Search field', async () => {
     const user = userEvent.setup({ delay: null })
     const fetchSpy = mockFetch()
-    render(<TicketsPage />)
+    renderPage()
 
     const searchInput = screen.getByPlaceholderText('Search tickets…')
     await user.type(searchInput, 'alice')
@@ -116,7 +121,7 @@ describe('TicketsPage — filtering', () => {
   it('re-fetches with correct query params for "open" option selected in Status multiselect', async () => {
     const user = userEvent.setup({ delay: null })
     const fetchSpy = mockFetch()
-    render(<TicketsPage />)
+    renderPage()
 
     const statusMultiselect = screen.getByTestId('status-filter')
     await waitFor(() => expect(statusMultiselect).not.toBeDisabled())
@@ -141,7 +146,7 @@ describe('TicketsPage — filtering', () => {
   it('re-fetches with correct query params for "General question" option selected in Category multiselect', async () => {
     const user = userEvent.setup({ delay: null })
     const fetchSpy = mockFetch()
-    render(<TicketsPage />)
+    renderPage()
 
     const categoryMultiselect = screen.getByTestId('category-filter')
     await waitFor(() => expect(categoryMultiselect).not.toBeDisabled())
@@ -166,7 +171,7 @@ describe('TicketsPage — filtering', () => {
   it('re-fetches with the default URL after clicking Clear filters', async () => {
     const user = userEvent.setup({ delay: null })
     const fetchSpy = mockFetch()
-    render(<TicketsPage />)
+    renderPage()
 
     const searchInput = screen.getByPlaceholderText('Search tickets…')
     await user.type(searchInput, 'alice')
@@ -196,7 +201,7 @@ describe('TicketsPage — filtering', () => {
 describe('TicketsPage — pagination', () => {
   it('does not render pagination when total fits on one page', async () => {
     mockFetch({ tickets: TICKETS, total: TICKETS.length })
-    render(<TicketsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument())
 
@@ -205,7 +210,7 @@ describe('TicketsPage — pagination', () => {
 
   it('renders pagination summary when there are multiple pages', async () => {
     mockFetch({ tickets: TICKETS, total: 50 })
-    render(<TicketsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
   })
@@ -213,7 +218,7 @@ describe('TicketsPage — pagination', () => {
   it('re-fetches with page=2 when the second page button is clicked', async () => {
     const user = userEvent.setup()
     const fetchSpy = mockFetch({ tickets: TICKETS, total: 50 })
-    render(<TicketsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
 
@@ -227,7 +232,7 @@ describe('TicketsPage — pagination', () => {
 
   it('previous button is disabled on page 1', async () => {
     mockFetch({ tickets: TICKETS, total: 50 })
-    render(<TicketsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
 
@@ -241,7 +246,7 @@ describe('TicketsPage — pagination', () => {
   it('re-fetches with page=2 when the next button is clicked', async () => {
     const user = userEvent.setup()
     const fetchSpy = mockFetch({ tickets: TICKETS, total: 50 })
-    render(<TicketsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
 
@@ -259,7 +264,7 @@ describe('TicketsPage — pagination', () => {
   it('re-fetches with page=1 when the previous button is clicked from page 2', async () => {
     const user = userEvent.setup()
     const fetchSpy = mockFetch({ tickets: TICKETS, total: 50 })
-    render(<TicketsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
 
@@ -280,7 +285,7 @@ describe('TicketsPage — pagination', () => {
   it('next button is disabled on the last page', async () => {
     const user = userEvent.setup()
     mockFetch({ tickets: TICKETS, total: 20 })
-    render(<TicketsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 20'))
 
@@ -293,5 +298,48 @@ describe('TicketsPage — pagination', () => {
     )
     expect(nextButton).toBeDefined()
     expect(nextButton).toBeDisabled()
+  })
+})
+
+describe('TicketsPage — URL restoration on refresh', () => {
+  it('restores sort column and order from URL', () => {
+    const fetchSpy = mockFetch()
+    renderPage('/tickets?sortBy=subject&sortOrder=asc')
+
+    const firstUrl = fetchSpy.mock.calls[0][0] as string
+    expect(firstUrl).toContain('sortBy=subject')
+    expect(firstUrl).toContain('sortOrder=asc')
+  })
+
+  it('restores search filter from URL', () => {
+    const fetchSpy = mockFetch()
+    renderPage('/tickets?search=alice')
+
+    const firstUrl = fetchSpy.mock.calls[0][0] as string
+    expect(firstUrl).toContain('search=alice')
+  })
+
+  it('restores status filter from URL', () => {
+    const fetchSpy = mockFetch()
+    renderPage('/tickets?status=open')
+
+    const firstUrl = fetchSpy.mock.calls[0][0] as string
+    expect(firstUrl).toContain('status=open')
+  })
+
+  it('restores category filter from URL', () => {
+    const fetchSpy = mockFetch()
+    renderPage('/tickets?category=general_question')
+
+    const firstUrl = fetchSpy.mock.calls[0][0] as string
+    expect(firstUrl).toContain('category=general_question')
+  })
+
+  it('restores page from URL', () => {
+    const fetchSpy = mockFetch()
+    renderPage('/tickets?page=3')
+
+    const firstUrl = fetchSpy.mock.calls[0][0] as string
+    expect(firstUrl).toContain('page=3')
   })
 })

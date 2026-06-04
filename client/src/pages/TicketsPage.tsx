@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { TicketsFilters } from '@/components/tickets/TicketsFilters'
 import { TicketsTable } from '@/components/tickets/TicketsTable'
 import { Pagination } from '@/components/ui/pagination'
@@ -6,27 +7,55 @@ import {
   SortColumn,
   SortOrder,
   DEFAULT_PAGE_SIZE,
-  DEFAULT_FILTERS,
   type Ticket,
   type TicketsSort,
   type TicketsFilters as FiltersState,
+  type TicketStatus,
+  type TicketCategory,
   type PaginatedTickets,
 } from '@helpdesk/core'
 
 const defaultSort: TicketsSort = { column: SortColumn.createdAt, order: SortOrder.desc }
+const defaultPage = 1
+
+type TicketsParams = { sort: TicketsSort; filters: FiltersState; page: number }
+
+function getCurrentParams(params: URLSearchParams): TicketsParams {
+  return {
+    sort: {
+      column: (params.get('sortBy') ?? defaultSort.column) as SortColumn,
+      order: (params.get('sortOrder') ?? defaultSort.order) as SortOrder,
+    },
+    filters: {
+      search: params.get('search') ?? '',
+      status: params.getAll('status') as TicketStatus[],
+      category: params.getAll('category') as TicketCategory[],
+    },
+    page: params.get('page') !== null ? parseInt(params.get('page')!, 10) : defaultPage,
+  }
+}
+
+function buildUrlParams({ sort, filters, page }: TicketsParams): URLSearchParams {
+  const urlSearchParams = new URLSearchParams()
+  if (sort.column !== defaultSort.column) urlSearchParams.set('sortBy', sort.column)
+  if (sort.order !== defaultSort.order) urlSearchParams.set('sortOrder', sort.order)
+  if (page > defaultPage) urlSearchParams.set('page', String(page))
+  if (filters.search) urlSearchParams.set('search', filters.search)
+  for (const status of filters.status) urlSearchParams.append('status', status)
+  for (const category of filters.category) urlSearchParams.append('category', category)
+  return urlSearchParams
+}
 
 export default function TicketsPage() {
+  const [urlParams, setUrlParams] = useSearchParams()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [params, setParams] = useState<{ sort: TicketsSort; filters: FiltersState; page: number }>({
-    sort: defaultSort,
-    filters: DEFAULT_FILTERS,
-    page: 1,
-  })
 
-  function fetchTickets(sort: TicketsSort, filters: FiltersState = DEFAULT_FILTERS, page = 1) {
+  const { sort, filters, page } = getCurrentParams(urlParams)
+
+  function fetchTickets({ sort, filters, page }: TicketsParams) {
     setLoading(true)
     setError(null)
 
@@ -53,23 +82,25 @@ export default function TicketsPage() {
       .finally(() => setLoading(false))
   }
 
-  function handleSortChange(sort: TicketsSort) {
-    setParams(prev => ({ ...prev, sort, page: 1 }))
-    fetchTickets(sort, params.filters, 1)
+  function applyParams(newParams: TicketsParams) {
+    setUrlParams(buildUrlParams(newParams))
+    fetchTickets(newParams)
+  }
+  
+  function handleFiltersChange(newFilters: FiltersState) {
+    applyParams({ sort, filters: newFilters, page: defaultPage })
   }
 
-  function handleFiltersChange(filters: FiltersState) {
-    setParams(prev => ({ ...prev, filters, page: 1 }))
-    fetchTickets(params.sort, filters, 1)
+  function handleSortChange(newSort: TicketsSort) {
+    applyParams({ sort: newSort, filters, page: defaultPage })
   }
 
-  function handlePageChange(page: number) {
-    setParams(prev => ({ ...prev, page }))
-    fetchTickets(params.sort, params.filters, page)
+  function handlePageChange(newPage: number) {
+    applyParams({ sort, filters, page: newPage })
   }
 
   useEffect(() => {
-    fetchTickets(defaultSort)
+    fetchTickets({ sort, filters, page })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -77,16 +108,16 @@ export default function TicketsPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Tickets</h2>
       </div>
-      <TicketsFilters filters={params.filters} onFiltersChange={handleFiltersChange} loading={loading} />
+      <TicketsFilters filters={filters} onFiltersChange={handleFiltersChange} loading={loading} />
       <TicketsTable
         tickets={tickets}
         loading={loading}
         error={error}
-        sort={params.sort}
+        sort={sort}
         onSortChange={handleSortChange}
       />
       <Pagination
-        page={params.page}
+        page={page}
         pageSize={DEFAULT_PAGE_SIZE}
         total={total}
         onPageChange={handlePageChange}

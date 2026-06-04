@@ -21,6 +21,12 @@ export function InputDebounced({ value, onChange, placeholder, disabled, classNa
     if (debounceRef.current) clearTimeout(debounceRef.current)
   }, [value])
 
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const newValue = e.target.value
     setLocalValue(newValue)

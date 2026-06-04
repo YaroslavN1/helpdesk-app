@@ -55,3 +55,10 @@ export type Ticket = {
   assignedTo: { name: string } | null
   createdAt: string
 }
+
+export const DEFAULT_PAGE_SIZE = 10
+
+export type PaginatedTickets = {
+  tickets: Ticket[]
+  total: number
+}

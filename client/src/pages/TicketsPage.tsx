@@ -1,23 +1,39 @@
 import { useEffect, useState } from 'react'
 import { TicketsFilters } from '@/components/tickets/TicketsFilters'
 import { TicketsTable } from '@/components/tickets/TicketsTable'
-import { SortColumn, SortOrder, type Ticket, type TicketsSort, type TicketsFilters as FiltersState } from '@helpdesk/core'
+import { TicketsPagination } from '@/components/tickets/TicketsPagination'
+import {
+  SortColumn,
+  SortOrder,
+  DEFAULT_PAGE_SIZE,
+  type Ticket,
+  type TicketsSort,
+  type TicketsFilters as FiltersState,
+  type PaginatedTickets,
+} from '@helpdesk/core'
 
 const defaultSort: TicketsSort = { column: SortColumn.createdAt, order: SortOrder.desc }
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [params, setParams] = useState<{ sort: TicketsSort; filters: FiltersState }>({ sort: defaultSort, filters: {} })
+  const [params, setParams] = useState<{ sort: TicketsSort; filters: FiltersState; page: number }>({
+    sort: defaultSort,
+    filters: {},
+    page: 1,
+  })
 
-  function fetchTickets(sort: TicketsSort, filters: FiltersState = {}) {
+  function fetchTickets(sort: TicketsSort, filters: FiltersState = {}, page = 1) {
     setLoading(true)
     setError(null)
 
     const query = new URLSearchParams()
     query.set('sortBy', sort.column)
     query.set('sortOrder', sort.order)
+    query.set('page', String(page))
+    query.set('pageSize', String(DEFAULT_PAGE_SIZE))
 
     if (filters.search) query.set('search', filters.search)
     for (const status of (filters.status ?? [])) query.append('status', status)
@@ -26,21 +42,29 @@ export default function TicketsPage() {
     fetch(`/api/tickets?${query}`, { credentials: 'include' })
       .then((res) => {
         if (!res.ok) throw new Error('Failed to load tickets')
-        return res.json() as Promise<Ticket[]>
+        return res.json() as Promise<PaginatedTickets>
       })
-      .then(setTickets)
+      .then((data) => {
+        setTickets(data.tickets)
+        setTotal(data.total)
+      })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Unknown error'))
       .finally(() => setLoading(false))
   }
 
   function handleSortChange(sort: TicketsSort) {
-    setParams(prev => ({ ...prev, sort }))
-    fetchTickets(sort, params.filters)
+    setParams(prev => ({ ...prev, sort, page: 1 }))
+    fetchTickets(sort, params.filters, 1)
   }
 
   function handleFiltersChange(filters: FiltersState) {
-    setParams(prev => ({ ...prev, filters }))
-    fetchTickets(params.sort, filters)
+    setParams(prev => ({ ...prev, filters, page: 1 }))
+    fetchTickets(params.sort, filters, 1)
+  }
+
+  function handlePageChange(page: number) {
+    setParams(prev => ({ ...prev, page }))
+    fetchTickets(params.sort, params.filters, page)
   }
 
   useEffect(() => {
@@ -59,6 +83,13 @@ export default function TicketsPage() {
         error={error}
         sort={params.sort}
         onSortChange={handleSortChange}
+      />
+      <TicketsPagination
+        page={params.page}
+        pageSize={DEFAULT_PAGE_SIZE}
+        total={total}
+        onPageChange={handlePageChange}
+        loading={loading}
       />
     </>
   )

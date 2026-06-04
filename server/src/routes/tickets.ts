@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { requireAuth } from '../lib/middleware'
 import { validate } from '../lib/validate'
-import { TICKET_SORT_COLUMNS, SORT_ORDERS, TICKET_STATUSES, TICKET_CATEGORIES, SortOrder, SortColumn, type TicketStatus, type TicketCategory } from '@helpdesk/core'
+import { TICKET_SORT_COLUMNS, SORT_ORDERS, TICKET_STATUSES, TICKET_CATEGORIES, SortOrder, SortColumn, DEFAULT_PAGE_SIZE, type TicketStatus, type TicketCategory } from '@helpdesk/core'
 import type { Prisma } from '../generated/prisma/client'
 
 const router = Router()
@@ -19,12 +19,14 @@ const querySchema = z.object({
   search: z.string().optional(),
   status: z.preprocess(toArray, z.enum(TICKET_STATUSES).array().default([])),
   category: z.preprocess(toArray, z.enum(TICKET_CATEGORIES).array().default([])),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(DEFAULT_PAGE_SIZE),
 })
 
 router.get('/', requireAuth, async (req, res) => {
   const query = validate(querySchema, req.query, res)
   if (!query) return
-  const { sortBy, sortOrder, search, status, category } = query
+  const { sortBy, sortOrder, search, status, category, page, pageSize } = query
 
   const where: Prisma.TicketWhereInput = {
     ...(search && {
@@ -38,22 +40,29 @@ router.get('/', requireAuth, async (req, res) => {
     ...(category.length && { category: { in: category as TicketCategory[] } }),
   }
 
+  const select = {
+    id: true,
+    fromEmail: true,
+    fromName: true,
+    subject: true,
+    status: true,
+    category: true,
+    assignedTo: { select: { name: true } },
+    createdAt: true,
+  }
+
   try {
-    const tickets = await prisma.ticket.findMany({
-      where,
-      orderBy: { [sortBy]: sortOrder },
-      select: {
-        id: true,
-        fromEmail: true,
-        fromName: true,
-        subject: true,
-        status: true,
-        category: true,
-        assignedTo: { select: { name: true } },
-        createdAt: true,
-      },
-    })
-    res.json(tickets)
+    const [tickets, total] = await Promise.all([
+      prisma.ticket.findMany({
+        where,
+        orderBy: { [sortBy]: sortOrder },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select,
+      }),
+      prisma.ticket.count({ where }),
+    ])
+    res.json({ tickets, total })
   } catch (err) {
     console.error('[GET /api/tickets]', err)
     res.status(500).json({ error: 'Failed to load tickets' })

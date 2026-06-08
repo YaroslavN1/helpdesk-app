@@ -91,7 +91,7 @@ describe('TicketsPage', () => {
 })
 
 describe('TicketsPage — filtering', () => {
-  it('renders the search input and Status / Category filter buttons after the initial fetch resolves', async () => {
+  it('renders the Search input and Status / Category multiselect filetrs after the initial fetch resolves', async () => {
     mockFetch()
     renderPage()
 

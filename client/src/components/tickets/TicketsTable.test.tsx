@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { TicketsTable } from './TicketsTable'
-import { TicketStatus } from '@helpdesk/core'
 import { TICKETS } from '@/test/fixtures'
 
 function renderTicketsTable(overrides: Partial<React.ComponentProps<typeof TicketsTable>> = {}) {

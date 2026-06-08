@@ -109,13 +109,10 @@ describe('TicketsPage — filtering', () => {
     await user.type(searchInput, 'alice')
 
     // waitFor polls until the debounce (300 ms) fires and fetch is called.
-    await waitFor(
-      () => {
-        const calls = fetchSpy.mock.calls.map(([url]) => url as string)
-        expect(calls.some(url => url.includes('search=alice'))).toBe(true)
-      },
-      { timeout: 2000 },
-    )
+    await waitFor(() => {
+      const calls = fetchSpy.mock.calls.map(([url]) => url as string)
+      expect(calls.some(url => url.includes('search=alice'))).toBe(true)
+    })
   })
 
   it('re-fetches with correct query params for "open" option selected in Status multiselect', async () => {
@@ -127,20 +124,14 @@ describe('TicketsPage — filtering', () => {
     await waitFor(() => expect(statusMultiselect).not.toBeDisabled())
     await user.click(statusMultiselect)
 
-    const openOption = await waitFor(
-      () => screen.getAllByTestId('multiselect-item').find(el => el.textContent?.trim() === 'open')!,
-      { timeout: 2000 },
-    )
+    const openOption = screen.getAllByTestId('multiselect-item').find(el => el.textContent?.trim() === 'open')!
 
     await user.click(openOption)
 
-    await waitFor(
-      () => {
-        const calls = fetchSpy.mock.calls.map(([url]) => url as string)
-        expect(calls.some(url => url.includes('status=open'))).toBe(true)
-      },
-      { timeout: 2000 },
-    )
+    await waitFor(() => {
+      const calls = fetchSpy.mock.calls.map(([url]) => url as string)
+      expect(calls.some(url => url.includes('status=open'))).toBe(true)
+    })
   })
 
   it('re-fetches with correct query params for "General question" option selected in Category multiselect', async () => {
@@ -152,20 +143,14 @@ describe('TicketsPage — filtering', () => {
     await waitFor(() => expect(categoryMultiselect).not.toBeDisabled())
     await user.click(categoryMultiselect)
 
-    const generalQuestionOption = await waitFor(
-      () => screen.getAllByTestId('multiselect-item').find(el => el.textContent?.trim() === 'General question')!,
-      { timeout: 2000 },
-    )
+    const generalQuestionOption = screen.getAllByTestId('multiselect-item').find(el => el.textContent?.trim() === 'General question')!
 
     await user.click(generalQuestionOption)
 
-    await waitFor(
-      () => {
-        const calls = fetchSpy.mock.calls.map(([url]) => url as string)
-        expect(calls.some(url => url.includes('category=general_question'))).toBe(true)
-      },
-      { timeout: 2000 },
-    )
+    await waitFor(() => {
+      const calls = fetchSpy.mock.calls.map(([url]) => url as string)
+      expect(calls.some(url => url.includes('category=general_question'))).toBe(true)
+    })
   })
 
   it('re-fetches with the default URL after clicking Clear filters', async () => {

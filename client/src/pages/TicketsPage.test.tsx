@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router'
@@ -7,6 +7,12 @@ import { TICKETS } from '@/test/fixtures'
 
 function renderTicketsPage(url = '/') {
   return render(<MemoryRouter initialEntries={[url]}><TicketsPage /></MemoryRouter>)
+}
+
+function getPaginationButton(name: string) {
+  if (name === 'Previous page') return screen.getByTestId('pagination-prev')
+  if (name === 'Next page') return screen.getByTestId('pagination-next')
+  return within(screen.getByTestId('pagination-buttons')).getByRole('button', { name })
 }
 
 const PAGINATED_TICKETS = { tickets: TICKETS, total: TICKETS.length }
@@ -124,7 +130,9 @@ describe('TicketsPage — filtering', () => {
     await waitFor(() => expect(statusMultiselect).not.toBeDisabled())
     await user.click(statusMultiselect)
 
-    const openOption = screen.getAllByTestId('multiselect-item').find(el => el.textContent?.trim() === 'open')!
+    const openOption = await waitFor(
+      () => screen.getAllByTestId('multiselect-item').find(el => el.textContent?.trim() === 'open')!,
+    )
 
     await user.click(openOption)
 
@@ -143,7 +151,9 @@ describe('TicketsPage — filtering', () => {
     await waitFor(() => expect(categoryMultiselect).not.toBeDisabled())
     await user.click(categoryMultiselect)
 
-    const generalQuestionOption = screen.getAllByTestId('multiselect-item').find(el => el.textContent?.trim() === 'General question')!
+    const generalQuestionOption = await waitFor(
+      () => screen.getAllByTestId('multiselect-item').find(el => el.textContent?.trim() === 'General question')!,
+    )
 
     await user.click(generalQuestionOption)
 
@@ -184,82 +194,93 @@ describe('TicketsPage — filtering', () => {
 })
 
 describe('TicketsPage — pagination', () => {
-  it('does not render pagination when total fits on one page', async () => {
+  it('does not render pagination summary and pagination buttons when total fits on one page', async () => {
     mockFetchTickets({ tickets: TICKETS, total: TICKETS.length })
     renderTicketsPage()
 
     await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument())
 
     expect(screen.queryByTestId('pagination-summary')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('pagination-buttons')).not.toBeInTheDocument()
   })
 
-  it('renders pagination summary when there are multiple pages', async () => {
+  it('renders pagination summary and pagination buttons when there are multiple pages', async () => {
     mockFetchTickets({ tickets: TICKETS, total: 50 })
     renderTicketsPage()
 
-    await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
-  })
-
-  it('re-fetches with page=2 when the second page button is clicked', async () => {
-    const user = userEvent.setup()
-    const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
-    renderTicketsPage()
-
-    await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
-
-    await user.click(screen.getByRole('button', { name: '2' }))
-
     await waitFor(() => {
-      const calls = fetchSpy.mock.calls.map(([url]) => url as string)
-      expect(calls.some(url => url.includes('page=2'))).toBe(true)
+      expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50')
+      expect(screen.getByTestId('pagination-buttons')).toBeInTheDocument()
     })
   })
 
-  it('previous button is disabled on page 1', async () => {
+  it('updates pagination summary text when navigating to page 2', async () => {
+    const user = userEvent.setup()
     mockFetchTickets({ tickets: TICKETS, total: 50 })
     renderTicketsPage()
 
     await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
 
-    const prevButton = Array.from(document.querySelectorAll('button')).find(
-      button => button.querySelector('.lucide-chevron-left'),
-    )
-    expect(prevButton).toBeDefined()
-    expect(prevButton).toBeDisabled()
-  })
+    await user.click(getPaginationButton('2'))
 
-  it('re-fetches with page=2 when the next button is clicked', async () => {
-    const user = userEvent.setup()
-    const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
-    renderTicketsPage()
-
-    await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
-
-    const nextButton = Array.from(document.querySelectorAll('button')).find(
-      button => button.querySelector('.lucide-chevron-right'),
-    )!
-    await user.click(nextButton)
-
-    await waitFor(() => {
-      const calls = fetchSpy.mock.calls.map(([url]) => url as string)
-      expect(calls.some(url => url.includes('page=2'))).toBe(true)
-    })
-  })
-
-  it('re-fetches with page=1 when the previous button is clicked from page 2', async () => {
-    const user = userEvent.setup()
-    const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
-    renderTicketsPage()
-
-    await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'))
-
-    await user.click(screen.getByRole('button', { name: '2' }))
     await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 11–20 of 50'))
+  })
 
-    const prevButton = Array.from(document.querySelectorAll('button')).find(
-      button => button.querySelector('.lucide-chevron-left'),
-    )!
-    await user.click(prevButton)
+  it('re-fetches with correct query params when the second page button is clicked', async () => {
+    const user = userEvent.setup()
+    const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
+    renderTicketsPage()
+
+    await waitFor(() =>
+      expect(getPaginationButton('2')).not.toBeDisabled()
+    )
+
+    await user.click(getPaginationButton('2'))
+
+    await waitFor(() => {
+      const calls = fetchSpy.mock.calls.map(([url]) => url as string)
+      expect(calls.some(url => url.includes('page=2'))).toBe(true)
+    })
+  })
+
+  it('clicking the current page button does not trigger a re-fetch', async () => {
+    const user = userEvent.setup()
+    const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
+    renderTicketsPage()
+
+    await waitFor(() => expect(getPaginationButton('1')).not.toBeDisabled())
+
+    const callCountBefore = fetchSpy.mock.calls.length
+    await user.click(getPaginationButton('1'))
+
+    expect(fetchSpy.mock.calls.length).toBe(callCountBefore)
+  })
+
+  it('"Previous page" button is disabled on page 1', async () => {
+    mockFetchTickets({ tickets: TICKETS, total: 50 })
+    renderTicketsPage()
+
+    await waitFor(() =>
+      expect(getPaginationButton('Previous page')).toBeDisabled()
+    )
+  })
+
+  it('re-fetches with correct query params when the previous button is clicked from page 2', async () => {
+    const user = userEvent.setup()
+    const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
+    renderTicketsPage()
+
+    await waitFor(() =>
+      expect(getPaginationButton('2')).not.toBeDisabled()
+    )
+
+    await user.click(getPaginationButton('2'))
+    await waitFor(() => {
+      const calls = fetchSpy.mock.calls.map(([url]) => url as string)
+      expect(calls.some(url => url.includes('page=2'))).toBe(true)
+    })
+
+    await user.click(getPaginationButton('Previous page'))
 
     await waitFor(() => {
       const calls = fetchSpy.mock.calls.map(([url]) => url as string)
@@ -267,22 +288,33 @@ describe('TicketsPage — pagination', () => {
     })
   })
 
-  it('next button is disabled on the last page', async () => {
+  it('re-fetches with correct query params when the next button is clicked', async () => {
+    const user = userEvent.setup()
+    const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
+    renderTicketsPage()
+
+    await waitFor(() => expect(getPaginationButton('Next page')).not.toBeDisabled())
+
+    await user.click(getPaginationButton('Next page'))
+
+    await waitFor(() => {
+      const calls = fetchSpy.mock.calls.map(([url]) => url as string)
+      expect(calls.some(url => url.includes('page=2'))).toBe(true)
+    })
+  })
+
+  it('"Next page" button is disabled on the last page', async () => {
     const user = userEvent.setup()
     mockFetchTickets({ tickets: TICKETS, total: 20 })
     renderTicketsPage()
 
-    await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 20'))
+    await waitFor(() => expect(getPaginationButton('2')).not.toBeDisabled())
 
-    await user.click(screen.getByRole('button', { name: '2' }))
+    await user.click(getPaginationButton('2'))
 
-    await waitFor(() => expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 11–20 of 20'))
-
-    const nextButton = Array.from(document.querySelectorAll('button')).find(
-      button => button.querySelector('.lucide-chevron-right'),
+    await waitFor(() =>
+      expect(getPaginationButton('Next page')).toBeDisabled()
     )
-    expect(nextButton).toBeDefined()
-    expect(nextButton).toBeDisabled()
   })
 })
 

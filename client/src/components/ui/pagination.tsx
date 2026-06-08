@@ -47,10 +47,11 @@ export function Pagination({ page, pageSize, total, onPageChange, loading }: Pro
       <p data-testid="pagination-summary" className="text-sm text-muted-foreground">
         Showing {from}–{to} of {total}
       </p>
-      <div className="flex items-center gap-1">
+      <div data-testid="pagination-buttons" className="flex items-center gap-1">
         <Button
           variant="outline"
           size="icon"
+          data-testid="pagination-prev"
           onClick={() => handlePageChange(page - 1)}
           disabled={page <= 1 || loading}
           className="h-8 w-8"
@@ -78,6 +79,7 @@ export function Pagination({ page, pageSize, total, onPageChange, loading }: Pro
         <Button
           variant="outline"
           size="icon"
+          data-testid="pagination-next"
           onClick={() => handlePageChange(page + 1)}
           disabled={page >= totalPages || loading}
           className="h-8 w-8"

@@ -4,7 +4,7 @@ import { TicketsFilters } from '@/components/tickets/TicketsFilters'
 import { TicketsTable } from '@/components/tickets/TicketsTable'
 import { Pagination } from '@/components/ui/pagination'
 import {
-  SortColumn,
+  TicketSortColumn,
   SortOrder,
   DEFAULT_PAGE_SIZE,
   type Ticket,
@@ -15,7 +15,7 @@ import {
   type PaginatedTickets,
 } from '@helpdesk/core'
 
-const defaultSort: TicketsSort = { column: SortColumn.createdAt, order: SortOrder.desc }
+const defaultSort: TicketsSort = { column: TicketSortColumn.createdAt, order: SortOrder.desc }
 const defaultPage = 1
 
 type TicketsParams = { sort: TicketsSort; filters: FiltersState; page: number }
@@ -23,7 +23,7 @@ type TicketsParams = { sort: TicketsSort; filters: FiltersState; page: number }
 function getCurrentParams(params: URLSearchParams): TicketsParams {
   return {
     sort: {
-      column: (params.get('sortBy') ?? defaultSort.column) as SortColumn,
+      column: (params.get('sortBy') ?? defaultSort.column) as TicketSortColumn,
       order: (params.get('sortOrder') ?? defaultSort.order) as SortOrder,
     },
     filters: {

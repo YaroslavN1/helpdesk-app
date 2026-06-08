@@ -14,7 +14,7 @@ import {
   TicketCategory,
   SORT_ORDERS,
   type Ticket,
-  type SortColumn,
+  type TicketSortColumn,
   type SortOrder,
   type TicketsSort,
 } from '@helpdesk/core'
@@ -63,7 +63,7 @@ const TICKET_CATEGORY_BADGE: Record<TicketCategory | 'null', { label: string; va
 export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Props) {
   function handleSortChange(column: string) {
     onSortChange({
-      column: column as SortColumn,
+      column: column as TicketSortColumn,
       order: column === sort.column
         ? SORT_ORDERS.find(order => order !== sort.order) as SortOrder
         : SORT_ORDERS[0],

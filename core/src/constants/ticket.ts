@@ -25,7 +25,7 @@ export const SortOrder = { asc: 'asc', desc: 'desc' } as const
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 export const SORT_ORDERS = Object.values(SortOrder) as [SortOrder, ...SortOrder[]]
 
-export const SortColumn = {
+export const TicketSortColumn = {
   id: 'id',
   subject: 'subject',
   fromName: 'fromName',
@@ -33,11 +33,11 @@ export const SortColumn = {
   category: 'category',
   createdAt: 'createdAt',
 } as const
-export type SortColumn = (typeof SortColumn)[keyof typeof SortColumn]
-export const TICKET_SORT_COLUMNS = Object.values(SortColumn) as [SortColumn, ...SortColumn[]]
+export type TicketSortColumn = (typeof TicketSortColumn)[keyof typeof TicketSortColumn]
+export const TICKET_SORT_COLUMNS = Object.values(TicketSortColumn) as [TicketSortColumn, ...TicketSortColumn[]]
 
 export type TicketsSort = {
-  column: SortColumn
+  column: TicketSortColumn
   order: SortOrder
 }
 

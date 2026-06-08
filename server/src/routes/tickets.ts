@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { requireAuth } from '../lib/middleware'
 import { validate } from '../lib/validate'
-import { TICKET_SORT_COLUMNS, SORT_ORDERS, TICKET_STATUSES, TICKET_CATEGORIES, SortOrder, SortColumn, DEFAULT_PAGE_SIZE, type TicketStatus, type TicketCategory } from '@helpdesk/core'
+import { TICKET_SORT_COLUMNS, SORT_ORDERS, TICKET_STATUSES, TICKET_CATEGORIES, SortOrder, TicketSortColumn, DEFAULT_PAGE_SIZE, type TicketStatus, type TicketCategory } from '@helpdesk/core'
 import type { Prisma } from '../generated/prisma/client'
 
 const router = Router()
@@ -14,7 +14,7 @@ function toArray(val: unknown): unknown[] {
 }
 
 const querySchema = z.object({
-  sortBy: z.enum(TICKET_SORT_COLUMNS).default(SortColumn.createdAt),
+  sortBy: z.enum(TICKET_SORT_COLUMNS).default(TicketSortColumn.createdAt),
   sortOrder: z.enum(SORT_ORDERS).default(SortOrder.desc),
   search: z.string().optional(),
   status: z.preprocess(toArray, z.enum(TICKET_STATUSES).array().default([])),

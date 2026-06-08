@@ -1,17 +1,17 @@
 import { Client } from 'pg'
-import { test, expect, type APIRequestContext } from '@playwright/test'
+import { test, expect, type APIRequestContext, type Page } from '@playwright/test'
 import { DEFAULT_PAGE_SIZE } from '../../core/src/constants/ticket'
 import { loginAsAdmin, loginAsAgent } from '../helpers'
 
 const SERVER_BASE_URL = process.env.BETTER_AUTH_URL!
 
-async function goToTicketsPage(page: import('@playwright/test').Page) {
+async function goToTicketsPage(page: Page) {
   await loginAsAdmin(page)
   await page.goto('/tickets')
 }
 
 async function selectFilterOption(
-  page: import('@playwright/test').Page,
+  page: Page,
   multiselectDataTestId: string,
   optionLabel: string
 ) {

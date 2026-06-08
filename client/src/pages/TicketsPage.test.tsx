@@ -95,7 +95,7 @@ describe('TicketsPage — filtering', () => {
     mockFetchTickets()
     renderTicketsPage()
 
-    expect(screen.getByPlaceholderText('Search tickets…')).toBeInTheDocument()
+    expect(screen.getByTestId('search-input')).toBeInTheDocument()
     expect(screen.getByTestId('status-filter')).toBeInTheDocument()
     expect(screen.getByTestId('category-filter')).toBeInTheDocument()
   })
@@ -105,7 +105,7 @@ describe('TicketsPage — filtering', () => {
     const fetchSpy = mockFetchTickets()
     renderTicketsPage()
 
-    const searchInput = screen.getByPlaceholderText('Search tickets…')
+    const searchInput = screen.getByTestId('search-input')
     await user.type(searchInput, 'alice')
 
     // waitFor polls until the debounce (300 ms) fires and fetch is called.
@@ -119,7 +119,7 @@ describe('TicketsPage — filtering', () => {
   })
 
   it('re-fetches with correct query params for "open" option selected in Status multiselect', async () => {
-    const user = userEvent.setup({ delay: null })
+    const user = userEvent.setup()
     const fetchSpy = mockFetchTickets()
     renderTicketsPage()
 
@@ -144,7 +144,7 @@ describe('TicketsPage — filtering', () => {
   })
 
   it('re-fetches with correct query params for "General question" option selected in Category multiselect', async () => {
-    const user = userEvent.setup({ delay: null })
+    const user = userEvent.setup()
     const fetchSpy = mockFetchTickets()
     renderTicketsPage()
 
@@ -173,7 +173,7 @@ describe('TicketsPage — filtering', () => {
     const fetchSpy = mockFetchTickets()
     renderTicketsPage()
 
-    const searchInput = screen.getByPlaceholderText('Search tickets…')
+    const searchInput = screen.getByTestId('search-input')
     await user.type(searchInput, 'alice')
 
     // Wait for the debounced search fetch to fire.

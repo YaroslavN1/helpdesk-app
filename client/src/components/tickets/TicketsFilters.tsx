@@ -35,6 +35,7 @@ export function TicketsFilters({ filters, onFiltersChange, loading }: Props) {
         onChange={search => onFiltersChange({ ...filters, search })}
         placeholder="Search tickets…"
         className="w-56"
+        testId="search-input"
       />
 
       <MultiSelect

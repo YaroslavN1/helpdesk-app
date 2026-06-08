@@ -10,9 +10,10 @@ interface Props {
   disabled?: boolean
   className?: string
   delay?: number
+  testId?: string
 }
 
-export function InputDebounced({ value, onChange, placeholder, disabled, className, delay = 300 }: Props) {
+export function InputDebounced({ value, onChange, placeholder, disabled, className, delay = 300, testId }: Props) {
   const [localValue, setLocalValue] = useState(value)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -43,6 +44,7 @@ export function InputDebounced({ value, onChange, placeholder, disabled, classNa
         onChange={handleChange}
         disabled={disabled}
         className="pl-8 h-8 w-full text-sm"
+        data-testid={testId}
       />
     </div>
   )

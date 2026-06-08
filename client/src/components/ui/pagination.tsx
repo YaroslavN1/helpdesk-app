@@ -33,6 +33,10 @@ function getPageRange(page: number, totalPages: number): (number | '...')[] {
 
 export function Pagination({ page, pageSize, total, onPageChange, loading }: Props) {
   const totalPages = Math.ceil(total / pageSize)
+
+  function handlePageChange(newPage: number) {
+    if (newPage !== page) onPageChange(newPage)
+  }
   if (totalPages <= 1) return null
 
   const from = (page - 1) * pageSize + 1
@@ -47,7 +51,7 @@ export function Pagination({ page, pageSize, total, onPageChange, loading }: Pro
         <Button
           variant="outline"
           size="icon"
-          onClick={() => onPageChange(page - 1)}
+          onClick={() => handlePageChange(page - 1)}
           disabled={page <= 1 || loading}
           className="h-8 w-8"
         >
@@ -62,7 +66,7 @@ export function Pagination({ page, pageSize, total, onPageChange, loading }: Pro
               key={pageOrEllipsis}
               variant={pageOrEllipsis === page ? 'default' : 'outline'}
               size="icon"
-              onClick={() => onPageChange(pageOrEllipsis)}
+              onClick={() => handlePageChange(pageOrEllipsis)}
               disabled={loading}
               className="h-8 w-8 text-sm"
             >
@@ -74,7 +78,7 @@ export function Pagination({ page, pageSize, total, onPageChange, loading }: Pro
         <Button
           variant="outline"
           size="icon"
-          onClick={() => onPageChange(page + 1)}
+          onClick={() => handlePageChange(page + 1)}
           disabled={page >= totalPages || loading}
           className="h-8 w-8"
         >

@@ -81,9 +81,9 @@ describe('TicketsTable — loaded state', () => {
     renderTicketsTable()
 
     // TICKETS variable has mock data for all 3 cases
-    expect(screen.getByText(TicketStatus.open)).toBeInTheDocument()
-    expect(screen.getByText(TicketStatus.resolved)).toBeInTheDocument()
-    expect(screen.getByText(TicketStatus.closed)).toBeInTheDocument()
+    expect(screen.getByText('Open')).toBeInTheDocument()
+    expect(screen.getByText('Resolved')).toBeInTheDocument()
+    expect(screen.getByText('Closed')).toBeInTheDocument()
   })
 
   it('shows the formatted category label for non-null category', () => {

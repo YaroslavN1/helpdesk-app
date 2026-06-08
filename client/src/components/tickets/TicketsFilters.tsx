@@ -3,12 +3,18 @@ import { Button } from '@/components/ui/button'
 import { InputDebounced } from '@/components/ui/input-debounced'
 import { MultiSelect } from '@/components/ui/multi-select'
 import {
+  TicketCategory,
   TICKET_STATUSES,
   TICKET_CATEGORIES,
-  TICKET_CATEGORY_LABELS,
   DEFAULT_FILTERS,
   type TicketsFilters,
 } from '@helpdesk/core'
+
+const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
+  general_question: 'General question',
+  technical_question: 'Technical question',
+  refund_request: 'Refund request',
+}
 
 interface Props {
   filters: TicketsFilters

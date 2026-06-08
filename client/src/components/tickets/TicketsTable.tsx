@@ -1,6 +1,6 @@
 import { formatDate } from '@/lib/utils'
 import { SortableHead } from '@/components/ui/sortable-head'
-import { Badge } from '@/components/ui/badge'
+import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table'
 import {
   TicketStatus,
-  TICKET_CATEGORY_LABELS,
+  TicketCategory,
   SORT_ORDERS,
   type Ticket,
   type SortColumn,
@@ -47,6 +47,19 @@ const COLUMNS = [
   { sortable: true,  column: 'createdAt', label: 'Received' },
 ] as const
 
+const TICKET_STATUS_BADGE: Record<TicketStatus, { label: string; variant: BadgeVariant; className: string | undefined }> = {
+  open:     { label: 'Open',     variant: 'default',   className: undefined },
+  resolved: { label: 'Resolved', variant: 'secondary', className: 'text-green-600' },
+  closed:   { label: 'Closed',   variant: 'secondary', className: undefined },
+}
+
+const TICKET_CATEGORY_BADGE: Record<TicketCategory | 'null', { label: string; variant: BadgeVariant }> = {
+  general_question:  { label: 'General question',  variant: 'outline' },
+  technical_question: { label: 'Technical question', variant: 'outline' },
+  refund_request:    { label: 'Refund request',    variant: 'outline' },
+  null:              { label: '—',                 variant: 'ghost'   },
+}
+
 export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Props) {
   function handleSortChange(column: string) {
     onSortChange({
@@ -63,10 +76,10 @@ export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Pr
         <Table>
           <TableHeader>
             <TableRow>
-              {COLUMNS.map(col => (
+              {COLUMNS.map(column => (
                 <SortableHead
-                  key={col.label}
-                  {...col}
+                  key={column.label}
+                  {...column}
                   activeColumn={sort.column}
                   activeOrder={sort.order}
                   loading={loading}
@@ -87,7 +100,7 @@ export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Pr
             )}
             {!loading && tickets.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={COLUMNS.length} className="text-center text-muted-foreground py-8">
                   No tickets yet.
                 </TableCell>
               </TableRow>
@@ -101,22 +114,17 @@ export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Pr
                   <div className="text-xs text-muted-foreground">{ticket.fromEmail}</div>
                 </TableCell>
                 <TableCell>
-                  {ticket.status === TicketStatus.open && (
-                    <Badge variant="default">{ticket.status}</Badge>
-                  )}
-                  {ticket.status === TicketStatus.resolved && (
-                    <Badge variant="secondary" className="text-green-600">{ticket.status}</Badge>
-                  )}
-                  {ticket.status === TicketStatus.closed && (
-                    <Badge variant="secondary">{ticket.status}</Badge>
-                  )}
+                  <Badge
+                    variant={TICKET_STATUS_BADGE[ticket.status].variant}
+                    className={TICKET_STATUS_BADGE[ticket.status].className}
+                  >
+                    {TICKET_STATUS_BADGE[ticket.status].label}
+                  </Badge>
                 </TableCell>
                 <TableCell>
-                  {ticket.category ? (
-                    <Badge variant="outline">{TICKET_CATEGORY_LABELS[ticket.category]}</Badge>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">—</span>
-                  )}
+                  <Badge variant={TICKET_CATEGORY_BADGE[ticket.category ?? 'null'].variant}>
+                    {TICKET_CATEGORY_BADGE[ticket.category ?? 'null'].label}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
                   {ticket.assignedTo?.name ?? <span className="italic">Unassigned</span>}

@@ -13,11 +13,6 @@ export const TicketCategory = {
 } as const
 export type TicketCategory = (typeof TicketCategory)[keyof typeof TicketCategory]
 export const TICKET_CATEGORIES = Object.values(TicketCategory) as [TicketCategory, ...TicketCategory[]]
-export const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
-  general_question: 'General question',
-  technical_question: 'Technical question',
-  refund_request: 'Refund request',
-}
 
 export type TicketsFilters = {
   search: string

@@ -137,6 +137,10 @@ test.describe('Tickets page', () => {
     ])
   })
 
+  test.beforeEach(async ({ page }) => {
+    await goToTicketsPage(page)
+  })
+
   test.describe('Ticket data rendering', () => {
     test('renders all ticket fields correctly in the table row', async ({ page }) => {
       const expectedDate = new Date(openTicket.createdAt).toLocaleDateString('en-US', {
@@ -144,8 +148,6 @@ test.describe('Tickets page', () => {
         month: 'short',
         day: 'numeric',
       })
-
-      await goToTicketsPage(page)
 
       const row = page.getByRole('row').filter({ hasText: String(openTicket.id) })
 
@@ -170,8 +172,7 @@ test.describe('Tickets page', () => {
 
     cases.forEach(({ field, getField }) => {
       test(`filters tickets by ${field}`, async ({ page }) => {
-        await goToTicketsPage(page)
-
+  
         await page.getByPlaceholder('Search tickets…').fill(getField(openTicket))
 
         await expect(page.getByRole('row').filter({ hasText: getField(openTicket) })).toBeVisible()
@@ -182,7 +183,6 @@ test.describe('Tickets page', () => {
 
   test.describe('Filtering — status multiselect', () => {
     test('filtering by selected statuses shows only relevant tickets', async ({ page }) => {
-      await goToTicketsPage(page)
 
       await selectFilterOption(page, 'status-filter', 'open')
       await selectFilterOption(page, 'status-filter', 'resolved')
@@ -195,7 +195,6 @@ test.describe('Tickets page', () => {
 
   test.describe('Filtering — category multiselect', () => {
     test('filtering by selected categories shows only relevant tickets', async ({ page }) => {
-      await goToTicketsPage(page)
 
       await selectFilterOption(page, 'category-filter', 'General question')
       await selectFilterOption(page, 'category-filter', 'Refund request')
@@ -208,7 +207,6 @@ test.describe('Tickets page', () => {
 
   test.describe('Clear filters', () => {
     test('clears all active filters and restores all tickets', async ({ page }) => {
-      await goToTicketsPage(page)
 
       await page.getByPlaceholder('Search tickets…').fill(resolvedGeneralTicket.subject)
       await selectFilterOption(page, 'status-filter', 'resolved')
@@ -226,7 +224,6 @@ test.describe('Tickets page', () => {
 
   test.describe('Sorting', () => {
     test('sorts tickets by Subject ascending then descending', async ({ page }) => {
-      await goToTicketsPage(page)
 
       await page.getByRole('columnheader', { name: 'Subject' }).getByRole('button').click()
 
@@ -242,18 +239,19 @@ test.describe('Tickets page', () => {
     test.beforeAll(async ({ request }) => {
       await clearTickets()
 
-      for (let ticketNumber = 1; ticketNumber <= DEFAULT_PAGE_SIZE + 1; ticketNumber++) {
-        const pageLabel = ticketNumber === 1 ? 'Second' : 'First'
-        await seedTicket(request, {
-          subject: `${pageLabel} page ticket ${ticketNumber}`,
-          from: `ticket${ticketNumber}@example.com`,
-          fromName: `Ticket User ${ticketNumber}`,
-        })
+      const tickets = Array.from({ length: DEFAULT_PAGE_SIZE + 1 }, (_, i) => {
+        const ticketId = i + 1
+        const pageLabel = ticketId <= DEFAULT_PAGE_SIZE ? 'First' : 'Second'
+        return { subject: `${pageLabel} page ticket ${ticketId}`, from: `ticket${ticketId}@example.com`, fromName: `Ticket User ${ticketId}` }
+      })
+
+      // Last seeded ticket will appear first, so to prserve initial order they are reversed before seeding
+      for (const ticket of tickets.reverse()) {
+        await seedTicket(request, ticket)
       }
     })
 
     test('navigates between pages using page number buttons', async ({ page }) => {
-      await goToTicketsPage(page)
 
       await expect(page.getByRole('row').filter({ hasText: 'First page ticket' }).first()).toBeVisible()
       await expect(page.getByRole('row').filter({ hasText: 'Second page ticket' }).first()).not.toBeVisible()
@@ -270,7 +268,6 @@ test.describe('Tickets page', () => {
     })
 
     test('prev chevron button navigates back to page 1', async ({ page }) => {
-      await goToTicketsPage(page)
 
       await page.getByRole('button', { name: '2' }).click()
 
@@ -285,7 +282,6 @@ test.describe('Tickets page', () => {
     })
 
     test('next chevron button navigates to page 2', async ({ page }) => {
-      await goToTicketsPage(page)
 
       await expect(page.getByRole('row').filter({ hasText: 'First page ticket' }).first()).toBeVisible()
       await expect(page.getByRole('row').filter({ hasText: 'Second page ticket' }).first()).not.toBeVisible()

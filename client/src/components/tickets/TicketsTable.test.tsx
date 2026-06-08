@@ -187,7 +187,6 @@ describe('TicketsTable — sorting', () => {
   it('renders "Assigned to" as a plain header with no button', () => {
     renderTicketsTable()
 
-    // All buttons in the header are sortable columns; none should be labelled "Assigned to"
     const buttons = screen.getAllByRole('button')
     const labels = buttons.map((btn) => btn.textContent ?? '')
     expect(labels.some((label) => label.includes('Assigned to'))).toBe(false)

@@ -7,16 +7,18 @@ import { TicketStatus } from '@helpdesk/core'
 import { TICKETS } from '@/test/fixtures'
 
 function renderTicketsTable(overrides: Partial<React.ComponentProps<typeof TicketsTable>> = {}) {
-  return render(
+  const onSortChange = vi.fn()
+  render(
     <TicketsTable
       tickets={TICKETS}
       loading={false}
       error={null}
       sort={{ column: 'createdAt', order: 'desc' }}
-      onSortChange={vi.fn()}
+      onSortChange={onSortChange}
       {...overrides}
     />,
   )
+  return { onSortChange }
 }
 
 beforeEach(() => {
@@ -154,8 +156,7 @@ describe('TicketsTable — sorting', () => {
   })
 
   it('calls onSortChange with { column: "subject", order: "asc" } when the Subject header is clicked', async () => {
-    const onSortChange = vi.fn()
-    renderTicketsTable({ onSortChange })
+    const { onSortChange } = renderTicketsTable()
 
     await userEvent.click(screen.getByRole('button', { name: /subject/i }))
 
@@ -163,8 +164,7 @@ describe('TicketsTable — sorting', () => {
   })
 
   it('calls onSortChange with { column: "id", order: "asc" } when the # header is clicked', async () => {
-    const onSortChange = vi.fn()
-    renderTicketsTable({ onSortChange })
+    const { onSortChange } = renderTicketsTable()
 
     await userEvent.click(screen.getByRole('button', { name: /^id$/i }))
 
@@ -172,8 +172,7 @@ describe('TicketsTable — sorting', () => {
   })
 
   it('does not call onSortChange when sortable header buttons are disabled during loading', async () => {
-    const onSortChange = vi.fn()
-    renderTicketsTable({ loading: true, tickets: [], onSortChange })
+    const { onSortChange } = renderTicketsTable({ loading: true, tickets: [] })
 
     const buttons = screen.getAllByRole('button')
     expect(buttons.every((btn) => btn.hasAttribute('disabled'))).toBe(true)

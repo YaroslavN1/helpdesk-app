@@ -36,14 +36,15 @@ function getCurrentParams(params: URLSearchParams): TicketsParams {
 }
 
 function buildUrlParams({ sort, filters, page }: TicketsParams): URLSearchParams {
-  const urlSearchParams = new URLSearchParams()
-  if (sort.column !== defaultSort.column) urlSearchParams.set('sortBy', sort.column)
-  if (sort.order !== defaultSort.order) urlSearchParams.set('sortOrder', sort.order)
-  if (page > defaultPage) urlSearchParams.set('page', String(page))
-  if (filters.search) urlSearchParams.set('search', filters.search)
-  for (const status of filters.status) urlSearchParams.append('status', status)
-  for (const category of filters.category) urlSearchParams.append('category', category)
-  return urlSearchParams
+  const urlParams = new URLSearchParams()
+  //Default values are not stored in URL
+  if (sort.column !== defaultSort.column) urlParams.set('sortBy', sort.column)
+  if (sort.order !== defaultSort.order) urlParams.set('sortOrder', sort.order)
+  if (page > defaultPage) urlParams.set('page', String(page))
+  if (filters.search) urlParams.set('search', filters.search)
+  for (const status of filters.status) urlParams.append('status', status)
+  for (const category of filters.category) urlParams.append('category', category)
+  return urlParams
 }
 
 export default function TicketsPage() {

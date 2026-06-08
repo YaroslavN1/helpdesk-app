@@ -19,7 +19,6 @@ export type TicketsFilters = {
   status: TicketStatus[]
   category: TicketCategory[]
 }
-export const DEFAULT_FILTERS: TicketsFilters = { search: '', status: [], category: [] }
 
 export const SortOrder = { asc: 'asc', desc: 'desc' } as const
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]

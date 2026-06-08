@@ -6,9 +6,10 @@ import {
   TicketCategory,
   TICKET_STATUSES,
   TICKET_CATEGORIES,
-  DEFAULT_FILTERS,
   type TicketsFilters,
 } from '@helpdesk/core'
+
+const ticketsDefaultFilters: TicketsFilters = { search: '', status: [], category: [] }
 
 const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
   general_question: 'General question',
@@ -57,7 +58,7 @@ export function TicketsFilters({ filters, onFiltersChange, loading }: Props) {
       />
 
       {isFilter && (
-        <Button variant="ghost" size="default" onClick={() => onFiltersChange(DEFAULT_FILTERS)} disabled={loading}>
+        <Button variant="ghost" size="default" onClick={() => onFiltersChange(ticketsDefaultFilters)} disabled={loading}>
           <X className="h-3.5 w-3.5" />
           Clear filters
         </Button>

@@ -211,6 +211,7 @@ Key conventions owned by the agent:
 - Test files live next to the component: `UsersPage.tsx` → `UsersPage.test.tsx`
 - Use a never-resolving fetch mock for synchronous-state tests (avoids `act()` warnings)
 - Put all assertions that depend on the same async state inside one `waitFor` callback
+- Do not add section-divider comments (e.g. `// --- Fixtures ---`, `// ---------- Helpers ----------`) — the code structure already communicates that
 
 ## E2E Testing
 Use sparingly — only when unit tests cannot cover the scenario. All e2e test writing must be delegated to the **`e2e-test-writer`** agent — never write Playwright tests inline.

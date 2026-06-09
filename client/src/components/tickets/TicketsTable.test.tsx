@@ -2,20 +2,23 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { MemoryRouter } from 'react-router'
 import { TicketsTable } from './TicketsTable'
 import { TICKETS } from '@/test/fixtures'
 
 function renderTicketsTable(overrides: Partial<React.ComponentProps<typeof TicketsTable>> = {}) {
   const onSortChange = vi.fn()
   render(
-    <TicketsTable
-      tickets={TICKETS}
-      loading={false}
-      error={null}
-      sort={{ column: 'createdAt', order: 'desc' }}
-      onSortChange={onSortChange}
-      {...overrides}
-    />,
+    <MemoryRouter>
+      <TicketsTable
+        tickets={TICKETS}
+        loading={false}
+        error={null}
+        sort={{ column: 'createdAt', order: 'desc' }}
+        onSortChange={onSortChange}
+        {...overrides}
+      />
+    </MemoryRouter>,
   )
   return { onSortChange }
 }

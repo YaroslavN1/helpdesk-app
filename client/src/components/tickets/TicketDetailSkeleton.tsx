@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export function TicketDetailSkeleton() {
   return (
-    <div className="space-y-4">
+    <div data-testid="ticket-detail-skeleton" className="space-y-4">
       <div className="space-y-2">
         <Skeleton className="h-8 w-2/3" />
         <div className="flex gap-2">

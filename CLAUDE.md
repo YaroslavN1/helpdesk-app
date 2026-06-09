@@ -170,6 +170,9 @@ Returns `PaginatedTickets` (`{ tickets: Ticket[], total: number }`). Types and c
 
 **URL state in `TicketsPage`** — filter/sort/page values are kept in URL search params (via `useSearchParams`). Default values are omitted from the URL. Any filter/sort change resets page to 1.
 
+## Express 5 Error Handling
+Express 5 automatically forwards errors thrown (or rejected promises) in async route handlers to the error-handling middleware — no `try/catch` needed in routes. Only catch explicitly when you need to distinguish error types or return a specific status (e.g. 404 vs 500). Never wrap an entire route body in `try/catch` just to return a 500.
+
 ## UI Components
 - Add shadcn components with `bunx shadcn@latest add <component>` (run from `client/`)
 - Import using the `@/` alias: `import { Button } from '@/components/ui/button'`

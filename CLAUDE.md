@@ -128,7 +128,7 @@ Import via `@helpdesk/core` in either the client or server package.
 
 ## Server Utilities (`server/src/lib/`)
 
-- **`validate.ts`** — Use `validate(schema, req.body, res)` whenever a route needs to validate a request body with Zod. It calls `safeParse`, sends a `400` with the first error message if invalid, and returns `null` so the route can `return` early. Returns the typed parsed data on success.
+- **`validate.ts`** — Use `validate(schema, input, res)` whenever a route needs to validate input with Zod. Works for both `req.body` and `req.query`. It calls `safeParse`, sends a `400` with the first error message if invalid, and returns `null` so the route can `return` early. Returns the typed parsed data on success.
 
   ```ts
   import { validate } from '../lib/validate'
@@ -136,6 +136,9 @@ Import via `@helpdesk/core` in either the client or server package.
   const data = validate(mySchema, req.body, res)
   if (!data) return
   // data is fully typed here
+
+  const query = validate(querySchema, req.query, res)
+  if (!query) return
   ```
 
   Never write the `safeParse` / `issues[0].message` block inline — always use this helper.
@@ -168,12 +171,18 @@ Use sparingly — only when unit tests cannot cover the scenario. All e2e test w
 
 The agent owns all Playwright knowledge: test structure, selector strategy, auth helpers, global setup, env vars, ports, and the `helpdesk_test` database setup. Run tests with `bun test:e2e`.
 
+**Ports:** E2E tests run against a dedicated test server — client on `http://localhost:5174`, API server on `http://localhost:3001`. These differ from the dev ports (5173 / 3000). Always read the exact URLs from `process.env` (set in `.env.test`) rather than hardcoding.
+
 Key conventions the agent must follow:
 - Shared helpers live in `e2e/helpers.ts` — import `loginAsAdmin(page)` / `loginAsAgent(page)` instead of calling credentials manually; add new shared helpers there
 - Always read URLs, ports, secrets, and other environment-specific values from `process.env` — check `.env.test` for the available variables before hardcoding anything
 - Do not add section-divider comments (e.g. `// --- Route protection ---`) above `test.describe()` blocks — the describe label already serves that purpose
 - `createUser(page)` is a local helper in `users.spec.ts` that generates its own unique name/email and returns `{ name, email }`; tests should destructure only what they use
 - When asserting table cells by name or email, always pass `{ exact: true }` to `getByRole` to avoid partial/case-insensitive matches hitting multiple cells
+
+## Code Style
+- Use full descriptive names for iterator variables — never single-letter shorthands like `s`, `c`, `i` (except `_` for ignored values). E.g. `.map(status => ...)`, `.filter(category => ...)`.
+- Use full descriptive names for function parameters — never abbreviated shorthands like `sp`, `req`, `res`, `cb`, `fn`, `e`. E.g. `searchParams` not `sp`, `event` not `e`.
 
 ## Docs
 Always use **context7** to fetch up-to-date documentation before working with any library or framework — including Express, React, Prisma, Vite, Bun, shadcn/ui, and the Anthropic SDK. Do not rely on training data alone for API signatures or configuration options.

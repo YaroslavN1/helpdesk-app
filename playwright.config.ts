@@ -11,10 +11,10 @@ export default defineConfig({
   testDir: './e2e',
   outputDir: './e2e/test-results',
   globalSetup: './e2e/global-setup.ts',
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   reporter: [['html', { open: 'never' }]],
   use: {
     baseURL: `http://localhost:${CLIENT_PORT}`,

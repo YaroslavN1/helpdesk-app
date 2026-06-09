@@ -84,6 +84,8 @@ test.describe('Tickets page', () => {
   let openRefundTicket: SeededTicket
 
   test.beforeAll(async ({ request }) => {
+    await clearTickets()
+
     ;[openTicket, closedTechnicalTicket, resolvedGeneralTicket, openRefundTicket] = await Promise.all([
       seedTicket(request, { subject: 'Account login issue', from: 'alice@example.com', fromName: 'Alice' }),
       seedTicket(request, { subject: 'Zoom not working',   from: 'zara@example.com',  fromName: 'Zara'  }),

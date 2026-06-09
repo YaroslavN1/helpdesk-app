@@ -51,7 +51,7 @@ export type Ticket = {
   createdAt: string
 }
 
-export type TicketDetail = Ticket & {
+export type TicketDetails = Ticket & {
   body: string
   htmlBody: string | null
 }

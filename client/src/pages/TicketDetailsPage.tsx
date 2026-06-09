@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router'
 import { Badge } from '@/components/ui/badge'
-import { TicketDetailSkeleton } from '@/components/tickets/TicketDetailSkeleton'
+import { TicketDetailsSkeleton } from '@/components/tickets/TicketDetailsSkeleton'
 import { TICKET_STATUS_BADGE, TICKET_CATEGORY_BADGE } from '@/components/tickets/ticket-badges'
 import { formatDate } from '@/lib/utils'
-import { type TicketDetail } from '@helpdesk/core'
+import { type TicketDetails } from '@helpdesk/core'
 
-export default function TicketDetailPage() {
+export default function TicketDetailsPage() {
   const { id } = useParams<{ id: string }>()
-  const [ticket, setTicket] = useState<TicketDetail | null>(null)
+  const [ticket, setTicket] = useState<TicketDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -22,7 +22,7 @@ export default function TicketDetailPage() {
           if (response.status === 404) throw new Error('Ticket not found')
           throw new Error('Failed to load ticket')
         }
-        return response.json() as Promise<TicketDetail>
+        return response.json() as Promise<TicketDetails>
       })
       .then((data) => setTicket(data))
       .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Unknown error'))
@@ -38,7 +38,7 @@ export default function TicketDetailPage() {
         ← Tickets
       </Link>
 
-      {loading && <TicketDetailSkeleton />}
+      {loading && <TicketDetailsSkeleton />}
 
       {error && (
         <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">

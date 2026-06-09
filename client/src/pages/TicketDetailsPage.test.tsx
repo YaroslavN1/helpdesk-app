@@ -1,11 +1,11 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter, Routes, Route } from 'react-router'
-import TicketDetailPage from './TicketDetailPage'
-import { TicketStatus, TicketCategory, type TicketDetail } from '@helpdesk/core'
+import TicketDetailsPage from './TicketDetailsPage'
+import { TicketStatus, TicketCategory, type TicketDetails } from '@helpdesk/core'
 import { formatDate } from '@/lib/utils'
 
-const TICKET_FULL: TicketDetail = {
+const TICKET_FULL: TicketDetails = {
   id: 42,
   fromEmail: 'alice@example.com',
   fromName: 'Alice Smith',
@@ -18,19 +18,19 @@ const TICKET_FULL: TicketDetail = {
   htmlBody: null,
 }
 
-const TICKET_WITH_HTML_BODY: TicketDetail = {
+const TICKET_WITH_HTML_BODY: TicketDetails = {
   ...TICKET_FULL,
   id: 43,
   htmlBody: '<p>HTML email body</p>',
 }
 
-const TICKET_NO_ASSIGNED: TicketDetail = {
+const TICKET_NO_ASSIGNED: TicketDetails = {
   ...TICKET_FULL,
   id: 44,
   assignedTo: null,
 }
 
-const TICKET_NO_CATEGORY: TicketDetail = {
+const TICKET_NO_CATEGORY: TicketDetails = {
   ...TICKET_FULL,
   id: 45,
   category: null,
@@ -58,11 +58,11 @@ function mockFetch404() {
   )
 }
 
-function renderTicketDetail(id: string | number = '42') {
+function renderTicketDetails(id: string | number = '42') {
   return render(
     <MemoryRouter initialEntries={[`/tickets/${id}`]}>
       <Routes>
-        <Route path="/tickets/:id" element={<TicketDetailPage />} />
+        <Route path="/tickets/:id" element={<TicketDetailsPage />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -72,10 +72,10 @@ beforeEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('TicketDetailPage', () => {
+describe('TicketDetailsPage', () => {
   it('renders the back link to /tickets', () => {
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
-    renderTicketDetail()
+    renderTicketDetails()
 
     const backLink = screen.getByRole('link', { name: '← Tickets' })
     expect(backLink).toBeInTheDocument()
@@ -84,14 +84,14 @@ describe('TicketDetailPage', () => {
 
   it('shows the skeleton while fetch is pending', () => {
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
-    renderTicketDetail()
+    renderTicketDetails()
 
     expect(screen.getByTestId('ticket-detail-skeleton')).toBeInTheDocument()
   })
 
   it('does not render the error paragraph while fetch is pending', () => {
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
-    renderTicketDetail()
+    renderTicketDetails()
 
     expect(screen.queryByText('Failed to load ticket')).not.toBeInTheDocument()
     expect(screen.queryByText('Ticket not found')).not.toBeInTheDocument()
@@ -100,14 +100,14 @@ describe('TicketDetailPage', () => {
   it('calls the correct API endpoint with credentials include', () => {
     const fetchSpy = vi.fn().mockReturnValue(new Promise(() => {}))
     vi.stubGlobal('fetch', fetchSpy)
-    renderTicketDetail('42')
+    renderTicketDetails('42')
 
     expect(fetchSpy).toHaveBeenCalledWith('/api/tickets/42', { credentials: 'include' })
   })
 
   it('renders subject with #id prefix after successful fetch', async () => {
     mockFetch(TICKET_FULL)
-    renderTicketDetail()
+    renderTicketDetails()
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument()
@@ -118,7 +118,7 @@ describe('TicketDetailPage', () => {
 
   it('renders status badge after successful fetch', async () => {
     mockFetch(TICKET_FULL)
-    renderTicketDetail()
+    renderTicketDetails()
 
     await waitFor(() => {
       expect(screen.getByText('Open')).toBeInTheDocument()
@@ -127,7 +127,7 @@ describe('TicketDetailPage', () => {
 
   it('renders category badge after successful fetch', async () => {
     mockFetch(TICKET_FULL)
-    renderTicketDetail()
+    renderTicketDetails()
 
     await waitFor(() => {
       expect(screen.getByText('Technical question')).toBeInTheDocument()
@@ -136,7 +136,7 @@ describe('TicketDetailPage', () => {
 
   it('renders From metadata with name and email', async () => {
     mockFetch(TICKET_FULL)
-    renderTicketDetail()
+    renderTicketDetails()
 
     await waitFor(() => {
       expect(screen.getByText('From')).toBeInTheDocument()
@@ -146,7 +146,7 @@ describe('TicketDetailPage', () => {
 
   it('renders Assigned to metadata with agent name', async () => {
     mockFetch(TICKET_FULL)
-    renderTicketDetail()
+    renderTicketDetails()
 
     await waitFor(() => {
       expect(screen.getByText('Assigned to')).toBeInTheDocument()
@@ -156,7 +156,7 @@ describe('TicketDetailPage', () => {
 
   it('renders Received metadata with formatted date', async () => {
     mockFetch(TICKET_FULL)
-    renderTicketDetail()
+    renderTicketDetails()
 
     const expectedDate = formatDate('2024-03-15T10:00:00.000Z')
     await waitFor(() => {
@@ -167,7 +167,7 @@ describe('TicketDetailPage', () => {
 
   it('renders the plain text body div when htmlBody is null', async () => {
     mockFetch(TICKET_FULL)
-    renderTicketDetail()
+    renderTicketDetails()
 
     await waitFor(() => {
       expect(screen.getByText('Plain text body content.')).toBeInTheDocument()
@@ -177,7 +177,7 @@ describe('TicketDetailPage', () => {
 
   it('renders an iframe when htmlBody is present', async () => {
     mockFetch(TICKET_WITH_HTML_BODY)
-    renderTicketDetail('43')
+    renderTicketDetails('43')
 
     await waitFor(() => {
       const iframe = document.querySelector('iframe')
@@ -189,7 +189,7 @@ describe('TicketDetailPage', () => {
 
   it('does not render plain text div when htmlBody is present', async () => {
     mockFetch(TICKET_WITH_HTML_BODY)
-    renderTicketDetail('43')
+    renderTicketDetails('43')
 
     await waitFor(() => {
       expect(document.querySelector('iframe')).toBeInTheDocument()
@@ -200,7 +200,7 @@ describe('TicketDetailPage', () => {
 
   it('shows "Unassigned" when assignedTo is null', async () => {
     mockFetch(TICKET_NO_ASSIGNED)
-    renderTicketDetail('44')
+    renderTicketDetails('44')
 
     await waitFor(() => {
       expect(screen.getByText('Unassigned')).toBeInTheDocument()
@@ -209,7 +209,7 @@ describe('TicketDetailPage', () => {
 
   it('omits the category badge when category is null', async () => {
     mockFetch(TICKET_NO_CATEGORY)
-    renderTicketDetail('45')
+    renderTicketDetails('45')
 
     await waitFor(() => {
       // Status badge is present
@@ -223,7 +223,7 @@ describe('TicketDetailPage', () => {
 
   it('hides ticket content and shows error when fetch returns non-ok', async () => {
     mockFetch(null, false)
-    renderTicketDetail()
+    renderTicketDetails()
 
     await waitFor(() => expect(screen.getByText('Failed to load ticket')).toBeInTheDocument())
     expect(screen.queryByRole('heading')).not.toBeInTheDocument()
@@ -231,7 +231,7 @@ describe('TicketDetailPage', () => {
 
   it('shows "Ticket not found" when fetch returns a 404 response', async () => {
     mockFetch404()
-    renderTicketDetail()
+    renderTicketDetails()
 
     await waitFor(() =>
       expect(screen.getByText('Ticket not found')).toBeInTheDocument(),

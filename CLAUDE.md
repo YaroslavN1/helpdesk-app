@@ -173,6 +173,24 @@ Returns `PaginatedTickets` (`{ tickets: Ticket[], total: number }`). Types and c
 ## Express 5 Error Handling
 Express 5 automatically forwards errors thrown (or rejected promises) in async route handlers to the error-handling middleware — no `try/catch` needed in routes. Only catch explicitly when you need to distinguish error types or return a specific status (e.g. 404 vs 500). Never wrap an entire route body in `try/catch` just to return a 500.
 
+## Tickets API (`GET /api/tickets`)
+
+Accepts query params for filtering, sorting, and pagination — all typed and validated via `querySchema` in `server/src/routes/tickets.ts`:
+
+| Param | Type | Default | Notes |
+|---|---|---|---|
+| `sortBy` | `TicketSortColumn` | `createdAt` | id, subject, fromName, status, category, createdAt |
+| `sortOrder` | `asc` \| `desc` | `desc` | |
+| `search` | string | — | matches id, subject, fromName, fromEmail |
+| `status` | `TicketStatus[]` | `[]` | repeatable param |
+| `category` | `TicketCategory[]` | `[]` | repeatable param |
+| `page` | number | `1` | |
+| `pageSize` | number | `DEFAULT_PAGE_SIZE` | max 100 |
+
+Returns `PaginatedTickets` (`{ tickets: Ticket[], total: number }`). Types and constants (`TicketSortColumn`, `SortOrder`, `DEFAULT_PAGE_SIZE`, `PaginatedTickets`, `Ticket`, `TicketStatus`, `TicketCategory`) are all exported from `@helpdesk/core`.
+
+**URL state in `TicketsPage`** — filter/sort/page values are kept in URL search params (via `useSearchParams`). Default values are omitted from the URL. Any filter/sort change resets page to 1.
+
 ## UI Components
 - Add shadcn components with `bunx shadcn@latest add <component>` (run from `client/`)
 - Import using the `@/` alias: `import { Button } from '@/components/ui/button'`

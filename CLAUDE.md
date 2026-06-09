@@ -22,7 +22,11 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 ├── client/               # React frontend (Vite)
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── ui/                    # shadcn/ui components
+│   │   │   ├── ui/                    # shadcn/ui components + custom reusables
+│   │   │   │   ├── input-debounced.tsx    # debounced search input with leading icon
+│   │   │   │   ├── multi-select.tsx       # generic multi-select dropdown (base-ui Menu)
+│   │   │   │   ├── pagination.tsx         # page nav with prev/next and ellipsis range
+│   │   │   │   └── sortable-head.tsx      # table <th> with asc/desc/unsorted icon
 │   │   │   ├── common/
 │   │   │   │   └── ConfirmationDialog.tsx # generic alert-dialog for destructive confirmations
 │   │   │   ├── layout/
@@ -33,14 +37,15 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── AdminRoute.tsx         # redirects non-admins to /; shows <LoadingScreen /> while pending
 │   │   │   │   └── ProtectedRoute.tsx     # redirects unauthenticated to /login; shows <LoadingScreen /> while pending
 │   │   │   ├── tickets/
-│   │   │   │   └── TicketsTable.tsx       # tickets table with loading/error/data states
+│   │   │   │   ├── TicketsFilters.tsx     # search input + status/category multi-selects
+│   │   │   │   └── TicketsTable.tsx       # sortable table; badge maps for status/category inline
 │   │   │   └── users/
 │   │   │       ├── UserForm.tsx           # create/edit dialog + form; exports User and FormState types
 │   │   │       └── UsersTable.tsx         # users table with loading/error/data states; edit + delete actions
 │   │   ├── pages/
 │   │   │   ├── HomePage.tsx
 │   │   │   ├── LoginPage.tsx
-│   │   │   ├── TicketsPage.tsx       # /tickets — any authenticated user; fetches tickets
+│   │   │   ├── TicketsPage.tsx       # /tickets — filter/sort/paginate tickets; state lives in URL search params
 │   │   │   └── UsersPage.tsx         # /users — admin only; fetches users
 │   │   ├── lib/
 │   │   │   ├── auth-client.ts  # Better Auth client with inferAdditionalFields
@@ -69,6 +74,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   ├── prisma.ts
 │   │   │   └── validate.ts   # validate(schema, body, res) — Zod validation helper for routes
 │   │   ├── routes/
+│   │   │   ├── tickets.ts
 │   │   │   ├── users.ts
 │   │   │   └── webhooks.ts
 │   │   └── index.ts
@@ -111,6 +117,7 @@ Route tree in `client/src/App.tsx`:
 ProtectedRoute             → redirects to /login if no session
   └── Layout               → renders Navbar + <main><Outlet /></main>
         ├── /              → HomePage (any authenticated user)
+        ├── /tickets       → TicketsPage (any authenticated user)
         └── AdminRoute     → redirects to / if role !== 'admin'
               └── /users   → UsersPage
 * → redirect to /
@@ -144,6 +151,24 @@ Import via `@helpdesk/core` in either the client or server package.
   Never write the `safeParse` / `issues[0].message` block inline — always use this helper.
 
 - **`middleware.ts`** — `requireAuth` and `requireAdmin` Express middleware. Session is stored in `res.locals.session` after `requireAuth`.
+
+## Tickets API (`GET /api/tickets`)
+
+Accepts query params for filtering, sorting, and pagination — all typed and validated via `querySchema` in `server/src/routes/tickets.ts`:
+
+| Param | Type | Default | Notes |
+|---|---|---|---|
+| `sortBy` | `TicketSortColumn` | `createdAt` | id, subject, fromName, status, category, createdAt |
+| `sortOrder` | `asc` \| `desc` | `desc` | |
+| `search` | string | — | matches id, subject, fromName, fromEmail |
+| `status` | `TicketStatus[]` | `[]` | repeatable param |
+| `category` | `TicketCategory[]` | `[]` | repeatable param |
+| `page` | number | `1` | |
+| `pageSize` | number | `DEFAULT_PAGE_SIZE` | max 100 |
+
+Returns `PaginatedTickets` (`{ tickets: Ticket[], total: number }`). Types and constants (`TicketSortColumn`, `SortOrder`, `DEFAULT_PAGE_SIZE`, `PaginatedTickets`, `Ticket`, `TicketStatus`, `TicketCategory`) are all exported from `@helpdesk/core`.
+
+**URL state in `TicketsPage`** — filter/sort/page values are kept in URL search params (via `useSearchParams`). Default values are omitted from the URL. Any filter/sort change resets page to 1.
 
 ## UI Components
 - Add shadcn components with `bunx shadcn@latest add <component>` (run from `client/`)

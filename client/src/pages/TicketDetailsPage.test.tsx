@@ -47,17 +47,6 @@ function mockFetch(payload: unknown, ok = true) {
   )
 }
 
-function mockFetch404() {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-      json: () => Promise.resolve(null),
-    }),
-  )
-}
-
 function renderTicketDetails(id: string | number = '42') {
   return render(
     <MemoryRouter initialEntries={[`/tickets/${id}`]}>
@@ -230,7 +219,7 @@ describe('TicketDetailsPage', () => {
   })
 
   it('shows "Ticket not found" when fetch returns a 404 response', async () => {
-    mockFetch404()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) }))
     renderTicketDetails()
 
     await waitFor(() =>

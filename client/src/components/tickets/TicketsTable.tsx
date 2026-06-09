@@ -1,4 +1,4 @@
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { formatDate } from '@/lib/utils'
 import { SortableHead } from '@/components/ui/sortable-head'
 import { Badge } from '@/components/ui/badge'
@@ -49,6 +49,8 @@ const COLUMNS = [
 
 
 export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Props) {
+  const navigate = useNavigate()
+
   function handleSortChange(column: string) {
     onSortChange({
       column: column as TicketSortColumn,
@@ -94,7 +96,7 @@ export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Pr
               </TableRow>
             )}
             {!loading && tickets.map((ticket) => (
-              <TableRow key={ticket.id}>
+              <TableRow key={ticket.id} className="cursor-pointer" onClick={() => navigate(`/tickets/${ticket.id}`)}>
                 <TableCell className="font-mono text-muted-foreground">{ticket.id}</TableCell>
                 <TableCell className="max-w-xs">
                   <Link

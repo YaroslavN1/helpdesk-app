@@ -19,16 +19,12 @@ interface SelectProps {
 }
 
 export function Select({ value, options, onValueChange, disabled, className, placeholder }: SelectProps) {
-  const selectedLabel = options.find((option) => option.value === value)?.label
+  const selectedLabel = options.find((option) => option.value === value)?.label ?? value
 
   return (
     <SelectPrimitive.Root value={value} onValueChange={onValueChange} disabled={disabled}>
       <SelectTrigger className={className}>
-        {selectedLabel !== undefined ? (
-          selectedLabel
-        ) : (
-          <span className="text-muted-foreground">{placeholder}</span>
-        )}
+        {selectedLabel ?? <span className="text-muted-foreground">{placeholder}</span>}
       </SelectTrigger>
       <SelectContent>
         {options.map((option) => (

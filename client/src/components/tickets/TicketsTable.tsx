@@ -124,7 +124,10 @@ export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Pr
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
-                  {ticket.assignedTo?.name ?? <span className="italic">Unassigned</span>}
+                  {ticket.assignedTo
+                    ? <span className="font-medium">{ticket.assignedTo.name}</span>
+                    : <span className="italic text-muted-foreground/40">Unassigned</span>
+                  }
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {formatDate(ticket.createdAt)}

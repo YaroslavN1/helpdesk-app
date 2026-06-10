@@ -1,7 +1,7 @@
 import { Client } from 'pg'
-import { test, expect, type APIRequestContext, type Page } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { DEFAULT_PAGE_SIZE } from '../../core/src/constants/ticket'
-import { loginAsAdmin, loginAsAgent } from '../helpers'
+import { loginAsAdmin, loginAsAgent, seedTicket, setTicketFields, type SeededTicket } from '../helpers'
 
 const SERVER_BASE_URL = process.env.BETTER_AUTH_URL!
 
@@ -20,37 +20,6 @@ async function selectFilterOption(
   await page.keyboard.press('Escape')
 }
 
-async function seedTicket(
-  request: APIRequestContext,
-  overrides: { from: string; fromName: string; subject: string }
-) {
-  const response = await request.post(
-    `${SERVER_BASE_URL}/api/webhooks/inbound-email`,
-    {
-      headers: { 'X-Webhook-Secret': process.env.WEBHOOK_SECRET! },
-      data: { body: 'Test body.', ...overrides },
-    }
-  )
-
-  if (!response.ok()) {
-    throw new Error(`Failed to seed ticket: ${response.status()} ${await response.text()}`)
-  }
-
-  return response.json() as Promise<{
-    id: number
-    fromEmail: string
-    fromName: string
-    subject: string
-    status: string
-    category: string | null
-    assignedToId: string | null
-    createdAt: string
-    updatedAt: string
-  }>
-}
-
-type SeededTicket = Awaited<ReturnType<typeof seedTicket>>
-
 async function clearTickets() {
   const db = new Client({ connectionString: process.env.DATABASE_URL! })
   await db.connect()
@@ -58,14 +27,6 @@ async function clearTickets() {
   await db.end()
 }
 
-async function setTicketFields(updates: Array<{ id: number; status: string; category: string | null }>) {
-  const db = new Client({ connectionString: process.env.DATABASE_URL! })
-  await db.connect()
-  for (const { id, status, category } of updates) {
-    await db.query(`UPDATE "ticket" SET status = $1, category = $2 WHERE id = $3`, [status, category, id])
-  }
-  await db.end()
-}
 
 test.describe('Client access control', () => {
   test('unauthenticated user visiting /tickets is redirected to /login', async ({ page }) => {
@@ -123,6 +84,8 @@ test.describe('Tickets page', () => {
   let openRefundTicket: SeededTicket
 
   test.beforeAll(async ({ request }) => {
+    await clearTickets()
+
     ;[openTicket, closedTechnicalTicket, resolvedGeneralTicket, openRefundTicket] = await Promise.all([
       seedTicket(request, { subject: 'Account login issue', from: 'alice@example.com', fromName: 'Alice' }),
       seedTicket(request, { subject: 'Zoom not working',   from: 'zara@example.com',  fromName: 'Zara'  }),
@@ -159,6 +122,15 @@ test.describe('Tickets page', () => {
       await expect(row.getByText('—')).toBeVisible()
       await expect(row.getByText('Unassigned', { exact: true })).toBeVisible()
       await expect(row.getByText(expectedDate)).toBeVisible()
+    })
+  })
+
+  test.describe('Row navigation', () => {
+    test('clicking a ticket row navigates to the ticket detail page', async ({ page }) => {
+      const row = page.getByRole('row').filter({ hasText: openTicket.subject })
+      await row.click()
+
+      await expect(page).toHaveURL(`/tickets/${openTicket.id}`)
     })
   })
 

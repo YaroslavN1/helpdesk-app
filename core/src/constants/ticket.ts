@@ -51,6 +51,11 @@ export type Ticket = {
   createdAt: string
 }
 
+export type TicketDetails = Ticket & {
+  body: string
+  htmlBody: string | null
+}
+
 export const DEFAULT_PAGE_SIZE = 10
 
 export type PaginatedTickets = {

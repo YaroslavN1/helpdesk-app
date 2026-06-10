@@ -1,6 +1,7 @@
+import { Link, useNavigate } from 'react-router'
 import { formatDate } from '@/lib/utils'
 import { SortableHead } from '@/components/ui/sortable-head'
-import { Badge, type BadgeVariant } from '@/components/ui/badge'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -9,9 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { TICKET_STATUS_BADGE, TICKET_CATEGORY_BADGE } from '@/components/tickets/ticket-badges'
 import {
-  TicketStatus,
-  TicketCategory,
   SORT_ORDERS,
   type Ticket,
   type TicketSortColumn,
@@ -47,20 +47,10 @@ const COLUMNS = [
   { sortable: true,  column: 'createdAt', label: 'Received' },
 ] as const
 
-const TICKET_STATUS_BADGE: Record<TicketStatus, { label: string; variant: BadgeVariant; className: string | undefined }> = {
-  open:     { label: 'Open',     variant: 'default',   className: undefined },
-  resolved: { label: 'Resolved', variant: 'secondary', className: 'text-green-600' },
-  closed:   { label: 'Closed',   variant: 'secondary', className: undefined },
-}
-
-const TICKET_CATEGORY_BADGE: Record<TicketCategory | 'null', { label: string; variant: BadgeVariant }> = {
-  general_question:  { label: 'General question',  variant: 'outline' },
-  technical_question: { label: 'Technical question', variant: 'outline' },
-  refund_request:    { label: 'Refund request',    variant: 'outline' },
-  null:              { label: '—',                 variant: 'ghost'   },
-}
 
 export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Props) {
+  const navigate = useNavigate()
+
   function handleSortChange(column: string) {
     onSortChange({
       column: column as TicketSortColumn,
@@ -106,9 +96,16 @@ export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Pr
               </TableRow>
             )}
             {!loading && tickets.map((ticket) => (
-              <TableRow key={ticket.id}>
+              <TableRow key={ticket.id} className="cursor-pointer" onClick={() => navigate(`/tickets/${ticket.id}`)}>
                 <TableCell className="font-mono text-muted-foreground">{ticket.id}</TableCell>
-                <TableCell className="font-medium max-w-xs truncate">{ticket.subject}</TableCell>
+                <TableCell className="max-w-xs">
+                  <Link
+                    to={`/tickets/${ticket.id}`}
+                    className="block truncate font-medium hover:underline"
+                  >
+                    {ticket.subject}
+                  </Link>
+                </TableCell>
                 <TableCell>
                   <div className="text-sm">{ticket.fromName}</div>
                   <div className="text-xs text-muted-foreground">{ticket.fromEmail}</div>

@@ -54,7 +54,7 @@ const tickets = Array.from({ length: 100 }, (_, i) => {
   const last = pick(lastNames)
   const name = `${first} ${last}`
   const email = `${first.toLowerCase()}.${last.toLowerCase()}${i}@${pick(domains)}`
-  const subject = `${pick(subjects)} (#${i + 1})`
+  const subject = pick(subjects)
   const body = `Hi support,\n\nI'm writing about the following issue: ${subject}.\n\nPlease help me resolve this as soon as possible.\n\nThanks,\n${name}`
   const status = pick(statuses)
   const category = pick(categories)

@@ -37,16 +37,19 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── AdminRoute.tsx         # redirects non-admins to /; shows <LoadingScreen /> while pending
 │   │   │   │   └── ProtectedRoute.tsx     # redirects unauthenticated to /login; shows <LoadingScreen /> while pending
 │   │   │   ├── tickets/
-│   │   │   │   ├── TicketsFilters.tsx     # search input + status/category multi-selects
-│   │   │   │   └── TicketsTable.tsx       # sortable table; badge maps for status/category inline
+│   │   │   │   ├── TicketsFilters.tsx        # search input + status/category multi-selects
+│   │   │   │   ├── TicketsTable.tsx          # sortable table; clicking a row navigates to /tickets/:id
+│   │   │   │   ├── TicketDetailsSkeleton.tsx # skeleton loader shown while ticket details are fetching
+│   │   │   │   └── ticket-badges.ts          # TICKET_STATUS_BADGE / TICKET_CATEGORY_BADGE maps (variant + label)
 │   │   │   └── users/
 │   │   │       ├── UserForm.tsx           # create/edit dialog + form; exports User and FormState types
 │   │   │       └── UsersTable.tsx         # users table with loading/error/data states; edit + delete actions
 │   │   ├── pages/
 │   │   │   ├── HomePage.tsx
 │   │   │   ├── LoginPage.tsx
-│   │   │   ├── TicketsPage.tsx       # /tickets — filter/sort/paginate tickets; state lives in URL search params
-│   │   │   └── UsersPage.tsx         # /users — admin only; fetches users
+│   │   │   ├── TicketsPage.tsx        # /tickets — filter/sort/paginate tickets; state lives in URL search params
+│   │   │   ├── TicketDetailsPage.tsx  # /tickets/:id — fetches and displays a single ticket (subject, badges, metadata, body)
+│   │   │   └── UsersPage.tsx          # /users — admin only; fetches users
 │   │   ├── lib/
 │   │   │   ├── auth-client.ts  # Better Auth client with inferAdditionalFields
 │   │   │   └── utils.ts        # cn() helper (clsx + tailwind-merge)
@@ -118,6 +121,7 @@ ProtectedRoute             → redirects to /login if no session
   └── Layout               → renders Navbar + <main><Outlet /></main>
         ├── /              → HomePage (any authenticated user)
         ├── /tickets       → TicketsPage (any authenticated user)
+        ├── /tickets/:id   → TicketDetailsPage (any authenticated user)
         └── AdminRoute     → redirects to / if role !== 'admin'
               └── /users   → UsersPage
 * → redirect to /
@@ -151,24 +155,44 @@ Import via `@helpdesk/core` in either the client or server package.
   Never write the `safeParse` / `issues[0].message` block inline — always use this helper.
 
 - **`middleware.ts`** — `requireAuth` and `requireAdmin` Express middleware. Session is stored in `res.locals.session` after `requireAuth`.
+- 
+## Express 5 Error Handling
+Express 5 automatically forwards errors thrown (or rejected promises) in async route handlers to the error-handling middleware — no `try/catch` needed in routes. Only catch explicitly when you need to distinguish error types or return a specific status (e.g. 404 vs 500). Never wrap an entire route body in `try/catch` just to return a 500.
 
-## Tickets API (`GET /api/tickets`)
+## Tickets API
 
-Accepts query params for filtering, sorting, and pagination — all typed and validated via `querySchema` in `server/src/routes/tickets.ts`:
+### `GET /api/tickets`
+Filter, sort, and paginate tickets. Auth required.
 
+**Query params**
 | Param | Type | Default | Notes |
 |---|---|---|---|
-| `sortBy` | `TicketSortColumn` | `createdAt` | id, subject, fromName, status, category, createdAt |
+| `sortBy` | `TicketSortColumn` | `createdAt` | `id`, `subject`, `fromName`, `status`, `category`, `createdAt` |
 | `sortOrder` | `asc` \| `desc` | `desc` | |
-| `search` | string | — | matches id, subject, fromName, fromEmail |
+| `search` | `string` | — | matches id, subject, fromName, fromEmail |
 | `status` | `TicketStatus[]` | `[]` | repeatable param |
 | `category` | `TicketCategory[]` | `[]` | repeatable param |
-| `page` | number | `1` | |
-| `pageSize` | number | `DEFAULT_PAGE_SIZE` | max 100 |
+| `page` | `number` | `1` | |
+| `pageSize` | `number` | `DEFAULT_PAGE_SIZE` | max 100 |
 
-Returns `PaginatedTickets` (`{ tickets: Ticket[], total: number }`). Types and constants (`TicketSortColumn`, `SortOrder`, `DEFAULT_PAGE_SIZE`, `PaginatedTickets`, `Ticket`, `TicketStatus`, `TicketCategory`) are all exported from `@helpdesk/core`.
+**Response** `200` — `PaginatedTickets` (`{ tickets: Ticket[], total: number }`)
 
-**URL state in `TicketsPage`** — filter/sort/page values are kept in URL search params (via `useSearchParams`). Default values are omitted from the URL. Any filter/sort change resets page to 1.
+> URL state in `TicketsPage` — all params are kept in URL search params via `useSearchParams`; defaults are omitted; any filter/sort change resets page to 1.
+
+### `GET /api/tickets/:id`
+Fetch a single ticket by numeric ID. Auth required.
+
+**Path params**
+| Param | Type | Notes |
+|---|---|---|
+| `id` | `number` | must be a valid integer |
+
+**Response**
+- `200` — `TicketDetails` (`Ticket` + `body: string`, `htmlBody: string | null`)
+- `400` — invalid (non-integer) ID
+- `404` — ticket not found
+
+> All types and constants (`TicketSortColumn`, `SortOrder`, `DEFAULT_PAGE_SIZE`, `PaginatedTickets`, `Ticket`, `TicketDetails`, `TicketStatus`, `TicketCategory`) are exported from `@helpdesk/core`.
 
 ## UI Components
 - Add shadcn components with `bunx shadcn@latest add <component>` (run from `client/`)
@@ -190,6 +214,7 @@ Key conventions owned by the agent:
 - Test files live next to the component: `UsersPage.tsx` → `UsersPage.test.tsx`
 - Use a never-resolving fetch mock for synchronous-state tests (avoids `act()` warnings)
 - Put all assertions that depend on the same async state inside one `waitFor` callback
+- Do not add section-divider comments (e.g. `// --- Fixtures ---`, `// ---------- Helpers ----------`) — the code structure already communicates that
 
 ## E2E Testing
 Use sparingly — only when unit tests cannot cover the scenario. All e2e test writing must be delegated to the **`e2e-test-writer`** agent — never write Playwright tests inline.

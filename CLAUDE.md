@@ -37,16 +37,19 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── AdminRoute.tsx         # redirects non-admins to /; shows <LoadingScreen /> while pending
 │   │   │   │   └── ProtectedRoute.tsx     # redirects unauthenticated to /login; shows <LoadingScreen /> while pending
 │   │   │   ├── tickets/
-│   │   │   │   ├── TicketsFilters.tsx     # search input + status/category multi-selects
-│   │   │   │   └── TicketsTable.tsx       # sortable table; badge maps for status/category inline
+│   │   │   │   ├── TicketsFilters.tsx        # search input + status/category multi-selects
+│   │   │   │   ├── TicketsTable.tsx          # sortable table; clicking a row navigates to /tickets/:id
+│   │   │   │   ├── TicketDetailsSkeleton.tsx # skeleton loader shown while ticket details are fetching
+│   │   │   │   └── ticket-badges.ts          # TICKET_STATUS_BADGE / TICKET_CATEGORY_BADGE maps (variant + label)
 │   │   │   └── users/
 │   │   │       ├── UserForm.tsx           # create/edit dialog + form; exports User and FormState types
 │   │   │       └── UsersTable.tsx         # users table with loading/error/data states; edit + delete actions
 │   │   ├── pages/
 │   │   │   ├── HomePage.tsx
 │   │   │   ├── LoginPage.tsx
-│   │   │   ├── TicketsPage.tsx       # /tickets — filter/sort/paginate tickets; state lives in URL search params
-│   │   │   └── UsersPage.tsx         # /users — admin only; fetches users
+│   │   │   ├── TicketsPage.tsx        # /tickets — filter/sort/paginate tickets; state lives in URL search params
+│   │   │   ├── TicketDetailsPage.tsx  # /tickets/:id — fetches and displays a single ticket (subject, badges, metadata, body)
+│   │   │   └── UsersPage.tsx          # /users — admin only; fetches users
 │   │   ├── lib/
 │   │   │   ├── auth-client.ts  # Better Auth client with inferAdditionalFields
 │   │   │   └── utils.ts        # cn() helper (clsx + tailwind-merge)
@@ -118,6 +121,7 @@ ProtectedRoute             → redirects to /login if no session
   └── Layout               → renders Navbar + <main><Outlet /></main>
         ├── /              → HomePage (any authenticated user)
         ├── /tickets       → TicketsPage (any authenticated user)
+        ├── /tickets/:id   → TicketDetailsPage (any authenticated user)
         └── AdminRoute     → redirects to / if role !== 'admin'
               └── /users   → UsersPage
 * → redirect to /
@@ -151,25 +155,7 @@ Import via `@helpdesk/core` in either the client or server package.
   Never write the `safeParse` / `issues[0].message` block inline — always use this helper.
 
 - **`middleware.ts`** — `requireAuth` and `requireAdmin` Express middleware. Session is stored in `res.locals.session` after `requireAuth`.
-
-## Tickets API (`GET /api/tickets`)
-
-Accepts query params for filtering, sorting, and pagination — all typed and validated via `querySchema` in `server/src/routes/tickets.ts`:
-
-| Param | Type | Default | Notes |
-|---|---|---|---|
-| `sortBy` | `TicketSortColumn` | `createdAt` | id, subject, fromName, status, category, createdAt |
-| `sortOrder` | `asc` \| `desc` | `desc` | |
-| `search` | string | — | matches id, subject, fromName, fromEmail |
-| `status` | `TicketStatus[]` | `[]` | repeatable param |
-| `category` | `TicketCategory[]` | `[]` | repeatable param |
-| `page` | number | `1` | |
-| `pageSize` | number | `DEFAULT_PAGE_SIZE` | max 100 |
-
-Returns `PaginatedTickets` (`{ tickets: Ticket[], total: number }`). Types and constants (`TicketSortColumn`, `SortOrder`, `DEFAULT_PAGE_SIZE`, `PaginatedTickets`, `Ticket`, `TicketStatus`, `TicketCategory`) are all exported from `@helpdesk/core`.
-
-**URL state in `TicketsPage`** — filter/sort/page values are kept in URL search params (via `useSearchParams`). Default values are omitted from the URL. Any filter/sort change resets page to 1.
-
+- 
 ## Express 5 Error Handling
 Express 5 automatically forwards errors thrown (or rejected promises) in async route handlers to the error-handling middleware — no `try/catch` needed in routes. Only catch explicitly when you need to distinguish error types or return a specific status (e.g. 404 vs 500). Never wrap an entire route body in `try/catch` just to return a 500.
 
@@ -190,6 +176,12 @@ Accepts query params for filtering, sorting, and pagination — all typed and va
 Returns `PaginatedTickets` (`{ tickets: Ticket[], total: number }`). Types and constants (`TicketSortColumn`, `SortOrder`, `DEFAULT_PAGE_SIZE`, `PaginatedTickets`, `Ticket`, `TicketStatus`, `TicketCategory`) are all exported from `@helpdesk/core`.
 
 **URL state in `TicketsPage`** — filter/sort/page values are kept in URL search params (via `useSearchParams`). Default values are omitted from the URL. Any filter/sort change resets page to 1.
+
+## Ticket Details API (`GET /api/tickets/:id`)
+
+Returns a single ticket by numeric ID. Requires auth (`requireAuth`). Returns `404` if not found, `400` if the ID is not a valid integer.
+
+Response type is `TicketDetails` (exported from `@helpdesk/core`): a superset of `Ticket` that adds `body: string` and `htmlBody: string | null`.
 
 ## UI Components
 - Add shadcn components with `bunx shadcn@latest add <component>` (run from `client/`)

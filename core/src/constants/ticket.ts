@@ -51,9 +51,15 @@ export type Ticket = {
   createdAt: string
 }
 
+export type AgentOption = {
+  id: string
+  name: string
+}
+
 export type TicketDetails = Ticket & {
   body: string
   htmlBody: string | null
+  assignedTo: AgentOption | null
 }
 
 export const DEFAULT_PAGE_SIZE = 10

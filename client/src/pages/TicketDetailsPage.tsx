@@ -121,6 +121,7 @@ export default function TicketDetailsPage() {
                   onValueChange={handleAssign}
                   disabled={isAssigning}
                   className="h-7 w-48 text-sm"
+                  data-testid="assign-to-select"
                 />
                 {assignError && (
                   <span className="text-xs text-destructive">{assignError}</span>

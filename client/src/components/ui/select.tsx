@@ -16,14 +16,15 @@ interface SelectProps {
   disabled?: boolean
   className?: string
   placeholder?: string
+  'data-testid'?: string
 }
 
-export function Select({ value, options, onValueChange, disabled, className, placeholder }: SelectProps) {
+export function Select({ value, options, onValueChange, disabled, className, placeholder, 'data-testid': testId }: SelectProps) {
   const selectedLabel = options.find((option) => option.value === value)?.label ?? value
 
   return (
     <SelectPrimitive.Root value={value} onValueChange={onValueChange} disabled={disabled}>
-      <SelectTrigger className={className}>
+      <SelectTrigger className={className} data-testid={testId}>
         {selectedLabel ?? <span className="text-muted-foreground">{placeholder}</span>}
       </SelectTrigger>
       <SelectContent>

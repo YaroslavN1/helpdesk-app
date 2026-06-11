@@ -2,7 +2,7 @@
   "name": "server",
   "version": "1.0.0",
   "scripts": {
-    "dev": "bun --hot src/index.ts",
+    "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "db:generate": "bun --bun run prisma generate",
     "db:migrate": "bun --bun run prisma migrate dev",

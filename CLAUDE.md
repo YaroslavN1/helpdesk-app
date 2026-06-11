@@ -26,6 +26,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── input-debounced.tsx    # debounced search input with leading icon
 │   │   │   │   ├── multi-select.tsx       # generic multi-select dropdown (base-ui Menu)
 │   │   │   │   ├── pagination.tsx         # page nav with prev/next and ellipsis range
+│   │   │   │   ├── select.tsx             # single-value select (base-ui Select)
 │   │   │   │   └── sortable-head.tsx      # table <th> with asc/desc/unsorted icon
 │   │   │   ├── common/
 │   │   │   │   └── ConfirmationDialog.tsx # generic alert-dialog for destructive confirmations
@@ -188,11 +189,68 @@ Fetch a single ticket by numeric ID. Auth required.
 | `id` | `number` | must be a valid integer |
 
 **Response**
-- `200` — `TicketDetails` (`Ticket` + `body: string`, `htmlBody: string | null`)
+- `200` — `TicketDetails` (`Ticket` + `body: string`, `htmlBody: string | null`, `assignedTo: AgentOption | null`)
 - `400` — invalid (non-integer) ID
 - `404` — ticket not found
 
-> All types and constants (`TicketSortColumn`, `SortOrder`, `DEFAULT_PAGE_SIZE`, `PaginatedTickets`, `Ticket`, `TicketDetails`, `TicketStatus`, `TicketCategory`) are exported from `@helpdesk/core`.
+### `PATCH /api/tickets/:id`
+Assign or unassign a ticket. Auth required.
+
+**Path params**
+| Param | Type | Notes |
+|---|---|---|
+| `id` | `number` | must be a valid integer |
+
+**Body** (`assignTicketSchema`)
+| Field | Type | Notes |
+|---|---|---|
+| `assignedToId` | `string \| null` | must be a non-deleted agent; `null` to unassign |
+
+**Response**
+- `200` — full `TicketDetails` (same shape as `GET /api/tickets/:id`)
+- `400` — invalid ticket ID, invalid body, or `assignedToId` is not a valid agent
+- `404` — ticket not found
+
+## Users API
+
+### `GET /api/users/agents`
+List all non-deleted agents for assignment dropdowns. Auth required (any role).
+
+**Response** `200` — `AgentOption[]` (`{ id: string, name: string }[]`), ordered by name
+
+### `GET /api/users`
+List all non-deleted users. Admin only.
+
+**Response** `200` — `{ id, name, email, role, createdAt }[]`, ordered by createdAt asc
+
+### `POST /api/users`
+Create an agent account. Admin only.
+
+**Body** (`createUserSchema`) — `name`, `email`, `password`
+
+**Response**
+- `201` — created user `{ id, name, email, role, createdAt }`
+- `409` — email already exists
+
+### `PATCH /api/users/:id`
+Edit a user's name, email, or password. Admin only.
+
+**Body** (`editUserSchema`) — `name`, `email`, optional `password`
+
+**Response**
+- `200` — updated user `{ id, name, email, role, createdAt }`
+- `404` — user not found
+- `409` — email already exists
+
+### `DELETE /api/users/:id`
+Soft-delete a user (sets `deletedAt`). Admin only. Admins cannot be deleted.
+
+**Response**
+- `204` — success
+- `403` — target is an admin
+- `404` — user not found
+
+> All types and schemas (`AgentOption`, `TicketDetails`, `assignTicketSchema`, `createUserSchema`, `editUserSchema`, etc.) are exported from `@helpdesk/core`.
 
 ## UI Components
 - Add shadcn components with `bunx shadcn@latest add <component>` (run from `client/`)

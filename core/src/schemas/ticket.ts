@@ -9,3 +9,9 @@ export const inboundEmailSchema = z.object({
 })
 
 export type InboundEmailInput = z.infer<typeof inboundEmailSchema>
+
+export const assignTicketSchema = z.object({
+  assignedToId: z.string().nullable(),
+})
+
+export type AssignTicketInput = z.infer<typeof assignTicketSchema>

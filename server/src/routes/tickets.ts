@@ -1,9 +1,9 @@
-import { Router } from 'express'
+import { Router, type Response } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { requireAuth } from '../lib/middleware'
 import { validate } from '../lib/validate'
-import { TICKET_SORT_COLUMNS, SORT_ORDERS, TICKET_STATUSES, TICKET_CATEGORIES, SortOrder, TicketSortColumn, DEFAULT_PAGE_SIZE, type TicketStatus, type TicketCategory } from '@helpdesk/core'
+import { TICKET_SORT_COLUMNS, SORT_ORDERS, TICKET_STATUSES, TICKET_CATEGORIES, SortOrder, TicketSortColumn, DEFAULT_PAGE_SIZE, assignTicketSchema, UserRole, type TicketStatus, type TicketCategory } from '@helpdesk/core'
 import type { Prisma } from '../generated/prisma/client'
 
 const router = Router()
@@ -11,6 +11,15 @@ const router = Router()
 function toArray(val: unknown): unknown[] {
   if (val === undefined || val === null) return []
   return Array.isArray(val) ? val : [val]
+}
+
+function parseTicketId(raw: unknown, res: Response): number | null {
+  const id = parseInt(raw as string, 10)
+  if (isNaN(id)) {
+    res.status(400).json({ error: 'Invalid ticket ID' })
+    return null
+  }
+  return id
 }
 
 const querySchema = z.object({
@@ -72,35 +81,61 @@ router.get('/', requireAuth, async (req, res) => {
   }
 })
 
+const ticketDetailSelect = {
+  id: true,
+  fromEmail: true,
+  fromName: true,
+  subject: true,
+  body: true,
+  htmlBody: true,
+  status: true,
+  category: true,
+  assignedTo: { select: { id: true, name: true } },
+  createdAt: true,
+} as const
+
 router.get('/:id', requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id as string, 10)
-  if (isNaN(id)) {
-    res.status(400).json({ error: 'Invalid ticket ID' })
-    return
-  }
+  const id = parseTicketId(req.params.id, res)
+  if (id === null) return
 
-  const ticket = await prisma.ticket.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      fromEmail: true,
-      fromName: true,
-      subject: true,
-      body: true,
-      htmlBody: true,
-      status: true,
-      category: true,
-      assignedTo: { select: { name: true } },
-      createdAt: true,
-    },
-  })
-
+  const ticket = await prisma.ticket.findUnique({ where: { id }, select: ticketDetailSelect })
   if (!ticket) {
     res.status(404).json({ error: 'Ticket not found' })
     return
   }
 
   res.json(ticket)
+})
+
+router.patch('/:id', requireAuth, async (req, res) => {
+  const id = parseTicketId(req.params.id, res)
+  if (id === null) return
+  
+  const ticket = await prisma.ticket.findUnique({ where: { id } })
+  if (!ticket) {
+    res.status(404).json({ error: 'Ticket not found' })
+    return
+  }
+
+  const data = validate(assignTicketSchema, req.body, res)
+  if (!data) return
+  
+  const { assignedToId } = data
+  if (assignedToId !== null) {
+    const agent = await prisma.user.findUnique({ where: { id: assignedToId, deletedAt: null } })
+    if (!agent || agent.role !== UserRole.agent) {
+      res.status(400).json({ error: 'Invalid agent' })
+      return
+    }
+  }
+
+  const updated = await prisma.ticket.update({
+    where: { id },
+    data: { assignedToId },
+    select: ticketDetailSelect,
+  })
+
+  res.json(updated)
 })
 
 export default router

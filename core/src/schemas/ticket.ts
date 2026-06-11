@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { TICKET_STATUSES, TICKET_CATEGORIES } from '../constants/ticket'
 
 export const inboundEmailSchema = z.object({
   from: z.email('Valid sender email is required'),
@@ -10,8 +11,10 @@ export const inboundEmailSchema = z.object({
 
 export type InboundEmailInput = z.infer<typeof inboundEmailSchema>
 
-export const assignTicketSchema = z.object({
-  assignedToId: z.string().nullable(),
+export const updateTicketSchema = z.object({
+  assignedToId: z.string().nullable().optional(),
+  status: z.enum(TICKET_STATUSES).optional(),
+  category: z.enum(TICKET_CATEGORIES).nullable().optional(),
 })
 
-export type AssignTicketInput = z.infer<typeof assignTicketSchema>
+export type UpdateTicketInput = z.infer<typeof updateTicketSchema>

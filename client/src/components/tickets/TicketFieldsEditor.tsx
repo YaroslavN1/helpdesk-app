@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react'
 import { type SelectOption } from '@/components/ui/select'
 import { TicketSelectField, type TicketUpdateResult } from '@/components/tickets/TicketSelectField'
-import { TICKET_STATUS_BADGE, TICKET_CATEGORY_BADGE } from '@/components/tickets/ticket-badges'
-import { type TicketDetails, type AgentOption, TICKET_STATUSES, TICKET_CATEGORIES, type TicketStatus, type TicketCategory } from '@helpdesk/core'
+import { type TicketDetails, type AgentOption, TICKET_STATUSES, TICKET_CATEGORIES, TICKET_STATUS_LABELS, TICKET_CATEGORY_LABELS, type TicketStatus, type TicketCategory } from '@helpdesk/core'
 
 const STATUS_OPTIONS: SelectOption[] = TICKET_STATUSES.map((status) => ({
   value: status,
-  label: TICKET_STATUS_BADGE[status].label,
+  label: TICKET_STATUS_LABELS[status],
 }))
 
 const CATEGORY_OPTIONS: SelectOption[] = [
   { value: null, label: 'None' },
   ...TICKET_CATEGORIES.map((category) => ({
     value: category,
-    label: TICKET_CATEGORY_BADGE[category].label,
+    label: TICKET_CATEGORY_LABELS[category],
   })),
 ]
 

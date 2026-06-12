@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { requireAuth } from '../lib/middleware'
 import { validate } from '../lib/validate'
-import { TICKET_SORT_COLUMNS, SORT_ORDERS, TICKET_STATUSES, TICKET_CATEGORIES, SortOrder, TicketSortColumn, DEFAULT_PAGE_SIZE, assignTicketSchema, UserRole, type TicketStatus, type TicketCategory } from '@helpdesk/core'
+import { TICKET_SORT_COLUMNS, SORT_ORDERS, TICKET_STATUSES, TICKET_CATEGORIES, SortOrder, TicketSortColumn, DEFAULT_PAGE_SIZE, updateTicketSchema, UserRole, type TicketStatus, type TicketCategory } from '@helpdesk/core'
 import type { Prisma } from '../generated/prisma/client'
 
 const router = Router()
@@ -117,11 +117,12 @@ router.patch('/:id', requireAuth, async (req, res) => {
     return
   }
 
-  const data = validate(assignTicketSchema, req.body, res)
+  const data = validate(updateTicketSchema, req.body, res)
   if (!data) return
-  
-  const { assignedToId } = data
-  if (assignedToId !== null) {
+
+  const { assignedToId, status, category } = data
+
+  if (assignedToId) {
     const agent = await prisma.user.findUnique({ where: { id: assignedToId, deletedAt: null } })
     if (!agent || agent.role !== UserRole.agent) {
       res.status(400).json({ error: 'Invalid agent' })
@@ -131,7 +132,11 @@ router.patch('/:id', requireAuth, async (req, res) => {
 
   const updated = await prisma.ticket.update({
     where: { id },
-    data: { assignedToId },
+    data: {
+      ...(assignedToId !== undefined && { assignedToId }),
+      ...(status !== undefined && { status }),
+      ...(category !== undefined && { category }),
+    },
     select: ticketDetailSelect,
   })
 

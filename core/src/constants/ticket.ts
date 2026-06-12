@@ -5,6 +5,11 @@ export const TicketStatus = {
 } as const
 export type TicketStatus = (typeof TicketStatus)[keyof typeof TicketStatus]
 export const TICKET_STATUSES = Object.values(TicketStatus) as [TicketStatus, ...TicketStatus[]]
+export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
+  open: 'Open',
+  resolved: 'Resolved',
+  closed: 'Closed',
+}
 
 export const TicketCategory = {
   general_question: 'general_question',
@@ -13,11 +18,10 @@ export const TicketCategory = {
 } as const
 export type TicketCategory = (typeof TicketCategory)[keyof typeof TicketCategory]
 export const TICKET_CATEGORIES = Object.values(TicketCategory) as [TicketCategory, ...TicketCategory[]]
-
-export type TicketsFilters = {
-  search: string
-  status: TicketStatus[]
-  category: TicketCategory[]
+export const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
+  general_question: 'General',
+  technical_question: 'Technical',
+  refund_request: 'Refund',
 }
 
 export const SortOrder = { asc: 'asc', desc: 'desc' } as const
@@ -38,6 +42,12 @@ export const TICKET_SORT_COLUMNS = Object.values(TicketSortColumn) as [TicketSor
 export type TicketsSort = {
   column: TicketSortColumn
   order: SortOrder
+}
+
+export type TicketsFilters = {
+  search: string
+  status: TicketStatus[]
+  category: TicketCategory[]
 }
 
 export type Ticket = {

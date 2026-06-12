@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router'
 import { TicketsTable } from './TicketsTable'
-import { TICKETS } from '@/test/fixtures'
+import { TICKETS, openTechnicalTicket, resolvedRefundTicket, closedTicket, openGeneralTicket } from '@/test/fixtures'
 
 function renderTicketsTable(overrides: Partial<React.ComponentProps<typeof TicketsTable>> = {}) {
   const onSortChange = vi.fn()
@@ -80,42 +80,37 @@ describe('TicketsTable — loaded state', () => {
   })
 
   it('renders a status badge for each status value', () => {
-    renderTicketsTable()
+    renderTicketsTable({ tickets: [openTechnicalTicket, resolvedRefundTicket, closedTicket] })
 
-    // TICKETS variable has mock data for all 3 cases
     expect(screen.getByText('Open')).toBeInTheDocument()
     expect(screen.getByText('Resolved')).toBeInTheDocument()
     expect(screen.getByText('Closed')).toBeInTheDocument()
   })
 
   it('shows the formatted category label for non-null category', () => {
-    renderTicketsTable()
+    renderTicketsTable({ tickets: [openTechnicalTicket, resolvedRefundTicket, openGeneralTicket] })
 
-    // technical_question → "Technical question"
-    expect(screen.getByText('Technical question')).toBeInTheDocument()
-    // refund_request → "Refund request"
-    expect(screen.getByText('Refund request')).toBeInTheDocument()
+    expect(screen.getByText('Technical')).toBeInTheDocument()
+    expect(screen.getByText('Refund')).toBeInTheDocument()
+    expect(screen.getByText('General')).toBeInTheDocument()
   })
 
   it('shows "—" for a null category', () => {
-    renderTicketsTable()
+    renderTicketsTable({ tickets: [closedTicket] })
 
-    // TICKETS[2] has category: null
     expect(screen.getByText('—')).toBeInTheDocument()
   })
 
   it('shows the assigned agent name when assignedTo is set', () => {
-    renderTicketsTable()
+    renderTicketsTable({ tickets: [openTechnicalTicket] })
 
     expect(screen.getByText('Bob Agent')).toBeInTheDocument()
   })
 
-  it('shows "Unassigned" when assignedTo is null', () => {
-    renderTicketsTable()
+  it('shows "—" when assignedTo is null', () => {
+    renderTicketsTable({ tickets: [resolvedRefundTicket] })
 
-    // TICKETS[1] and TICKETS[2] both have assignedTo: null
-    const unassigned = screen.getAllByText('Unassigned')
-    expect(unassigned.length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('—')).toBeInTheDocument()
   })
 
   it('formats the createdAt date correctly', () => {

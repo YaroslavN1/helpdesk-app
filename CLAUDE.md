@@ -43,7 +43,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── TicketDetailsSkeleton.tsx # skeleton loader shown while ticket details are fetching
 │   │   │   │   ├── TicketFieldsEditor.tsx    # inline status/category/agent selects for TicketDetailsPage; fetches agents internally
 │   │   │   │   ├── TicketSelectField.tsx     # single editable dl row (label + Select + error); owns loading/error state; exports TicketUpdateResult
-│   │   │   │   └── ticket-badges.ts          # TICKET_STATUS_BADGE / TICKET_CATEGORY_BADGE maps (variant + label)
+│   │   │   │   └── ticket-badges.ts          # TICKET_STATUS_BADGE map (variant + className); labels live in @helpdesk/core
 │   │   │   └── users/
 │   │   │       ├── UserForm.tsx           # create/edit dialog + form; exports User and FormState types
 │   │   │       └── UsersTable.tsx         # users table with loading/error/data states; edit + delete actions
@@ -55,7 +55,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   └── UsersPage.tsx          # /users — admin only; fetches users
 │   │   ├── lib/
 │   │   │   ├── auth-client.ts  # Better Auth client with inferAdditionalFields
-│   │   │   └── utils.ts        # cn() helper (clsx + tailwind-merge)
+│   │   │   └── utils.ts        # cn() helper (clsx + tailwind-merge); formatDate(date, format) date formatter
 │   │   ├── App.tsx             # route tree (see Routing section)
 │   │   └── main.tsx
 │   ├── components.json     # shadcn/ui config
@@ -88,8 +88,11 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 ├── e2e/                  # Playwright end-to-end tests
 │   ├── helpers.ts        # shared constants (ADMIN_*, AGENT_*) and loginAsAdmin / loginAsAgent helpers
 │   ├── global-setup.ts   # creates helpdesk_test DB (or truncates if exists), runs migrations, seeds admin + agent
-│   ├── auth.spec.ts      # authentication, session, route protection, navbar role visibility
-│   └── users.spec.ts     # UsersPage rendering, API protection, create / edit / delete flows
+│   └── tests/
+│       ├── auth.spec.ts             # authentication, session, route protection, navbar role visibility
+│       ├── ticket-details.spec.ts   # TicketDetailsPage rendering, selectors (status/category/agent), error states
+│       ├── tickets.spec.ts          # TicketsPage rendering, filter/sort/pagination flows
+│       └── users.spec.ts            # UsersPage rendering, API protection, create / edit / delete flows
 ├── project-planning/     # Scope, tech stack, implementation plan
 ├── .env.test             # E2E env vars (single source of truth)
 ├── playwright.config.ts  # Playwright config; loads .env.test via dotenv
@@ -139,6 +142,7 @@ Import via `@helpdesk/core` in either the client or server package.
 - **Schemas** — Zod schemas shared between client and server go in `core/src/schemas/` (one file per domain entity, e.g. `user.ts`), re-exported from `core/src/index.ts`.
 - **Constants** — Shared constants go in `core/src/constants/` (one file per domain, e.g. `role.ts`), re-exported from `core/src/index.ts`.
 - **`UserRole` enum** — Always import from `@helpdesk/core`, never hardcode `'admin'` or `'agent'` strings. Used in client components, server routes, and `auth.ts`.
+- **`TICKET_STATUS_LABELS` / `TICKET_CATEGORY_LABELS`** — Human-readable label maps (`Record<TicketStatus | TicketCategory, string>`). Import from `@helpdesk/core` whenever you need to display a ticket status or category as text. Category labels are short: `'General'`, `'Technical'`, `'Refund'`.
 
 ## Server Utilities (`server/src/lib/`)
 
@@ -191,7 +195,7 @@ Fetch a single ticket by numeric ID. Auth required.
 | `id` | `number` | must be a valid integer |
 
 **Response**
-- `200` — `TicketDetails` (`Ticket` + `body: string`, `htmlBody: string | null`, `assignedTo: AgentOption | null`)
+- `200` — `TicketDetails` (`Ticket` + `body: string`, `htmlBody: string | null`, `assignedTo: AgentOption | null`, `updatedAt: string`)
 - `400` — invalid (non-integer) ID
 - `404` — ticket not found
 
@@ -262,6 +266,14 @@ Soft-delete a user (sets `deletedAt`). Admin only. Admins cannot be deleted.
 - Use `cn()` from `@/lib/utils` for conditional/merged class names
 - Tailwind tokens (`text-muted-foreground`, `text-destructive`, `bg-background`, etc.) are defined as CSS vars in `src/index.css` — prefer these over hard-coded colors
 
+## Client Utilities (`client/src/lib/utils.ts`)
+- **`cn(...inputs)`** — clsx + tailwind-merge helper for conditional class names
+- **`formatDate(date, format?)`** — locale-aware date formatter. `format` is `'date'` (default, date only) or `'datetime'` (date + `HH:MM:SS`). Uses `en-US` locale with `toLocaleString`. Use `'datetime'` for ticket metadata (Received, Updated); `'date'` for table columns.
+  ```ts
+  formatDate(ticket.createdAt)              // "Mar 15, 2024"
+  formatDate(ticket.updatedAt, 'datetime')  // "Mar 15, 2024, 10:00:00 AM"
+  ```
+
 ## Testing Strategy
 **Default to component (unit) tests. Use E2E tests only for flows that require a real browser, real auth session, or multi-step UI interactions that are impractical to unit-test** (e.g. full login flow, role-based redirects, cross-page workflows).
 
@@ -277,6 +289,8 @@ Key conventions owned by the agent:
 - Use a never-resolving fetch mock for synchronous-state tests (avoids `act()` warnings)
 - Put all assertions that depend on the same async state inside one `waitFor` callback
 - Do not add section-divider comments (e.g. `// --- Fixtures ---`, `// ---------- Helpers ----------`) — the code structure already communicates that
+- Shared ticket fixtures live in `client/src/test/fixtures.ts` — named exports (`openTechnicalTicket`, `resolvedRefundTicket`, `closedTicket`, `openGeneralTicket`) plus `TICKETS` array. Use named exports in tests that need a specific combination to avoid `getByText` ambiguity; `closedTicket` has `category: null` and `assignedTo: { name: 'Dave Agent' }` (non-null) for this reason.
+- Date assertions use a regex (`/Mar 15, 2024/`) rather than an exact string to stay timezone-safe across environments
 
 ## E2E Testing
 Use sparingly — only when unit tests cannot cover the scenario. All e2e test writing must be delegated to the **`e2e-test-writer`** agent — never write Playwright tests inline.
@@ -291,6 +305,8 @@ Key conventions the agent must follow:
 - Do not add section-divider comments (e.g. `// --- Route protection ---`) above `test.describe()` blocks — the describe label already serves that purpose
 - `createUser(page)` is a local helper in `users.spec.ts` that generates its own unique name/email and returns `{ name, email }`; tests should destructure only what they use
 - When asserting table cells by name or email, always pass `{ exact: true }` to `getByRole` to avoid partial/case-insensitive matches hitting multiple cells
+- **Base UI Select trigger includes a `▼` chevron in its DOM text** — always use `toContainText` (not `toHaveText`) when asserting the current value of a Select trigger
+- `ticket-details.spec.ts` is structured to mirror the unit test file: single top-level `test.describe('TicketDetailsPage')` with nested `route protection`, `error states`, and `data rendering` (which contains `page header`, `ticket metadata → static metadata / metadata selectors`, and `conversation`)
 
 ## Code Style
 - Use full descriptive names for iterator variables — never single-letter shorthands like `s`, `c`, `i` (except `_` for ignored values). E.g. `.map(status => ...)`, `.filter(category => ...)`.

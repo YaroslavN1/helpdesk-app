@@ -19,9 +19,9 @@ export const TicketCategory = {
 export type TicketCategory = (typeof TicketCategory)[keyof typeof TicketCategory]
 export const TICKET_CATEGORIES = Object.values(TicketCategory) as [TicketCategory, ...TicketCategory[]]
 export const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
-  general_question: 'General question',
-  technical_question: 'Technical question',
-  refund_request: 'Refund request',
+  general_question: 'General',
+  technical_question: 'Technical',
+  refund_request: 'Refund',
 }
 
 export const SortOrder = { asc: 'asc', desc: 'desc' } as const

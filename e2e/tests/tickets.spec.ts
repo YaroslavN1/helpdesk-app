@@ -118,9 +118,8 @@ test.describe('Tickets page', () => {
       await expect(row.getByText(openTicket.subject)).toBeVisible()
       await expect(row.getByText(openTicket.fromName, { exact: true })).toBeVisible()
       await expect(row.getByText(openTicket.fromEmail)).toBeVisible()
-      await expect(row.getByText('open')).toBeVisible()
-      await expect(row.getByText('—')).toBeVisible()
-      await expect(row.getByText('Unassigned', { exact: true })).toBeVisible()
+      await expect(row.getByText('Open')).toBeVisible()
+      await expect(row.getByText('—')).toHaveCount(2)
       await expect(row.getByText(expectedDate)).toBeVisible()
     })
   })
@@ -168,8 +167,8 @@ test.describe('Tickets page', () => {
   test.describe('Filtering — category multiselect', () => {
     test('filtering by selected categories shows only relevant tickets', async ({ page }) => {
 
-      await selectFilterOption(page, 'category-filter', 'General question')
-      await selectFilterOption(page, 'category-filter', 'Refund request')
+      await selectFilterOption(page, 'category-filter', 'General')
+      await selectFilterOption(page, 'category-filter', 'Refund')
 
       await expect(page.getByRole('row').filter({ hasText: resolvedGeneralTicket.subject })).toBeVisible()
       await expect(page.getByRole('row').filter({ hasText: openRefundTicket.subject })).toBeVisible()
@@ -182,7 +181,7 @@ test.describe('Tickets page', () => {
 
       await page.getByPlaceholder('Search tickets…').fill(resolvedGeneralTicket.subject)
       await selectFilterOption(page, 'status-filter', 'resolved')
-      await selectFilterOption(page, 'category-filter', 'General question')
+      await selectFilterOption(page, 'category-filter', 'General')
 
       await expect(page.getByRole('row').filter({ hasText: openTicket.subject })).not.toBeVisible()
 

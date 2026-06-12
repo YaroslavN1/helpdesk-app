@@ -92,6 +92,7 @@ const ticketDetailSelect = {
   category: true,
   assignedTo: { select: { id: true, name: true } },
   createdAt: true,
+  updatedAt: true,
 } as const
 
 router.get('/:id', requireAuth, async (req, res) => {

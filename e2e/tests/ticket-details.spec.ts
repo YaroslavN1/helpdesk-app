@@ -79,12 +79,27 @@ test.describe('TicketDetailsPage', () => {
         })
 
         test('renders the Received date', async ({ page }) => {
-          const expectedDate = new Date(ticket.createdAt).toLocaleDateString('en-US', {
+          const expectedDate = new Date(ticket.createdAt).toLocaleString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
           })
-          await expect(page.getByText(expectedDate)).toBeVisible()
+          await expect(page.locator('dt:has-text("Received") + dd')).toContainText(expectedDate)
+        })
+
+        test('renders the Updated date', async ({ page }) => {
+          const expectedDate = new Date(ticket.updatedAt).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          })
+          await expect(page.locator('dt:has-text("Updated") + dd')).toContainText(expectedDate)
         })
       })
 

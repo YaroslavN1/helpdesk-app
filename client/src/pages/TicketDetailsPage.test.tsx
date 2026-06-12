@@ -14,6 +14,7 @@ const DEFAULT_TICKET: TicketDetails = {
   category: TicketCategory.technical_question,
   assignedTo: { id: 'agent-1', name: 'Bob Agent' },
   createdAt: '2024-03-15T10:00:00.000Z',
+  updatedAt: '2024-03-16T08:00:00.000Z',
   body: 'Plain text body content.',
   htmlBody: null,
 }
@@ -187,7 +188,17 @@ describe('TicketDetailsPage', () => {
 
         await waitFor(() => {
           expect(screen.getByText('Received')).toBeInTheDocument()
-          expect(screen.getByText('Mar 15, 2024')).toBeInTheDocument()
+          expect(screen.getByText(/Mar 15, 2024/)).toBeInTheDocument()
+        })
+      })
+
+      it('renders the updated date', async () => {
+        mockFetch(DEFAULT_TICKET)
+        renderTicketDetailsPage()
+
+        await waitFor(() => {
+          expect(screen.getByText('Updated')).toBeInTheDocument()
+          expect(screen.getByText(/Mar 16, 2024/)).toBeInTheDocument()
         })
       })
     })

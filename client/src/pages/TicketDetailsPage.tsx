@@ -70,32 +70,37 @@ export default function TicketDetailsPage() {
             <span className="text-muted-foreground/70 font-normal">#{ticket.id}</span> {ticket.subject}
           </h2>
 
-          <dl className="space-y-2 text-sm border-l-2 border-border pl-4">
-            <div className="flex gap-2">
-              <dt className="w-24 shrink-0 text-muted-foreground">From</dt>
-              <dd>{ticket.fromName} &lt;{ticket.fromEmail}&gt;</dd>
+          <div className="grid grid-cols-[1fr_auto] gap-8 items-start">
+            <div className="space-y-6 min-w-0">
+              <dl className="space-y-2 text-sm border-l-2 border-border pl-4">
+                <div className="flex items-center gap-2 min-h-7">
+                  <dt className="w-24 shrink-0 text-muted-foreground">From</dt>
+                  <dd>{ticket.fromName} &lt;{ticket.fromEmail}&gt;</dd>
+                </div>
+                <div className="flex items-center gap-2 min-h-7">
+                  <dt className="w-24 shrink-0 text-muted-foreground">Received</dt>
+                  <dd>{formatDate(ticket.createdAt)}</dd>
+                </div>
+              </dl>
+
+              {ticket.htmlBody ? (
+                <iframe
+                  srcDoc={ticket.htmlBody}
+                  sandbox="allow-same-origin"
+                  className="w-full min-h-96 rounded-lg border bg-white shadow-md"
+                  title="Email body"
+                />
+              ) : (
+                <div className="whitespace-pre-wrap text-sm rounded-lg border p-4 bg-muted/30 shadow-md">
+                  {ticket.body}
+                </div>
+              )}
             </div>
 
-            <TicketFieldsEditor ticket={ticket} updateTicket={updateTicket} />
-
-            <div className="flex gap-2">
-              <dt className="w-24 shrink-0 text-muted-foreground">Received</dt>
-              <dd>{formatDate(ticket.createdAt)}</dd>
-            </div>
-          </dl>
-
-          {ticket.htmlBody ? (
-            <iframe
-              srcDoc={ticket.htmlBody}
-              sandbox="allow-same-origin"
-              className="w-full min-h-96 rounded-lg border bg-white shadow-md"
-              title="Email body"
-            />
-          ) : (
-            <div className="whitespace-pre-wrap text-sm rounded-lg border p-4 bg-muted/30 shadow-md">
-              {ticket.body}
-            </div>
-          )}
+            <dl className="space-y-2 text-sm">
+              <TicketFieldsEditor ticket={ticket} updateTicket={updateTicket} />
+            </dl>
+          </div>
         </div>
       )}
     </>

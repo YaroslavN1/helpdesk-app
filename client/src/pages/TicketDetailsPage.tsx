@@ -79,7 +79,11 @@ export default function TicketDetailsPage() {
                 </div>
                 <div className="flex items-center gap-2 min-h-7">
                   <dt className="w-24 shrink-0 text-muted-foreground">Received</dt>
-                  <dd>{formatDate(ticket.createdAt)}</dd>
+                  <dd>{formatDate(ticket.createdAt, 'datetime')}</dd>
+                </div>
+                <div className="flex items-center gap-2 min-h-7">
+                  <dt className="w-24 shrink-0 text-muted-foreground">Updated</dt>
+                  <dd>{formatDate(ticket.updatedAt, 'datetime')}</dd>
                 </div>
               </dl>
 

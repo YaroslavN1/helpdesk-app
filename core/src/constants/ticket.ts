@@ -70,6 +70,7 @@ export type TicketDetails = Ticket & {
   body: string
   htmlBody: string | null
   assignedTo: AgentOption | null
+  updatedAt: string
 }
 
 export const DEFAULT_PAGE_SIZE = 10

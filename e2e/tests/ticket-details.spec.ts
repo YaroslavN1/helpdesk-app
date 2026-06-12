@@ -87,7 +87,7 @@ test.describe('TicketDetailsPage', () => {
             minute: '2-digit',
             second: '2-digit',
           })
-          await expect(page.getByText(expectedDate)).toBeVisible()
+          await expect(page.locator('dt:has-text("Received") + dd')).toContainText(expectedDate)
         })
 
         test('renders the Updated date', async ({ page }) => {
@@ -99,7 +99,7 @@ test.describe('TicketDetailsPage', () => {
             minute: '2-digit',
             second: '2-digit',
           })
-          await expect(page.getByText(expectedDate)).toBeVisible()
+          await expect(page.locator('dt:has-text("Updated") + dd')).toContainText(expectedDate)
         })
       })
 

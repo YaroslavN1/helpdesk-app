@@ -44,7 +44,7 @@ export function TicketFieldsEditor({ ticket, updateTicket }: TicketFieldsEditorP
         value={ticket.status}
         options={STATUS_OPTIONS}
         updateTicket={updateTicket}
-        mapSelected={(value) => value ? { status: value as TicketStatus } : null}
+        mapSelected={(value) => ({ status: value as TicketStatus })}
         className="h-7 w-36 text-sm"
         data-testid="status-select"
       />

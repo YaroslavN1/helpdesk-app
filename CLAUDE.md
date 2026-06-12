@@ -41,6 +41,8 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── TicketsFilters.tsx        # search input + status/category multi-selects
 │   │   │   │   ├── TicketsTable.tsx          # sortable table; clicking a row navigates to /tickets/:id
 │   │   │   │   ├── TicketDetailsSkeleton.tsx # skeleton loader shown while ticket details are fetching
+│   │   │   │   ├── TicketFieldsEditor.tsx    # inline status/category/agent selects for TicketDetailsPage; fetches agents internally
+│   │   │   │   ├── TicketSelectField.tsx     # single editable dl row (label + Select + error); owns loading/error state; exports TicketUpdateResult
 │   │   │   │   └── ticket-badges.ts          # TICKET_STATUS_BADGE / TICKET_CATEGORY_BADGE maps (variant + label)
 │   │   │   └── users/
 │   │   │       ├── UserForm.tsx           # create/edit dialog + form; exports User and FormState types
@@ -49,7 +51,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   ├── HomePage.tsx
 │   │   │   ├── LoginPage.tsx
 │   │   │   ├── TicketsPage.tsx        # /tickets — filter/sort/paginate tickets; state lives in URL search params
-│   │   │   ├── TicketDetailsPage.tsx  # /tickets/:id — fetches and displays a single ticket (subject, badges, metadata, body)
+│   │   │   ├── TicketDetailsPage.tsx  # /tickets/:id — fetches and displays a single ticket; owns updateTicket (returns TicketUpdateResult)
 │   │   │   └── UsersPage.tsx          # /users — admin only; fetches users
 │   │   ├── lib/
 │   │   │   ├── auth-client.ts  # Better Auth client with inferAdditionalFields
@@ -194,17 +196,19 @@ Fetch a single ticket by numeric ID. Auth required.
 - `404` — ticket not found
 
 ### `PATCH /api/tickets/:id`
-Assign or unassign a ticket. Auth required.
+Update a ticket's status, category, and/or assigned agent. All fields are optional; only provided fields are updated. Auth required.
 
 **Path params**
 | Param | Type | Notes |
 |---|---|---|
 | `id` | `number` | must be a valid integer |
 
-**Body** (`assignTicketSchema`)
+**Body** (`updateTicketSchema`)
 | Field | Type | Notes |
 |---|---|---|
-| `assignedToId` | `string \| null` | must be a non-deleted agent; `null` to unassign |
+| `assignedToId` | `string \| null` | optional; must be a non-deleted agent; `null` to unassign |
+| `status` | `TicketStatus` | optional |
+| `category` | `TicketCategory \| null` | optional; `null` to clear |
 
 **Response**
 - `200` — full `TicketDetails` (same shape as `GET /api/tickets/:id`)
@@ -250,7 +254,7 @@ Soft-delete a user (sets `deletedAt`). Admin only. Admins cannot be deleted.
 - `403` — target is an admin
 - `404` — user not found
 
-> All types and schemas (`AgentOption`, `TicketDetails`, `assignTicketSchema`, `createUserSchema`, `editUserSchema`, etc.) are exported from `@helpdesk/core`.
+> All types and schemas (`AgentOption`, `TicketDetails`, `updateTicketSchema`, `createUserSchema`, `editUserSchema`, etc.) are exported from `@helpdesk/core`. `TicketUpdateResult` is exported from `client/src/components/tickets/TicketSelectField.tsx`.
 
 ## UI Components
 - Add shadcn components with `bunx shadcn@latest add <component>` (run from `client/`)

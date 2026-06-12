@@ -131,7 +131,7 @@ describe('TicketsPage — filtering', () => {
     await user.click(statusMultiselect)
 
     const openOption = await waitFor(
-      () => screen.getAllByTestId('multiselect-item').find(el => el.textContent?.trim() === 'open')!,
+      () => screen.getAllByTestId('multiselect-item').find(el => el.textContent?.trim() === 'Open')!,
     )
 
     await user.click(openOption)
@@ -142,7 +142,7 @@ describe('TicketsPage — filtering', () => {
     })
   })
 
-  it('re-fetches with correct query params for "General question" option selected in Category multiselect', async () => {
+  it('re-fetches with correct query params for "General" option selected in Category multiselect', async () => {
     const user = userEvent.setup()
     const fetchSpy = mockFetchTickets()
     renderTicketsPage()
@@ -152,7 +152,7 @@ describe('TicketsPage — filtering', () => {
     await user.click(categoryMultiselect)
 
     const generalQuestionOption = await waitFor(
-      () => screen.getAllByTestId('multiselect-item').find(el => el.textContent?.trim() === 'General question')!,
+      () => screen.getAllByTestId('multiselect-item').find(el => el.textContent?.trim() === 'General')!,
     )
 
     await user.click(generalQuestionOption)

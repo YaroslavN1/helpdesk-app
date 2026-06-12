@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { TICKET_STATUS_BADGE, TICKET_CATEGORY_BADGE } from '@/components/tickets/ticket-badges'
+import { TICKET_STATUS_BADGE } from '@/components/tickets/ticket-badges'
 import {
   SORT_ORDERS,
   TICKET_STATUS_LABELS,
@@ -121,14 +121,15 @@ export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Pr
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={TICKET_CATEGORY_BADGE[ticket.category ?? 'null'].variant}>
-                    {ticket.category ? TICKET_CATEGORY_LABELS[ticket.category] : '—'}
-                  </Badge>
+                  {ticket.category
+                    ? <Badge variant="outline">{TICKET_CATEGORY_LABELS[ticket.category]}</Badge>
+                    : <span className="text-muted-foreground/40">—</span>
+                  }
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
                   {ticket.assignedTo
                     ? <span className="font-medium">{ticket.assignedTo.name}</span>
-                    : <span className="italic text-muted-foreground/40">Unassigned</span>
+                    : <span className="text-muted-foreground/40">—</span>
                   }
                 </TableCell>
                 <TableCell className="text-muted-foreground">

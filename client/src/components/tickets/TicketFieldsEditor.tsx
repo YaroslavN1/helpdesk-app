@@ -9,7 +9,7 @@ const STATUS_OPTIONS: SelectOption[] = TICKET_STATUSES.map((status) => ({
 }))
 
 const CATEGORY_OPTIONS: SelectOption[] = [
-  { value: null, label: 'None' },
+  { value: null, label: '—' },
   ...TICKET_CATEGORIES.map((category) => ({
     value: category,
     label: TICKET_CATEGORY_LABELS[category],
@@ -18,7 +18,7 @@ const CATEGORY_OPTIONS: SelectOption[] = [
 
 function mapAgentOptions(agents: AgentOption[]): SelectOption[] {
   return [
-    { value: null, label: 'Unassigned' },
+    { value: null, label: '—' },
     ...agents.map((agent) => ({ value: agent.id, label: agent.name })),
   ]
 }

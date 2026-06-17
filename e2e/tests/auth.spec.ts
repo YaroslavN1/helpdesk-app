@@ -9,16 +9,8 @@ import {
   loginAsAgent,
 } from '../helpers'
 
-// ---------------------------------------------------------------------------
-// Test suite
-// ---------------------------------------------------------------------------
-
 test.describe('Authentication', () => {
-  // -------------------------------------------------------------------------
-  // Happy path — successful login
-  // -------------------------------------------------------------------------
-
-  test.describe('Happy path', () => {
+  test.describe('Sign-in success', () => {
     test('admin signs in with valid credentials and lands on /', async ({ page }) => {
       await page.goto('/login')
       await page.getByLabel('Email').fill(ADMIN_EMAIL)
@@ -39,9 +31,7 @@ test.describe('Authentication', () => {
       await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
     })
 
-    test('already-authenticated user visiting /login is redirected to /', async ({
-      page,
-    }) => {
+    test('already-authenticated user visiting /login is redirected to /', async ({ page }) => {
       await loginAsAdmin(page)
 
       await page.goto('/login')
@@ -61,18 +51,12 @@ test.describe('Authentication', () => {
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Error cases — validation and server-side rejections
-  // -------------------------------------------------------------------------
-
-  test.describe('Error cases', () => {
+  test.describe('Sign-in errors', () => {
     test.beforeEach(async ({ page }) => {
       await page.goto('/login')
     })
 
-    test('wrong password shows an error message and stays on /login', async ({
-      page,
-    }) => {
+    test('wrong password shows an error message and stays on /login', async ({ page }) => {
       await page.getByLabel('Email').fill(ADMIN_EMAIL)
       await page.getByLabel('Password').fill('WrongPassword!')
       await page.getByRole('button', { name: 'Sign in' }).click()
@@ -81,9 +65,7 @@ test.describe('Authentication', () => {
       await expect(page.getByText(/invalid email or password/i)).toBeVisible()
     })
 
-    test('non-existent email shows an error message and stays on /login', async ({
-      page,
-    }) => {
+    test('non-existent email shows an error message and stays on /login', async ({ page }) => {
       await page.getByLabel('Email').fill('nobody@nowhere.com')
       await page.getByLabel('Password').fill('SomePass1!')
       await page.getByRole('button', { name: 'Sign in' }).click()
@@ -109,9 +91,7 @@ test.describe('Authentication', () => {
       await expect(page.getByText('Invalid email address')).toBeVisible()
     })
 
-    test('whitespace-only email is rejected with a validation error', async ({
-      page,
-    }) => {
+    test('whitespace-only email is rejected with a validation error', async ({ page }) => {
       await page.getByLabel('Email').fill('   ')
       await page.getByLabel('Password').fill(ADMIN_PASSWORD)
       await page.getByRole('button', { name: 'Sign in' }).click()
@@ -122,9 +102,7 @@ test.describe('Authentication', () => {
       ).toBeVisible()
     })
 
-    test('sign-in button is disabled and shows "Signing in…" while the request is in flight', async ({
-      page,
-    }) => {
+    test('sign-in button is disabled and shows "Signing in…" while the request is in flight', async ({ page }) => {
       // Delay the auth endpoint response so we can observe the loading state.
       await page.route('**/api/auth/sign-in/email', async route => {
         await new Promise<void>(resolve => setTimeout(resolve, 600))
@@ -139,14 +117,8 @@ test.describe('Authentication', () => {
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Sign-out
-  // -------------------------------------------------------------------------
-
   test.describe('Sign-out', () => {
-    test('clicking Sign out clears the session and redirects to /login', async ({
-      page,
-    }) => {
+    test('clicking Sign out clears the session and redirects to /login', async ({ page }) => {
       await loginAsAdmin(page)
 
       await page.goto('/')
@@ -155,9 +127,7 @@ test.describe('Authentication', () => {
       await expect(page).toHaveURL('/login')
     })
 
-    test('after sign-out, navigating to / redirects to /login', async ({
-      page,
-    }) => {
+    test('after sign-out, navigating to / redirects to /login', async ({ page }) => {
       await loginAsAdmin(page)
 
       await page.goto('/')
@@ -168,9 +138,7 @@ test.describe('Authentication', () => {
       await expect(page).toHaveURL('/login')
     })
 
-    test('after sign-out, browser back button does not restore the session', async ({
-      page,
-    }) => {
+    test('after sign-out, browser back button does not restore the session', async ({ page }) => {
       await loginAsAdmin(page)
 
       await page.goto('/')
@@ -184,26 +152,18 @@ test.describe('Authentication', () => {
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Route protection
-  // -------------------------------------------------------------------------
-
   test.describe('Route protection', () => {
     test('unauthenticated user visiting / is redirected to /login', async ({ page }) => {
       await page.goto('/')
       await expect(page).toHaveURL('/login')
     })
 
-    test('unauthenticated user visiting /users is redirected to /login', async ({
-      page,
-    }) => {
+    test('unauthenticated user visiting /users is redirected to /login', async ({ page }) => {
       await page.goto('/users')
       await expect(page).toHaveURL('/login')
     })
 
-    test('authenticated agent visiting /users is redirected to /', async ({
-      page,
-    }) => {
+    test('authenticated agent visiting /users is redirected to /', async ({ page }) => {
       await loginAsAgent(page)
 
       await page.goto('/users')
@@ -211,9 +171,7 @@ test.describe('Authentication', () => {
       await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
     })
 
-    test('authenticated admin visiting /users is allowed', async ({
-      page,
-    }) => {
+    test('authenticated admin visiting /users is allowed', async ({ page }) => {
       await loginAsAdmin(page)
 
       await page.goto('/users')
@@ -221,9 +179,7 @@ test.describe('Authentication', () => {
       await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible()
     })
 
-    test('unknown route redirects to / for authenticated users', async ({
-      page,
-    }) => {
+    test('unknown route redirects to / for authenticated users', async ({ page }) => {
       await loginAsAdmin(page)
 
       await page.goto('/this-route-does-not-exist')
@@ -231,18 +187,12 @@ test.describe('Authentication', () => {
       await expect(page).toHaveURL('/')
     })
 
-    test('unknown route redirects to /login for unauthenticated users', async ({
-      page,
-    }) => {
+    test('unknown route redirects to /login for unauthenticated users', async ({ page }) => {
       // Catch-all <Navigate to="/" /> → ProtectedRoute → /login
       await page.goto('/this-route-does-not-exist')
       await expect(page).toHaveURL('/login')
     })
   })
-
-  // -------------------------------------------------------------------------
-  // Navbar — role-based visibility
-  // -------------------------------------------------------------------------
 
   test.describe('Navbar role-based content', () => {
     test('admin sees the Users nav link', async ({ page }) => {
@@ -267,15 +217,8 @@ test.describe('Authentication', () => {
     })
   })
 
-  // -------------------------------------------------------------------------
-  // Session / security
-  // -------------------------------------------------------------------------
-
   test.describe('Session and security', () => {
-
-    test('session cookie is HTTP-only and not accessible via document.cookie', async ({
-      page,
-    }) => {
+    test('session cookie is HTTP-only and not accessible via document.cookie', async ({ page }) => {
       await loginAsAdmin(page)
 
       await page.goto('/')
@@ -291,9 +234,7 @@ test.describe('Authentication', () => {
       expect(sessionCookieVisibleToJs).toBe(false)
     })
 
-    test('two concurrent tabs in the same browser context share the session', async ({
-      context,
-    }) => {
+    test('two concurrent tabs in the same browser context share the session', async ({ context }) => {
       // Authenticate in the first tab
       const tab1 = await context.newPage()
       await tab1.goto('/login')

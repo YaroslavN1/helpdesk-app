@@ -45,179 +45,181 @@ async function fillForm(
   await user.type(screen.getByLabelText('Password'), password)
 }
 
-describe('UserForm — form rendering', () => {
-  it('renders name, email, and password fields', () => {
-    setup()
-    expect(screen.getByLabelText('Name')).toBeInTheDocument()
-    expect(screen.getByLabelText('Email')).toBeInTheDocument()
-    expect(screen.getByLabelText('Password')).toBeInTheDocument()
-  })
+describe('UserForm', () => {
+  describe('form rendering', () => {
+    it('renders name, email, and password fields', () => {
+      setup()
+      expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      expect(screen.getByLabelText('Email')).toBeInTheDocument()
+      expect(screen.getByLabelText('Password')).toBeInTheDocument()
+    })
 
-  it('renders Cancel and submit buttons', () => {
-    setup()
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Create user' })).toBeInTheDocument()
-  })
-})
-
-describe('UserForm — validation', () => {
-  it('shows all field errors when submitting an empty form', async () => {
-    const { user } = setup()
-
-    await user.click(screen.getByRole('button', { name: 'Create user' }))
-
-    await waitFor(() => {
-      expect(screen.getByText('Name must be at least 3 characters')).toBeInTheDocument()
-      expect(screen.getByText('Valid email is required')).toBeInTheDocument()
-      expect(screen.getByText('Password must be at least 8 characters')).toBeInTheDocument()
+    it('renders Cancel and submit buttons', () => {
+      setup()
+      expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Create user' })).toBeInTheDocument()
     })
   })
 
-  it('shows an error when name is too short', async () => {
-    const { user } = setup()
-    await fillForm(user, { name: 'ab' })
-    await user.click(screen.getByRole('button', { name: 'Create user' }))
+  describe('validation', () => {
+    it('shows all field errors when submitting an empty form', async () => {
+      const { user } = setup()
 
-    await waitFor(() =>
-      expect(screen.getByText('Name must be at least 3 characters')).toBeInTheDocument(),
-    )
-  })
+      await user.click(screen.getByRole('button', { name: 'Create user' }))
 
-  it('shows an error when email is invalid', async () => {
-    const { user } = setup()
-    await fillForm(user, { email: 'notanemail' })
-    await user.click(screen.getByRole('button', { name: 'Create user' }))
-
-    await waitFor(() =>
-      expect(screen.getByText('Valid email is required')).toBeInTheDocument(),
-    )
-  })
-
-  it('shows an error when password is too short', async () => {
-    const { user } = setup()
-    await fillForm(user, { password: 'abc123' })
-    await user.click(screen.getByRole('button', { name: 'Create user' }))
-
-    await waitFor(() =>
-      expect(screen.getByText('Password must be at least 8 characters')).toBeInTheDocument(),
-    )
-  })
-})
-
-describe('UserForm — submission', () => {
-  it('POSTs to /api/users with the correct body', async () => {
-    const fetchSpy = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(NEW_USER),
+      await waitFor(() => {
+        expect(screen.getByText('Name must be at least 3 characters')).toBeInTheDocument()
+        expect(screen.getByText('Valid email is required')).toBeInTheDocument()
+        expect(screen.getByText('Password must be at least 8 characters')).toBeInTheDocument()
+      })
     })
-    vi.stubGlobal('fetch', fetchSpy)
-    const { user } = setup()
-    await fillForm(user)
-    await user.click(screen.getByRole('button', { name: 'Create user' }))
 
-    await waitFor(() =>
-      expect(fetchSpy).toHaveBeenCalledWith('/api/users', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Jane Smith', email: 'jane@example.com', password: 'password123' }),
-      }),
-    )
-  })
+    it('shows an error when name is too short', async () => {
+      const { user } = setup()
+      await fillForm(user, { name: 'ab' })
+      await user.click(screen.getByRole('button', { name: 'Create user' }))
 
-  it('calls onSaved with the returned user on success', async () => {
-    mockFetch(NEW_USER)
-    const { user, onSaved } = setup()
-    await fillForm(user)
-    await user.click(screen.getByRole('button', { name: 'Create user' }))
+      await waitFor(() =>
+        expect(screen.getByText('Name must be at least 3 characters')).toBeInTheDocument(),
+      )
+    })
 
-    await waitFor(() => expect(onSaved).toHaveBeenCalledWith(NEW_USER))
-  })
+    it('shows an error when email is invalid', async () => {
+      const { user } = setup()
+      await fillForm(user, { email: 'notanemail' })
+      await user.click(screen.getByRole('button', { name: 'Create user' }))
 
-  it('calls onOpenChange(false) to close after successful creation', async () => {
-    mockFetch(NEW_USER)
-    const { user, onOpenChange } = setup()
-    await fillForm(user)
-    await user.click(screen.getByRole('button', { name: 'Create user' }))
+      await waitFor(() =>
+        expect(screen.getByText('Valid email is required')).toBeInTheDocument(),
+      )
+    })
 
-    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
-  })
+    it('shows an error when password is too short', async () => {
+      const { user } = setup()
+      await fillForm(user, { password: 'abc123' })
+      await user.click(screen.getByRole('button', { name: 'Create user' }))
 
-  it('shows the server error when the response contains an error field', async () => {
-    mockFetch({ error: 'Email already in use' }, false)
-    const { user } = setup()
-    await fillForm(user)
-    await user.click(screen.getByRole('button', { name: 'Create user' }))
-
-    await waitFor(() =>
-      expect(screen.getByText('Email already in use')).toBeInTheDocument(),
-    )
-  })
-
-  it('shows a fallback error when the response has no error field', async () => {
-    mockFetch({}, false)
-    const { user } = setup()
-    await fillForm(user)
-    await user.click(screen.getByRole('button', { name: 'Create user' }))
-
-    await waitFor(() =>
-      expect(screen.getByText('Failed to create user')).toBeInTheDocument(),
-    )
-  })
-
-  it('shows an error message on network failure', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error()))
-    const { user } = setup()
-    await fillForm(user)
-    await user.click(screen.getByRole('button', { name: 'Create user' }))
-
-    await waitFor(() =>
-      expect(screen.getByText('Failed to create user')).toBeInTheDocument(),
-    )
-  })
-})
-
-describe('UserForm — loading state', () => {
-  it('shows "Creating…" on the submit button and disables Cancel while submitting', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
-    const { user } = setup()
-    await fillForm(user)
-    await user.click(screen.getByRole('button', { name: 'Create user' }))
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Creating…' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+      await waitFor(() =>
+        expect(screen.getByText('Password must be at least 8 characters')).toBeInTheDocument(),
+      )
     })
   })
-})
 
-describe('UserForm — Cancel', () => {
-  it('calls onOpenChange(false) when Cancel is clicked', async () => {
-    const { user, onOpenChange } = setup()
-    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+  describe('submission', () => {
+    it('POSTs to /api/users with the correct body', async () => {
+      const fetchSpy = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(NEW_USER),
+      })
+      vi.stubGlobal('fetch', fetchSpy)
+      const { user } = setup()
+      await fillForm(user)
+      await user.click(screen.getByRole('button', { name: 'Create user' }))
 
-    expect(onOpenChange).toHaveBeenCalledWith(false)
+      await waitFor(() =>
+        expect(fetchSpy).toHaveBeenCalledWith('/api/users', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'Jane Smith', email: 'jane@example.com', password: 'password123' }),
+        }),
+      )
+    })
+
+    it('calls onSaved with the returned user on success', async () => {
+      mockFetch(NEW_USER)
+      const { user, onSaved } = setup()
+      await fillForm(user)
+      await user.click(screen.getByRole('button', { name: 'Create user' }))
+
+      await waitFor(() => expect(onSaved).toHaveBeenCalledWith(NEW_USER))
+    })
+
+    it('calls onOpenChange(false) to close after successful creation', async () => {
+      mockFetch(NEW_USER)
+      const { user, onOpenChange } = setup()
+      await fillForm(user)
+      await user.click(screen.getByRole('button', { name: 'Create user' }))
+
+      await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    })
+
+    it('shows the server error when the response contains an error field', async () => {
+      mockFetch({ error: 'Email already in use' }, false)
+      const { user } = setup()
+      await fillForm(user)
+      await user.click(screen.getByRole('button', { name: 'Create user' }))
+
+      await waitFor(() =>
+        expect(screen.getByText('Email already in use')).toBeInTheDocument(),
+      )
+    })
+
+    it('shows a fallback error when the response has no error field', async () => {
+      mockFetch({}, false)
+      const { user } = setup()
+      await fillForm(user)
+      await user.click(screen.getByRole('button', { name: 'Create user' }))
+
+      await waitFor(() =>
+        expect(screen.getByText('Failed to create user')).toBeInTheDocument(),
+      )
+    })
+
+    it('shows an error message on network failure', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error()))
+      const { user } = setup()
+      await fillForm(user)
+      await user.click(screen.getByRole('button', { name: 'Create user' }))
+
+      await waitFor(() =>
+        expect(screen.getByText('Failed to create user')).toBeInTheDocument(),
+      )
+    })
   })
-})
 
-describe('UserForm — reset on reopen', () => {
-  it('clears validation errors when the dialog is reopened', async () => {
-    const onOpenChange = vi.fn()
-    const user = userEvent.setup()
-    const { rerender } = render(
-      <UserForm form={{ mode: 'create', user: null }} onOpenChange={onOpenChange} onSaved={vi.fn()} />,
-    )
+  describe('loading state', () => {
+    it('shows "Creating…" on the submit button and disables Cancel while submitting', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
+      const { user } = setup()
+      await fillForm(user)
+      await user.click(screen.getByRole('button', { name: 'Create user' }))
 
-    await user.click(screen.getByRole('button', { name: 'Create user' }))
-    await waitFor(() =>
-      expect(screen.getByText('Name must be at least 3 characters')).toBeInTheDocument(),
-    )
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Creating…' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+      })
+    })
+  })
 
-    rerender(<UserForm form={null} onOpenChange={onOpenChange} onSaved={vi.fn()} />)
-    rerender(<UserForm form={{ mode: 'create', user: null }} onOpenChange={onOpenChange} onSaved={vi.fn()} />)
+  describe('Cancel', () => {
+    it('calls onOpenChange(false) when Cancel is clicked', async () => {
+      const { user, onOpenChange } = setup()
+      await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
-    await waitFor(() =>
-      expect(screen.queryByText('Name must be at least 3 characters')).not.toBeInTheDocument(),
-    )
+      expect(onOpenChange).toHaveBeenCalledWith(false)
+    })
+  })
+
+  describe('reset on reopen', () => {
+    it('clears validation errors when the dialog is reopened', async () => {
+      const onOpenChange = vi.fn()
+      const user = userEvent.setup()
+      const { rerender } = render(
+        <UserForm form={{ mode: 'create', user: null }} onOpenChange={onOpenChange} onSaved={vi.fn()} />,
+      )
+
+      await user.click(screen.getByRole('button', { name: 'Create user' }))
+      await waitFor(() =>
+        expect(screen.getByText('Name must be at least 3 characters')).toBeInTheDocument(),
+      )
+
+      rerender(<UserForm form={null} onOpenChange={onOpenChange} onSaved={vi.fn()} />)
+      rerender(<UserForm form={{ mode: 'create', user: null }} onOpenChange={onOpenChange} onSaved={vi.fn()} />)
+
+      await waitFor(() =>
+        expect(screen.queryByText('Name must be at least 3 characters')).not.toBeInTheDocument(),
+      )
+    })
   })
 })

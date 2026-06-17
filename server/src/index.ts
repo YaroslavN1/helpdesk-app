@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { type Request, type Response, type NextFunction } from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import { rateLimit } from 'express-rate-limit'
@@ -33,6 +33,11 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/users', usersRouter)
 app.use('/api/webhooks', webhooksRouter)
 app.use('/api/tickets', ticketsRouter)
+
+app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+  console.error(`[${req.method} ${req.path}]`, err)
+  res.status(500).json({ error: 'Internal server error' })
+})
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)

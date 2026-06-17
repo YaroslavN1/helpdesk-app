@@ -63,22 +63,17 @@ router.get('/', requireAuth, async (req, res) => {
     createdAt: true,
   }
 
-  try {
-    const [tickets, total] = await Promise.all([
-      prisma.ticket.findMany({
-        where,
-        orderBy: { [sortBy]: sortOrder },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        select,
-      }),
-      prisma.ticket.count({ where }),
-    ])
-    res.json({ tickets, total })
-  } catch (err) {
-    console.error('[GET /api/tickets]', err)
-    res.status(500).json({ error: 'Failed to load tickets' })
-  }
+  const [tickets, total] = await Promise.all([
+    prisma.ticket.findMany({
+      where,
+      orderBy: { [sortBy]: sortOrder },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      select,
+    }),
+    prisma.ticket.count({ where }),
+  ])
+  res.json({ tickets, total })
 })
 
 const ticketDetailSelect = {

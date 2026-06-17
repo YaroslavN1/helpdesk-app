@@ -35,7 +35,7 @@ test.describe('UsersPage', () => {
       await expect(page).toHaveURL('/login')
     })
 
-    test('agent access to /users redirects to /', async ({ page }) => {
+    test('authenticated agent visiting /users is NOT allowed', async ({ page }) => {
       await loginAsAgent(page)
 
       await page.goto('/users')
@@ -43,7 +43,7 @@ test.describe('UsersPage', () => {
       await expect(page.getByRole('heading', { name: 'Users' })).not.toBeVisible()
     })
 
-    test('admin access to /users renders the Users heading', async ({ page }) => {
+    test('authenticated admin visiting /tickets is allowed', async ({ page }) => {
       await loginAsAdmin(page)
 
       await page.goto('/users')

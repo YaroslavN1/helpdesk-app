@@ -2,53 +2,53 @@
 
 ## Phase 1 — Project Foundation
 
-- [ ] Initialize monorepo structure (`/client`, `/server`)
-- [ ] Set up Express server with TypeScript
-- [ ] Set up React app with TypeScript
-- [ ] Set up PostgreSQL database
+- [x] Initialize monorepo structure (`/client`, `/server`, `/core`)
+- [x] Set up Express server with TypeScript
+- [x] Set up React app with TypeScript
+- [x] Set up PostgreSQL database
 
 ---
 
 ## Phase 2 — Authentication & User Management
 
 - [ ] Configure ESLint and Prettier for both apps
-- [ ] Set up environment variable config (`.env.example` for both apps)
-- [ ] Set up Prisma with PostgreSQL connection
-- [ ] Design and write initial database schema (users, sessions, tickets)
-- [ ] Write and run initial Prisma migrations
-- [ ] Implement session middleware in Express (create, validate, destroy)
-- [ ] Build login endpoint (`POST /auth/login`)
-- [ ] Build logout endpoint (`POST /auth/logout`)
-- [ ] Build "current user" endpoint (`GET /auth/me`)
-- [ ] Protect API routes with session middleware
-- [ ] Create admin seed script (bootstrap first admin account)
-- [ ] Build agent management endpoints (list, create, deactivate)
-- [ ] Build login page in React
-- [ ] Implement protected route wrapper in React
-- [ ] Build user management UI (agent list, create agent form)
+- [x] Set up environment variable config (`.env.example`)
+- [x] Set up Prisma with PostgreSQL connection
+- [x] Design and write initial database schema (users, sessions, tickets)
+- [x] Write and run initial Prisma migrations
+- [x] Implement session middleware in Express (Better Auth — create, validate, destroy)
+- [x] Build login endpoint (`POST /api/auth/sign-in/email`)
+- [x] Build logout endpoint (`POST /api/auth/sign-out`)
+- [x] Build "current user" endpoint (Better Auth session API)
+- [x] Protect API routes with session middleware (`requireAuth`, `requireAdmin`)
+- [x] Create admin seed script (bootstrap first admin account)
+- [x] Build agent management endpoints (list, create, edit, soft-delete)
+- [x] Build login page in React
+- [x] Implement protected route wrapper in React (`ProtectedRoute`, `AdminRoute`)
+- [x] Build user management UI (agent list, create/edit agent form)
 
 ---
 
 ## Phase 3 — Ticket Management Core
 
-- [ ] Build ticket CRUD endpoints (create, read, update)
-- [ ] Implement ticket status transitions (open → resolved → closed)
-- [ ] Implement ticket category assignment
-- [ ] Implement ticket assignment to agent
-- [ ] Build ticket list endpoint with filtering (status, category, assignee) and sorting
-- [ ] Build ticket detail endpoint
-- [ ] Build ticket list page in React (table with filters and sort controls)
-- [ ] Build ticket detail page in React (timeline view of messages, status controls)
-- [ ] Build ticket status update controls in UI
+- [x] Build ticket CRUD endpoints (create, read, update)
+- [x] Implement ticket status transitions (open → resolved → closed)
+- [x] Implement ticket category assignment
+- [x] Implement ticket assignment to agent
+- [x] Build ticket list endpoint with filtering (status, category) and sorting
+- [x] Build ticket detail endpoint
+- [x] Build ticket list page in React (table with filters and sort controls)
+- [x] Build ticket detail page in React (message body, metadata, status controls)
+- [x] Build ticket status update controls in UI
 
 ---
 
 ## Phase 4 — Email Integration
 
 - [ ] Set up SendGrid or Mailgun account and configure inbound email parsing
-- [ ] Build inbound email webhook endpoint (`POST /webhooks/inbound-email`)
-- [ ] Validate webhook signature (security)
-- [ ] Parse inbound email and create a ticket + first message in the database
+- [x] Build inbound email webhook endpoint (`POST /api/webhooks/inbound-email`)
+- [x] Validate webhook signature (security — `X-Webhook-Secret` header)
+- [x] Parse inbound email and create a ticket in the database
 - [ ] Build email sending service (wrapper around SendGrid/Mailgun API)
 - [ ] Send auto-acknowledgement email when a ticket is created
 - [ ] Send closing notification email when a ticket is closed (prompt customer to open new thread)

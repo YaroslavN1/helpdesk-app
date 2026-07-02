@@ -1,3 +1,13 @@
+## Intro
+
+This project represents an ongoing process of the course I decided to enroll recently ([Claude Code for Professional Developers](https://codewithmosh.com/p/claude-code) by Mosh Hamedani) and there are two reasons why I picked this one.
+
+First one is the teacher. I did quite a few courses made by Mosh Hamedani already and each time it felt like finishing a training rather than a course. Couldn't be easier to recommend.
+
+Second reason is what's in the description of the course and not the title. Up to this point I was mainly focused on the client side of the projects, but at some point realised that an understanding of server/db side is crucial as well. And this course has exactly that. Full-stack application building process that goes all the way from defining a goal, through planning, developing, reviewing, testing and deploying the app.
+
+---
+
 # Helpdesk
 
 An AI-powered ticket management system. Customers submit issues via email; the system creates tickets automatically, classifies them, and uses Claude AI to draft and send responses. High-confidence responses are sent automatically — low-confidence tickets are escalated to a human agent.

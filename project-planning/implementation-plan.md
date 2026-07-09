@@ -11,7 +11,7 @@
 
 ## Phase 2 — Authentication & User Management
 
-- [ ] Configure ESLint and Prettier for both apps
+- [x] Configure ESLint and Prettier for both apps
 - [x] Set up environment variable config (`.env.example`)
 - [x] Set up Prisma with PostgreSQL connection
 - [x] Design and write initial database schema (users, sessions, tickets)

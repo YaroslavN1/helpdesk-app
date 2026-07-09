@@ -29,10 +29,10 @@ function validateEnvVariables() {
     'SEED_AGENT_EMAIL',
     'SEED_AGENT_PASSWORD',
   ]
-  const missingVariables = required.filter(k => !process.env[k])
+  const missingVariables = required.filter((k) => !process.env[k])
   if (missingVariables.length) {
     throw new Error(
-      `E2E setup is missing required env vars: ${missingVariables.join(', ')}.\nEnsure .env.test exists at the project root.`
+      `E2E setup is missing required env vars: ${missingVariables.join(', ')}.\nEnsure .env.test exists at the project root.`,
     )
   }
 }
@@ -41,9 +41,7 @@ async function createTestDatabase(testDbUrl: string) {
   const adminUrl = testDbUrl.replace(/\/helpdesk_test(\?.*)?$/, '/postgres$1')
   const client = new Client({ connectionString: adminUrl })
   await client.connect()
-  const { rows } = await client.query(
-    "SELECT 1 FROM pg_database WHERE datname = 'helpdesk_test'"
-  )
+  const { rows } = await client.query("SELECT 1 FROM pg_database WHERE datname = 'helpdesk_test'")
   if (!rows.length) {
     await client.query('CREATE DATABASE helpdesk_test')
     console.log('[global-setup] Created test database helpdesk_test')
@@ -55,7 +53,7 @@ async function resetTestDatabase(testDbUrl: string) {
   const client = new Client({ connectionString: testDbUrl })
   await client.connect()
   await client.query(
-    'TRUNCATE TABLE "ticket", "session", "account", "verification", "user" CASCADE'
+    'TRUNCATE TABLE "ticket", "session", "account", "verification", "user" CASCADE',
   )
   await client.end()
 }

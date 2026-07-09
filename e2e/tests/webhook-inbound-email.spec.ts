@@ -15,7 +15,6 @@ const validPayload = {
 }
 
 test.describe('POST /api/webhooks/inbound-email', () => {
-
   test.describe('Happy path', () => {
     test('returns 201 with the created ticket when payload and secret are valid', async ({
       request,
@@ -28,9 +27,7 @@ test.describe('POST /api/webhooks/inbound-email', () => {
       expect(response.status()).toBe(201)
     })
 
-    test('response body contains all expected ticket fields', async ({
-      request,
-    }) => {
+    test('response body contains all expected ticket fields', async ({ request }) => {
       const response = await request.post(ENDPOINT, {
         headers: secretHeaders,
         data: validPayload,
@@ -60,9 +57,7 @@ test.describe('POST /api/webhooks/inbound-email', () => {
       expect(ticket.id).toBeGreaterThan(0)
     })
 
-    test('omitting optional htmlBody still returns 201 with htmlBody null', async ({
-      request,
-    }) => {
+    test('omitting optional htmlBody still returns 201 with htmlBody null', async ({ request }) => {
       const { htmlBody: _omitted, ...payloadWithoutHtml } = validPayload
 
       const response = await request.post(ENDPOINT, {
@@ -94,9 +89,7 @@ test.describe('POST /api/webhooks/inbound-email', () => {
   })
 
   test.describe('Subject normalisation', () => {
-    test('strips leading "Re: Fwd: " prefixes and stores the bare subject', async ({
-      request,
-    }) => {
+    test('strips leading "Re: Fwd: " prefixes and stores the bare subject', async ({ request }) => {
       const response = await request.post(ENDPOINT, {
         headers: secretHeaders,
         data: { ...validPayload, subject: 'Re: Fwd: Login broken' },
@@ -129,13 +122,10 @@ test.describe('POST /api/webhooks/inbound-email', () => {
       expect(response.status()).toBe(401)
       expect(await response.json()).toHaveProperty('error', 'Invalid webhook secret')
     })
-
   })
 
   test.describe('Payload validation', () => {
-    test('returns 400 when required field "from" is missing', async ({
-      request,
-    }) => {
+    test('returns 400 when required field "from" is missing', async ({ request }) => {
       const { from: _omitted, ...payloadWithoutFrom } = validPayload
 
       const response = await request.post(ENDPOINT, {
@@ -146,9 +136,7 @@ test.describe('POST /api/webhooks/inbound-email', () => {
       expect(response.status()).toBe(400)
     })
 
-    test('returns 400 with error message when "from" is not a valid email', async ({
-      request,
-    }) => {
+    test('returns 400 with error message when "from" is not a valid email', async ({ request }) => {
       const response = await request.post(ENDPOINT, {
         headers: secretHeaders,
         data: { ...validPayload, from: 'not-an-email' },
@@ -158,9 +146,7 @@ test.describe('POST /api/webhooks/inbound-email', () => {
       expect(await response.json()).toHaveProperty('error')
     })
 
-    test('returns 400 when required field "fromName" is missing', async ({
-      request,
-    }) => {
+    test('returns 400 when required field "fromName" is missing', async ({ request }) => {
       const { fromName: _omitted, ...payloadWithoutName } = validPayload
 
       const response = await request.post(ENDPOINT, {
@@ -171,9 +157,7 @@ test.describe('POST /api/webhooks/inbound-email', () => {
       expect(response.status()).toBe(400)
     })
 
-    test('returns 400 when required field "subject" is missing', async ({
-      request,
-    }) => {
+    test('returns 400 when required field "subject" is missing', async ({ request }) => {
       const { subject: _omitted, ...payloadWithoutSubject } = validPayload
 
       const response = await request.post(ENDPOINT, {
@@ -216,9 +200,7 @@ test.describe('POST /api/webhooks/inbound-email', () => {
       expect(response.status()).toBe(400)
     })
 
-    test('returns 400 when the request payload is completely empty', async ({
-      request,
-    }) => {
+    test('returns 400 when the request payload is completely empty', async ({ request }) => {
       const response = await request.post(ENDPOINT, {
         headers: secretHeaders,
         data: {},

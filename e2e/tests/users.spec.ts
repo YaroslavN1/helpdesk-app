@@ -12,7 +12,7 @@ const SERVER_BASE_URL = 'http://localhost:3001'
 
 async function createUser(
   page: Page,
-  options?: { password?: string }
+  options?: { password?: string },
 ): Promise<{ name: string; email: string }> {
   const suffix = Date.now()
   const name = `User ${suffix}`
@@ -58,7 +58,9 @@ test.describe('UsersPage', () => {
       expect(response.status()).toBe(401)
     })
 
-    test('GET /api/users response body contains error field when unauthenticated', async ({ request }) => {
+    test('GET /api/users response body contains error field when unauthenticated', async ({
+      request,
+    }) => {
       const response = await request.get(`${SERVER_BASE_URL}/api/users`)
       const body = await response.json()
       expect(body).toHaveProperty('error')
@@ -72,7 +74,7 @@ test.describe('UsersPage', () => {
       await page.goto('/')
 
       const cookies = await page.context().cookies()
-      const cookieHeader = cookies.map(cookie => `${cookie.name}=${cookie.value}`).join('; ')
+      const cookieHeader = cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join('; ')
 
       const response = await request.get(`${SERVER_BASE_URL}/api/users`, {
         headers: { Cookie: cookieHeader },
@@ -81,13 +83,16 @@ test.describe('UsersPage', () => {
       expect(response.status()).toBe(403)
     })
 
-    test('GET /api/users with an admin session returns 200 and an array', async ({ page, request }) => {
+    test('GET /api/users with an admin session returns 200 and an array', async ({
+      page,
+      request,
+    }) => {
       await loginAsAdmin(page)
 
       await page.goto('/')
 
       const cookies = await page.context().cookies()
-      const cookieHeader = cookies.map(cookie => `${cookie.name}=${cookie.value}`).join('; ')
+      const cookieHeader = cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join('; ')
 
       const response = await request.get(`${SERVER_BASE_URL}/api/users`, {
         headers: { Cookie: cookieHeader },
@@ -105,7 +110,7 @@ test.describe('UsersPage', () => {
       await page.goto('/')
 
       const cookies = await page.context().cookies()
-      const cookieHeader = cookies.map(cookie => `${cookie.name}=${cookie.value}`).join('; ')
+      const cookieHeader = cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join('; ')
 
       const response = await request.get(`${SERVER_BASE_URL}/api/users`, {
         headers: { Cookie: cookieHeader },
@@ -119,13 +124,16 @@ test.describe('UsersPage', () => {
       expect(firstUser).toHaveProperty('createdAt')
     })
 
-    test('GET /api/users response does not include password-related fields', async ({ page, request }) => {
+    test('GET /api/users response does not include password-related fields', async ({
+      page,
+      request,
+    }) => {
       await loginAsAdmin(page)
 
       await page.goto('/')
 
       const cookies = await page.context().cookies()
-      const cookieHeader = cookies.map(cookie => `${cookie.name}=${cookie.value}`).join('; ')
+      const cookieHeader = cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join('; ')
 
       const response = await request.get(`${SERVER_BASE_URL}/api/users`, {
         headers: { Cookie: cookieHeader },
@@ -169,8 +177,8 @@ test.describe('UsersPage', () => {
         await loginAsAdmin(page)
 
         // Delay the /api/users response so we can observe the loading state.
-        await page.route('**/api/users', async route => {
-          await new Promise<void>(resolve => setTimeout(resolve, 600))
+        await page.route('**/api/users', async (route) => {
+          await new Promise<void>((resolve) => setTimeout(resolve, 600))
           await route.continue()
         })
 
@@ -196,8 +204,8 @@ test.describe('UsersPage', () => {
       test('shows an error message when the API returns a server error', async ({ page }) => {
         await loginAsAdmin(page)
 
-        await page.route('**/api/users', route =>
-          route.fulfill({ status: 500, body: 'Internal Server Error' })
+        await page.route('**/api/users', (route) =>
+          route.fulfill({ status: 500, body: 'Internal Server Error' }),
         )
 
         await page.goto('/users')
@@ -209,7 +217,7 @@ test.describe('UsersPage', () => {
       test('shows an error message when the network request fails', async ({ page }) => {
         await loginAsAdmin(page)
 
-        await page.route('**/api/users', route => route.abort('failed'))
+        await page.route('**/api/users', (route) => route.abort('failed'))
 
         await page.goto('/users')
 
@@ -217,7 +225,7 @@ test.describe('UsersPage', () => {
         // "Failed to fetch" (Chromium). UsersPage renders err.message directly,
         // so we match any of the possible error strings rather than a fixed one.
         await expect(
-          page.getByText(/failed to fetch|network error|failed to load users/i)
+          page.getByText(/failed to fetch|network error|failed to load users/i),
         ).toBeVisible()
         await expect(page.getByRole('table')).not.toBeVisible()
       })
@@ -255,7 +263,9 @@ test.describe('UsersPage', () => {
       await expect(page.getByRole('heading', { name: 'Create user' })).toBeVisible()
     })
 
-    test('creates a new user and shows the row in the table without a page reload', async ({ page }) => {
+    test('creates a new user and shows the row in the table without a page reload', async ({
+      page,
+    }) => {
       await loginAsAdmin(page)
 
       await page.goto('/users')
@@ -267,7 +277,9 @@ test.describe('UsersPage', () => {
   })
 
   test.describe('edit user', () => {
-    test('opens "Edit user" dialog with pre-populated fields when pencil button is clicked', async ({ page }) => {
+    test('opens "Edit user" dialog with pre-populated fields when pencil button is clicked', async ({
+      page,
+    }) => {
       await loginAsAdmin(page)
 
       await page.goto('/users')
@@ -309,7 +321,9 @@ test.describe('UsersPage', () => {
   })
 
   test.describe('delete user', () => {
-    test('opens "Delete user" confirmation dialog when trash button is clicked', async ({ page }) => {
+    test('opens "Delete user" confirmation dialog when trash button is clicked', async ({
+      page,
+    }) => {
       await loginAsAdmin(page)
 
       await page.goto('/users')
@@ -322,7 +336,9 @@ test.describe('UsersPage', () => {
       await expect(page.getByRole('heading', { name: 'Delete user' })).toBeVisible()
     })
 
-    test('deletes the user and removes the row from the table without a page reload', async ({ page }) => {
+    test('deletes the user and removes the row from the table without a page reload', async ({
+      page,
+    }) => {
       await loginAsAdmin(page)
 
       await page.goto('/users')

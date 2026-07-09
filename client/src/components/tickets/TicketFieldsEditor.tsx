@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react'
 import { type SelectOption } from '@/components/ui/select'
 import { TicketSelectField, type TicketUpdateResult } from '@/components/tickets/TicketSelectField'
-import { type TicketDetails, type AgentOption, TICKET_STATUSES, TICKET_CATEGORIES, TICKET_STATUS_LABELS, TICKET_CATEGORY_LABELS, type TicketStatus, type TicketCategory } from '@helpdesk/core'
+import {
+  type TicketDetails,
+  type AgentOption,
+  TICKET_STATUSES,
+  TICKET_CATEGORIES,
+  TICKET_STATUS_LABELS,
+  TICKET_CATEGORY_LABELS,
+  type TicketStatus,
+  type TicketCategory,
+} from '@helpdesk/core'
 
 const STATUS_OPTIONS: SelectOption[] = TICKET_STATUSES.map((status) => ({
   value: status,
@@ -33,7 +42,7 @@ export function TicketFieldsEditor({ ticket, updateTicket }: TicketFieldsEditorP
 
   useEffect(() => {
     fetch('/api/users/agents', { credentials: 'include' })
-      .then((response) => response.ok ? (response.json() as Promise<AgentOption[]>) : [])
+      .then((response) => (response.ok ? (response.json() as Promise<AgentOption[]>) : []))
       .then((agents) => setAgentOptions(mapAgentOptions(agents)))
   }, [])
 

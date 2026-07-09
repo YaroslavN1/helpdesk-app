@@ -17,26 +17,31 @@ export default function Navbar() {
     <header className="bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link to="/" className="font-semibold">Helpdesk</Link>
+          <Link to="/" className="font-semibold">
+            Helpdesk
+          </Link>
 
           {session && (
-            <Link to="/tickets" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link
+              to="/tickets"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               Tickets
             </Link>
           )}
 
           {session?.user.role === UserRole.admin && (
-            <Link to="/users" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link
+              to="/users"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               Users
             </Link>
           )}
         </div>
 
         <div className="flex items-center gap-3">
-          {session && (
-            <span className="text-sm text-muted-foreground">{session.user.name}</span>
-          )}
-          
+          {session && <span className="text-sm text-muted-foreground">{session.user.name}</span>}
           <Button variant="ghost" size="sm" onClick={handleSignOut}>
             Sign out
           </Button>

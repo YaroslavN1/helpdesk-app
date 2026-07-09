@@ -61,7 +61,9 @@ export function Pagination({ page, pageSize, total, onPageChange, loading }: Pro
 
         {getPageRange(page, totalPages).map((pageOrEllipsis, index) =>
           pageOrEllipsis === '...' ? (
-            <span key={`ellipsis-${index}`} className="px-1 text-sm text-muted-foreground">…</span>
+            <span key={`ellipsis-${index}`} className="px-1 text-sm text-muted-foreground">
+              …
+            </span>
           ) : (
             <Button
               key={pageOrEllipsis}
@@ -73,7 +75,7 @@ export function Pagination({ page, pageSize, total, onPageChange, loading }: Pro
             >
               {pageOrEllipsis}
             </Button>
-          )
+          ),
         )}
 
         <Button

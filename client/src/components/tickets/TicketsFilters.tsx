@@ -10,7 +10,11 @@ import {
   type TicketsFilters,
 } from '@helpdesk/core'
 
-const ticketsDefaultFilters: TicketsFilters = { search: '', status: [], category: [] }
+const ticketsDefaultFilters: TicketsFilters = {
+  search: '',
+  status: [],
+  category: [],
+}
 
 interface Props {
   filters: TicketsFilters
@@ -18,8 +22,14 @@ interface Props {
   loading: boolean
 }
 
-const statusOptions = TICKET_STATUSES.map(status => ({ value: status, label: TICKET_STATUS_LABELS[status] }))
-const categoryOptions = TICKET_CATEGORIES.map(category => ({ value: category, label: TICKET_CATEGORY_LABELS[category] }))
+const statusOptions = TICKET_STATUSES.map((status) => ({
+  value: status,
+  label: TICKET_STATUS_LABELS[status],
+}))
+const categoryOptions = TICKET_CATEGORIES.map((category) => ({
+  value: category,
+  label: TICKET_CATEGORY_LABELS[category],
+}))
 
 export function TicketsFilters({ filters, onFiltersChange, loading }: Props) {
   const isFilter = filters.status.length > 0 || filters.category.length > 0 || !!filters.search
@@ -28,7 +38,7 @@ export function TicketsFilters({ filters, onFiltersChange, loading }: Props) {
     <div className="mt-6 flex items-center gap-2">
       <InputDebounced
         value={filters.search}
-        onChange={search => onFiltersChange({ ...filters, search })}
+        onChange={(search) => onFiltersChange({ ...filters, search })}
         placeholder="Search tickets…"
         className="w-56"
         testId="search-input"
@@ -38,7 +48,7 @@ export function TicketsFilters({ filters, onFiltersChange, loading }: Props) {
         label="Status"
         options={statusOptions}
         selected={filters.status}
-        onChange={status => onFiltersChange({ ...filters, status })}
+        onChange={(status) => onFiltersChange({ ...filters, status })}
         disabled={loading}
         testId="status-filter"
       />
@@ -47,13 +57,18 @@ export function TicketsFilters({ filters, onFiltersChange, loading }: Props) {
         label="Category"
         options={categoryOptions}
         selected={filters.category}
-        onChange={category => onFiltersChange({ ...filters, category })}
+        onChange={(category) => onFiltersChange({ ...filters, category })}
         disabled={loading}
         testId="category-filter"
       />
 
       {isFilter && (
-        <Button variant="ghost" size="default" onClick={() => onFiltersChange(ticketsDefaultFilters)} disabled={loading}>
+        <Button
+          variant="ghost"
+          size="default"
+          onClick={() => onFiltersChange(ticketsDefaultFilters)}
+          disabled={loading}
+        >
           <X className="h-3.5 w-3.5" />
           Clear filters
         </Button>

@@ -16,7 +16,13 @@ import { Label } from '@/components/ui/label'
 import { CircleAlert } from 'lucide-react'
 
 type FormValues = { name: string; email: string; password: string }
-export type User = { id: string; name: string; email: string; role: UserRole; createdAt: string }
+export type User = {
+  id: string
+  name: string
+  email: string
+  role: UserRole
+  createdAt: string
+}
 export type FormState = { mode: 'create'; user: null } | { mode: 'edit'; user: User }
 
 interface Props {
@@ -44,11 +50,17 @@ export function UserForm({ form, onOpenChange, onSaved }: Props) {
     setError,
     clearErrors,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(isEditing ? editUserSchema : createUserSchema) })
+  } = useForm<FormValues>({
+    resolver: zodResolver(isEditing ? editUserSchema : createUserSchema),
+  })
 
   useEffect(() => {
     if (form !== null) {
-      reset({ name: form.user?.name ?? '', email: form.user?.email ?? '', password: '' })
+      reset({
+        name: form.user?.name ?? '',
+        email: form.user?.email ?? '',
+        password: '',
+      })
     }
   }, [form, reset])
 
@@ -58,7 +70,10 @@ export function UserForm({ form, onOpenChange, onSaved }: Props) {
     try {
       const url = form?.mode === 'edit' ? `/api/users/${form.user.id}` : '/api/users'
       const method = isEditing ? 'PATCH' : 'POST'
-      const body: Record<string, string> = { name: data.name, email: data.email }
+      const body: Record<string, string> = {
+        name: data.name,
+        email: data.email,
+      }
       if (data.password) body.password = data.password
 
       const res = await fetch(url, {
@@ -67,17 +82,22 @@ export function UserForm({ form, onOpenChange, onSaved }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      const json = await res.json() as User | { error: string }
+      const json = (await res.json()) as User | { error: string }
 
       if (!res.ok) {
-        setError('root', { message: 'error' in json ? json.error : `Failed to ${isEditing ? 'update' : 'create'} user` })
+        setError('root', {
+          message:
+            'error' in json ? json.error : `Failed to ${isEditing ? 'update' : 'create'} user`,
+        })
         return
       }
 
       onSaved(json as User)
       onOpenChange(false)
     } catch {
-      setError('root', { message: `Failed to ${isEditing ? 'update' : 'create'} user` })
+      setError('root', {
+        message: `Failed to ${isEditing ? 'update' : 'create'} user`,
+      })
     }
   }
 
@@ -98,9 +118,7 @@ export function UserForm({ form, onOpenChange, onSaved }: Props) {
                 aria-invalid={!!errors.name}
                 {...register('name')}
               />
-              {errors.name && (
-                <p className="text-xs text-destructive">{errors.name.message}</p>
-              )}
+              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
 
             <div className="space-y-1">
@@ -113,14 +131,18 @@ export function UserForm({ form, onOpenChange, onSaved }: Props) {
                 aria-invalid={!!errors.email}
                 {...register('email')}
               />
-              {errors.email && (
-                <p className="text-xs text-destructive">{errors.email.message}</p>
-              )}
+              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-1">
               <Label htmlFor="user-password">
-                Password{isEditing && <span className="text-muted-foreground font-normal"> (leave blank to keep current)</span>}
+                Password
+                {isEditing && (
+                  <span className="text-muted-foreground font-normal">
+                    {' '}
+                    (leave blank to keep current)
+                  </span>
+                )}
               </Label>
               <Input
                 id="user-password"
@@ -144,11 +166,22 @@ export function UserForm({ form, onOpenChange, onSaved }: Props) {
           </div>
 
           <DialogFooter className="mt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (isEditing ? 'Saving…' : 'Creating…') : (isEditing ? 'Save changes' : 'Create user')}
+              {isSubmitting
+                ? isEditing
+                  ? 'Saving…'
+                  : 'Creating…'
+                : isEditing
+                  ? 'Save changes'
+                  : 'Create user'}
             </Button>
           </DialogFooter>
         </form>

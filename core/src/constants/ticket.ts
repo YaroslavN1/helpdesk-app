@@ -17,7 +17,10 @@ export const TicketCategory = {
   refund_request: 'refund_request',
 } as const
 export type TicketCategory = (typeof TicketCategory)[keyof typeof TicketCategory]
-export const TICKET_CATEGORIES = Object.values(TicketCategory) as [TicketCategory, ...TicketCategory[]]
+export const TICKET_CATEGORIES = Object.values(TicketCategory) as [
+  TicketCategory,
+  ...TicketCategory[],
+]
 export const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
   general_question: 'General',
   technical_question: 'Technical',
@@ -37,7 +40,10 @@ export const TicketSortColumn = {
   createdAt: 'createdAt',
 } as const
 export type TicketSortColumn = (typeof TicketSortColumn)[keyof typeof TicketSortColumn]
-export const TICKET_SORT_COLUMNS = Object.values(TicketSortColumn) as [TicketSortColumn, ...TicketSortColumn[]]
+export const TICKET_SORT_COLUMNS = Object.values(TicketSortColumn) as [
+  TicketSortColumn,
+  ...TicketSortColumn[],
+]
 
 export type TicketsSort = {
   column: TicketSortColumn

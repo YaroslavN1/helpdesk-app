@@ -22,7 +22,7 @@ export default function TicketDetailsPage() {
         body: JSON.stringify(body),
       })
       if (!response.ok) throw new Error('Failed to update ticket')
-      updatedTicket = await response.json() as TicketDetails
+      updatedTicket = (await response.json()) as TicketDetails
     } catch (err) {
       return { error: err instanceof Error ? err.message : 'Unknown error' }
     }
@@ -67,7 +67,8 @@ export default function TicketDetailsPage() {
       {!loading && ticket && (
         <div className="space-y-6">
           <h2 className="text-2xl font-bold tracking-tight">
-            <span className="text-muted-foreground/70 font-normal">#{ticket.id}</span> {ticket.subject}
+            <span className="text-muted-foreground/70 font-normal">#{ticket.id}</span>{' '}
+            {ticket.subject}
           </h2>
 
           <div className="grid grid-cols-[1fr_auto] gap-8 items-start">
@@ -75,7 +76,9 @@ export default function TicketDetailsPage() {
               <dl className="space-y-2 text-sm border-l-2 border-border pl-4">
                 <div className="flex items-center gap-2 min-h-7">
                   <dt className="w-24 shrink-0 text-muted-foreground">From</dt>
-                  <dd>{ticket.fromName} &lt;{ticket.fromEmail}&gt;</dd>
+                  <dd>
+                    {ticket.fromName} &lt;{ticket.fromEmail}&gt;
+                  </dd>
                 </div>
                 <div className="flex items-center gap-2 min-h-7">
                   <dt className="w-24 shrink-0 text-muted-foreground">Received</dt>

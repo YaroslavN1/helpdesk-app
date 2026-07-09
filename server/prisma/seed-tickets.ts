@@ -2,12 +2,17 @@ import { prisma } from '../src/lib/prisma'
 import { TicketStatus, TicketCategory } from '@helpdesk/core'
 
 const statuses = [TicketStatus.open, TicketStatus.resolved, TicketStatus.closed]
-const categories = [TicketCategory.general_question, TicketCategory.technical_question, TicketCategory.refund_request, null]
+const categories = [
+  TicketCategory.general_question,
+  TicketCategory.technical_question,
+  TicketCategory.refund_request,
+  null,
+]
 
 const subjects = [
   'Cannot reset my password',
   'App crashes on startup',
-  'Billing charge I don\'t recognize',
+  "Billing charge I don't recognize",
   'How do I export my data?',
   'Feature request: dark mode',
   'Login button not responding',
@@ -20,17 +25,57 @@ const subjects = [
   'Integration with Slack broken',
   'CSV import fails silently',
   'Search returns no results',
-  'Profile picture won\'t upload',
+  "Profile picture won't upload",
   'Payment method update failing',
   'Subscription plan confusion',
   'API rate limit too low',
   'Missing data after migration',
 ]
 
-const firstNames = ['Alice', 'Bob', 'Carol', 'David', 'Emma', 'Frank', 'Grace', 'Henry', 'Iris', 'James',
-  'Kate', 'Liam', 'Mia', 'Noah', 'Olivia', 'Paul', 'Quinn', 'Rachel', 'Sam', 'Tara']
-const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
-  'Martinez', 'Wilson', 'Anderson', 'Taylor', 'Thomas', 'Moore', 'Jackson', 'Martin', 'Lee', 'Perez', 'White', 'Harris']
+const firstNames = [
+  'Alice',
+  'Bob',
+  'Carol',
+  'David',
+  'Emma',
+  'Frank',
+  'Grace',
+  'Henry',
+  'Iris',
+  'James',
+  'Kate',
+  'Liam',
+  'Mia',
+  'Noah',
+  'Olivia',
+  'Paul',
+  'Quinn',
+  'Rachel',
+  'Sam',
+  'Tara',
+]
+const lastNames = [
+  'Smith',
+  'Johnson',
+  'Williams',
+  'Brown',
+  'Jones',
+  'Garcia',
+  'Miller',
+  'Davis',
+  'Martinez',
+  'Wilson',
+  'Anderson',
+  'Taylor',
+  'Thomas',
+  'Moore',
+  'Jackson',
+  'Martin',
+  'Lee',
+  'Perez',
+  'White',
+  'Harris',
+]
 
 const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'company.io', 'example.com', 'acme.org']
 

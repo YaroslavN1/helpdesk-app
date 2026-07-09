@@ -1,0 +1,8 @@
+client/dist
+server/src/generated
+playwright-report
+e2e/test-results
+bun.lock
+
+# Prose docs are hand-formatted; only lint/format source code
+*.md

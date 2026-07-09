@@ -2,7 +2,11 @@
   "name": "helpdesk",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["client", "server", "core"],
+  "workspaces": [
+    "client",
+    "server",
+    "core"
+  ],
   "scripts": {
     "dev": "bun --filter '*' dev",
     "client": "bun --filter client dev",
@@ -11,13 +15,25 @@
     "test:unit:watch": "bun run --cwd client test:watch",
     "test:e2e": "bunx playwright test",
     "test:e2e:ui": "bunx playwright test --ui",
-    "test:e2e:debug": "bunx playwright test --debug"
+    "test:e2e:debug": "bunx playwright test --debug",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",
     "@types/node": "^25.9.1",
     "@types/pg": "^8.20.0",
     "dotenv": "^17.4.2",
-    "pg": "^8.21.0"
+    "eslint": "^10.6.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.7.0",
+    "pg": "^8.21.0",
+    "prettier": "^3.9.4",
+    "typescript-eslint": "^8.62.1"
   }
 }

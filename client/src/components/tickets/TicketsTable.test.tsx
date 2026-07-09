@@ -4,7 +4,13 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router'
 import { TicketsTable } from './TicketsTable'
-import { TICKETS, openTechnicalTicket, resolvedRefundTicket, closedTicket, openGeneralTicket } from '@/test/fixtures'
+import {
+  TICKETS,
+  openTechnicalTicket,
+  resolvedRefundTicket,
+  closedTicket,
+  openGeneralTicket,
+} from '@/test/fixtures'
 
 function renderTicketsTable(overrides: Partial<React.ComponentProps<typeof TicketsTable>> = {}) {
   const onSortChange = vi.fn()
@@ -81,7 +87,9 @@ describe('TicketsTable', () => {
     })
 
     it('renders a status badge for each status value', () => {
-      renderTicketsTable({ tickets: [openTechnicalTicket, resolvedRefundTicket, closedTicket] })
+      renderTicketsTable({
+        tickets: [openTechnicalTicket, resolvedRefundTicket, closedTicket],
+      })
 
       expect(screen.getByText('Open')).toBeInTheDocument()
       expect(screen.getByText('Resolved')).toBeInTheDocument()
@@ -89,7 +97,9 @@ describe('TicketsTable', () => {
     })
 
     it('shows the formatted category label for non-null category', () => {
-      renderTicketsTable({ tickets: [openTechnicalTicket, resolvedRefundTicket, openGeneralTicket] })
+      renderTicketsTable({
+        tickets: [openTechnicalTicket, resolvedRefundTicket, openGeneralTicket],
+      })
 
       expect(screen.getByText('Technical')).toBeInTheDocument()
       expect(screen.getByText('Refund')).toBeInTheDocument()
@@ -158,7 +168,10 @@ describe('TicketsTable', () => {
 
       await userEvent.click(screen.getByRole('button', { name: /subject/i }))
 
-      expect(onSortChange).toHaveBeenCalledWith({ column: 'subject', order: 'asc' })
+      expect(onSortChange).toHaveBeenCalledWith({
+        column: 'subject',
+        order: 'asc',
+      })
     })
 
     it('calls onSortChange with { column: "id", order: "asc" } when the # header is clicked', async () => {
@@ -170,7 +183,10 @@ describe('TicketsTable', () => {
     })
 
     it('does not call onSortChange when sortable header buttons are disabled during loading', async () => {
-      const { onSortChange } = renderTicketsTable({ loading: true, tickets: [] })
+      const { onSortChange } = renderTicketsTable({
+        loading: true,
+        tickets: [],
+      })
 
       const buttons = screen.getAllByRole('button')
       expect(buttons.every((btn) => btn.hasAttribute('disabled'))).toBe(true)

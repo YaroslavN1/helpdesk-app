@@ -11,7 +11,7 @@
     "dev": "bun --filter '*' dev",
     "client": "bun --filter client dev",
     "server": "bun --filter server dev",
-    "test:unit": "bun --filter client test",
+    "test:unit": "bun --filter client test && bun --filter server test",
     "test:unit:watch": "bun run --cwd client test:watch",
     "test:e2e": "bunx playwright test",
     "test:e2e:ui": "bunx playwright test --ui",

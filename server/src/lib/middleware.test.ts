@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, afterEach } from 'vitest'
-import { requireAuth, requireWebhookSecret } from './middleware'
+import { requireAuth, requireAdmin, requireWebhookSecret } from './middleware'
 import type { Request, Response, NextFunction } from 'express'
 import { auth } from './auth'
 
@@ -27,10 +27,6 @@ function createMockRequest(headers: Record<string, string> = {}): Request {
   return { headers } as unknown as Request
 }
 
-function createMockNext() {
-  return vi.fn() as unknown as NextFunction
-}
-
 function createMockResponse() {
   const response = {
     statusCode: undefined as number | undefined,
@@ -46,6 +42,10 @@ function createMockResponse() {
     },
   }
   return response as unknown as Response & { statusCode?: number; body?: unknown }
+}
+
+function createMockNext() {
+  return vi.fn() as unknown as NextFunction
 }
 
 describe('requireAuth', () => {
@@ -72,6 +72,33 @@ describe('requireAuth', () => {
     await requireAuth(request, response, next)
 
     expect(response.locals.session).toBe(session)
+    expect(next).toHaveBeenCalledTimes(1)
+    expect(response.statusCode).toBeUndefined()
+  })
+})
+
+describe('requireAdmin', () => {
+  test('responds 403 without calling next() when the session role is not admin', async () => {
+    const request = createMockRequest()
+    const response = createMockResponse()
+    response.locals.session = { user: { role: 'agent' } }
+    const next = createMockNext()
+
+    await requireAdmin(request, response, next)
+
+    expect(response.statusCode).toBe(403)
+    expect(response.body).toEqual({ error: 'Forbidden' })
+    expect(next).not.toHaveBeenCalled()
+  })
+
+  test('calls next() when the session role is admin', async () => {
+    const request = createMockRequest()
+    const response = createMockResponse()
+    response.locals.session = { user: { role: 'admin' } }
+    const next = createMockNext()
+
+    await requireAdmin(request, response, next)
+
     expect(next).toHaveBeenCalledTimes(1)
     expect(response.statusCode).toBeUndefined()
   })

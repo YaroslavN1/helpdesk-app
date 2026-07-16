@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router'
-import { formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/format-date'
 import { SortableHead } from '@/components/ui/sortable-head'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'

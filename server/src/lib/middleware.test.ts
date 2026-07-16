@@ -1,6 +1,17 @@
 import { describe, test, expect, vi, afterEach } from 'vitest'
-import { requireWebhookSecret } from './middleware'
+import { requireAuth, requireWebhookSecret } from './middleware'
 import type { Request, Response, NextFunction } from 'express'
+import { auth } from './auth'
+
+type Session = Awaited<ReturnType<typeof auth.api.getSession>>
+
+vi.mock('./auth', () => ({
+  auth: {
+    api: {
+      getSession: vi.fn(),
+    },
+  },
+}))
 
 const originalWebhookSecret = process.env.WEBHOOK_SECRET
 
@@ -24,6 +35,7 @@ function createMockResponse() {
   const response = {
     statusCode: undefined as number | undefined,
     body: undefined as unknown,
+    locals: {} as Record<string, unknown>,
     status(code: number) {
       response.statusCode = code
       return response
@@ -35,6 +47,35 @@ function createMockResponse() {
   }
   return response as unknown as Response & { statusCode?: number; body?: unknown }
 }
+
+describe('requireAuth', () => {
+  test('responds 401 without calling next() when there is no session', async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(null)
+    const request = createMockRequest()
+    const response = createMockResponse()
+    const next = createMockNext()
+
+    await requireAuth(request, response, next)
+
+    expect(response.statusCode).toBe(401)
+    expect(response.body).toEqual({ error: 'Unauthorized' })
+    expect(next).not.toHaveBeenCalled()
+  })
+
+  test('attaches the session to res.locals and calls next() when a session exists', async () => {
+    const session = { user: { id: 'user-1', role: 'agent' } } as unknown as NonNullable<Session>
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(session)
+    const request = createMockRequest()
+    const response = createMockResponse()
+    const next = createMockNext()
+
+    await requireAuth(request, response, next)
+
+    expect(response.locals.session).toBe(session)
+    expect(next).toHaveBeenCalledTimes(1)
+    expect(response.statusCode).toBeUndefined()
+  })
+})
 
 describe('requireWebhookSecret', () => {
   afterEach(() => {

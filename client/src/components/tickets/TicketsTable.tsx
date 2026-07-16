@@ -12,15 +12,15 @@ import {
   type Ticket,
   type TicketSortColumn,
   type SortOrder,
-  type TicketsSort,
+  type TicketsSortCriteria,
 } from '@helpdesk/core'
 
 interface Props {
   tickets: Ticket[]
   loading: boolean
   error: string | null
-  sort: TicketsSort
-  onSortChange: (sort: TicketsSort) => void
+  sort: TicketsSortCriteria
+  onSortChange: (sort: TicketsSortCriteria) => void
 }
 
 const SKELETON_CELLS = [

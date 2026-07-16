@@ -7,18 +7,18 @@ import {
   TICKET_CATEGORIES,
   TICKET_STATUS_LABELS,
   TICKET_CATEGORY_LABELS,
-  type TicketsFilters,
+  type TicketsFilterCriteria,
 } from '@helpdesk/core'
 
-const ticketsDefaultFilters: TicketsFilters = {
+const ticketsDefaultFilters: TicketsFilterCriteria = {
   search: '',
   status: [],
   category: [],
 }
 
 interface Props {
-  filters: TicketsFilters
-  onFiltersChange: (filters: TicketsFilters) => void
+  filters: TicketsFilterCriteria
+  onFiltersChange: (filters: TicketsFilterCriteria) => void
   loading: boolean
 }
 

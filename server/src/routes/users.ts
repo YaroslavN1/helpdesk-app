@@ -70,7 +70,9 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
     return
   }
 
-  const emailConflict = await prisma.user.findFirst({ where: { email, NOT: { id } } })
+  const emailConflict = await prisma.user.findFirst({
+    where: { email, NOT: { id } },
+  })
   if (emailConflict) {
     res.status(409).json({ error: 'A user with this email already exists' })
     return
@@ -96,7 +98,9 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
 router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   const id = req.params['id'] as string
 
-  const target = await prisma.user.findUnique({ where: { id, deletedAt: null } })
+  const target = await prisma.user.findUnique({
+    where: { id, deletedAt: null },
+  })
   if (!target) {
     res.status(404).json({ error: 'User not found' })
     return

@@ -18,7 +18,14 @@ router.post('/inbound-email', requireWebhookSecret, async (req, res) => {
   const subject = normalizeSubject(rawSubject)
 
   const ticket = await prisma.ticket.create({
-    data: { fromEmail: from, fromName, subject, body, htmlBody, status: TicketStatus.open },
+    data: {
+      fromEmail: from,
+      fromName,
+      subject,
+      body,
+      htmlBody,
+      status: TicketStatus.open,
+    },
   })
   res.status(201).json(ticket)
 })

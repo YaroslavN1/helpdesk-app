@@ -14,7 +14,15 @@ interface TicketSelectFieldProps {
   'data-testid'?: string
 }
 
-export function TicketSelectField({ label, value, options, updateTicket, mapSelected, className, 'data-testid': testId }: TicketSelectFieldProps) {
+export function TicketSelectField({
+  label,
+  value,
+  options,
+  updateTicket,
+  mapSelected,
+  className,
+  'data-testid': testId,
+}: TicketSelectFieldProps) {
   const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,7 +32,9 @@ export function TicketSelectField({ label, value, options, updateTicket, mapSele
     setIsUpdating(true)
     setError(null)
     updateTicket(body)
-      .then((result) => { if ('error' in result) setError(result.error) })
+      .then((result) => {
+        if ('error' in result) setError(result.error)
+      })
       .finally(() => setIsUpdating(false))
   }
 

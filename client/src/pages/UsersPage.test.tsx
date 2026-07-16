@@ -4,8 +4,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import UsersPage from './UsersPage'
 
 const USERS = [
-  { id: '1', name: 'Admin Test User', email: 'admin_test@example.com', role: 'admin' as const, createdAt: '2024-01-15T00:00:00.000Z' },
-  { id: '2', name: 'Agent Test User', email: 'agent_test@example.com', role: 'agent' as const, createdAt: '2024-03-22T00:00:00.000Z' },
+  {
+    id: '1',
+    name: 'Admin Test User',
+    email: 'admin_test@example.com',
+    role: 'admin' as const,
+    createdAt: '2024-01-15T00:00:00.000Z',
+  },
+  {
+    id: '2',
+    name: 'Agent Test User',
+    email: 'agent_test@example.com',
+    role: 'agent' as const,
+    createdAt: '2024-03-22T00:00:00.000Z',
+  },
 ]
 
 function mockFetch(payload: unknown, ok = true) {
@@ -29,7 +41,9 @@ describe('UsersPage', () => {
       vi.stubGlobal('fetch', fetchSpy)
       render(<UsersPage />)
 
-      expect(fetchSpy).toHaveBeenCalledWith('/api/users', { credentials: 'include' })
+      expect(fetchSpy).toHaveBeenCalledWith('/api/users', {
+        credentials: 'include',
+      })
     })
 
     it('shows skeleton rows while loading', () => {
@@ -45,18 +59,14 @@ describe('UsersPage', () => {
       mockFetch(null, false)
       render(<UsersPage />)
 
-      await waitFor(() =>
-        expect(screen.getByText('Failed to load users')).toBeInTheDocument(),
-      )
+      await waitFor(() => expect(screen.getByText('Failed to load users')).toBeInTheDocument())
     })
 
     it('shows an error message when fetch rejects', async () => {
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')))
       render(<UsersPage />)
 
-      await waitFor(() =>
-        expect(screen.getByText('Network error')).toBeInTheDocument(),
-      )
+      await waitFor(() => expect(screen.getByText('Network error')).toBeInTheDocument())
     })
   })
 
@@ -90,9 +100,7 @@ describe('UsersPage', () => {
       mockFetch(USERS)
       render(<UsersPage />)
 
-      await waitFor(() =>
-        expect(document.querySelectorAll('tbody tr')).toHaveLength(USERS.length),
-      )
+      await waitFor(() => expect(document.querySelectorAll('tbody tr')).toHaveLength(USERS.length))
     })
 
     it('renders user name and email', async () => {
@@ -162,7 +170,13 @@ describe('UsersPage', () => {
     })
 
     it('appends the new user to the table after successful creation', async () => {
-      const NEW_USER = { id: '3', name: 'New Person', email: 'new@example.com', role: 'agent' as const, createdAt: '2024-06-01T00:00:00.000Z' }
+      const NEW_USER = {
+        id: '3',
+        name: 'New Person',
+        email: 'new@example.com',
+        role: 'agent' as const,
+        createdAt: '2024-06-01T00:00:00.000Z',
+      }
       mockFetch(USERS)
       const user = userEvent.setup()
       render(<UsersPage />)
@@ -249,7 +263,9 @@ describe('UsersPage', () => {
       await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue(USERS[0].name))
 
       await user.keyboard('{Escape}')
-      await waitFor(() => expect(screen.queryByRole('heading', { name: 'Edit user' })).not.toBeInTheDocument())
+      await waitFor(() =>
+        expect(screen.queryByRole('heading', { name: 'Edit user' })).not.toBeInTheDocument(),
+      )
 
       await user.click(screen.getByRole('button', { name: /new user/i }))
 
@@ -272,7 +288,9 @@ describe('UsersPage', () => {
     it('hides the delete button for admin users and shows it for agents', async () => {
       await setup()
 
-      const deleteButtons = screen.getAllByRole('button', { name: 'Delete user' })
+      const deleteButtons = screen.getAllByRole('button', {
+        name: 'Delete user',
+      })
       expect(deleteButtons).toHaveLength(1)
     })
 
@@ -318,7 +336,10 @@ describe('UsersPage', () => {
       await user.click(screen.getByRole('button', { name: 'Delete user' }))
       expect(screen.getByRole('heading', { name: 'Delete user' })).toBeInTheDocument()
 
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(null) }))
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(null) }),
+      )
 
       await user.click(screen.getByRole('button', { name: 'Delete' }))
 

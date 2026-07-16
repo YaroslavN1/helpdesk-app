@@ -44,4 +44,9 @@ export const openGeneralTicket: Ticket = {
   createdAt: '2024-06-10T09:00:00.000Z',
 }
 
-export const TICKETS: Ticket[] = [openTechnicalTicket, resolvedRefundTicket, closedTicket, openGeneralTicket]
+export const TICKETS: Ticket[] = [
+  openTechnicalTicket,
+  resolvedRefundTicket,
+  closedTicket,
+  openGeneralTicket,
+]

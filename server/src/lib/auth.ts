@@ -30,7 +30,9 @@ export const auth = betterAuth({
       if (!email) return
       const user = await prisma.user.findUnique({ where: { email } })
       if (user?.deletedAt) {
-        throw new APIError('UNAUTHORIZED', { message: 'Invalid email or password' })
+        throw new APIError('UNAUTHORIZED', {
+          message: 'Invalid email or password',
+        })
       }
     }),
   },

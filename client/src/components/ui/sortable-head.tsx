@@ -12,7 +12,16 @@ interface Props {
   className?: string
 }
 
-export function SortableHead({ label, sortable = true, column, activeColumn, activeOrder, loading, onSortChange, className }: Props) {
+export function SortableHead({
+  label,
+  sortable = true,
+  column,
+  activeColumn,
+  activeOrder,
+  loading,
+  onSortChange,
+  className,
+}: Props) {
   if (!sortable) {
     return <TableHead className={className}>{label}</TableHead>
   }

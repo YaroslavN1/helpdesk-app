@@ -30,7 +30,11 @@ function setup() {
   const onSaved = vi.fn()
   const user = userEvent.setup()
   render(
-    <UserForm form={{ mode: 'create', user: null }} onOpenChange={onOpenChange} onSaved={onSaved} />,
+    <UserForm
+      form={{ mode: 'create', user: null }}
+      onOpenChange={onOpenChange}
+      onSaved={onSaved}
+    />,
   )
   return { user, onOpenChange, onSaved }
 }
@@ -89,9 +93,7 @@ describe('UserForm', () => {
       await fillForm(user, { email: 'notanemail' })
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
-      await waitFor(() =>
-        expect(screen.getByText('Valid email is required')).toBeInTheDocument(),
-      )
+      await waitFor(() => expect(screen.getByText('Valid email is required')).toBeInTheDocument())
     })
 
     it('shows an error when password is too short', async () => {
@@ -121,7 +123,11 @@ describe('UserForm', () => {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: 'Jane Smith', email: 'jane@example.com', password: 'password123' }),
+          body: JSON.stringify({
+            name: 'Jane Smith',
+            email: 'jane@example.com',
+            password: 'password123',
+          }),
         }),
       )
     })
@@ -150,9 +156,7 @@ describe('UserForm', () => {
       await fillForm(user)
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
-      await waitFor(() =>
-        expect(screen.getByText('Email already in use')).toBeInTheDocument(),
-      )
+      await waitFor(() => expect(screen.getByText('Email already in use')).toBeInTheDocument())
     })
 
     it('shows a fallback error when the response has no error field', async () => {
@@ -161,9 +165,7 @@ describe('UserForm', () => {
       await fillForm(user)
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
-      await waitFor(() =>
-        expect(screen.getByText('Failed to create user')).toBeInTheDocument(),
-      )
+      await waitFor(() => expect(screen.getByText('Failed to create user')).toBeInTheDocument())
     })
 
     it('shows an error message on network failure', async () => {
@@ -172,9 +174,7 @@ describe('UserForm', () => {
       await fillForm(user)
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
-      await waitFor(() =>
-        expect(screen.getByText('Failed to create user')).toBeInTheDocument(),
-      )
+      await waitFor(() => expect(screen.getByText('Failed to create user')).toBeInTheDocument())
     })
   })
 
@@ -206,7 +206,11 @@ describe('UserForm', () => {
       const onOpenChange = vi.fn()
       const user = userEvent.setup()
       const { rerender } = render(
-        <UserForm form={{ mode: 'create', user: null }} onOpenChange={onOpenChange} onSaved={vi.fn()} />,
+        <UserForm
+          form={{ mode: 'create', user: null }}
+          onOpenChange={onOpenChange}
+          onSaved={vi.fn()}
+        />,
       )
 
       await user.click(screen.getByRole('button', { name: 'Create user' }))
@@ -215,7 +219,13 @@ describe('UserForm', () => {
       )
 
       rerender(<UserForm form={null} onOpenChange={onOpenChange} onSaved={vi.fn()} />)
-      rerender(<UserForm form={{ mode: 'create', user: null }} onOpenChange={onOpenChange} onSaved={vi.fn()} />)
+      rerender(
+        <UserForm
+          form={{ mode: 'create', user: null }}
+          onOpenChange={onOpenChange}
+          onSaved={vi.fn()}
+        />,
+      )
 
       await waitFor(() =>
         expect(screen.queryByText('Name must be at least 3 characters')).not.toBeInTheDocument(),

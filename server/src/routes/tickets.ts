@@ -3,7 +3,19 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { requireAuth } from '../lib/middleware'
 import { validate } from '../lib/validate'
-import { TICKET_SORT_COLUMNS, SORT_ORDERS, TICKET_STATUSES, TICKET_CATEGORIES, SortOrder, TicketSortColumn, DEFAULT_PAGE_SIZE, updateTicketSchema, UserRole, type TicketStatus, type TicketCategory } from '@helpdesk/core'
+import {
+  TICKET_SORT_COLUMNS,
+  SORT_ORDERS,
+  TICKET_STATUSES,
+  TICKET_CATEGORIES,
+  SortOrder,
+  TicketSortColumn,
+  DEFAULT_PAGE_SIZE,
+  updateTicketSchema,
+  UserRole,
+  type TicketStatus,
+  type TicketCategory,
+} from '@helpdesk/core'
 import type { Prisma } from '../generated/prisma/client'
 
 const router = Router()
@@ -94,7 +106,10 @@ router.get('/:id', requireAuth, async (req, res) => {
   const id = parseTicketId(req.params.id, res)
   if (id === null) return
 
-  const ticket = await prisma.ticket.findUnique({ where: { id }, select: ticketDetailSelect })
+  const ticket = await prisma.ticket.findUnique({
+    where: { id },
+    select: ticketDetailSelect,
+  })
   if (!ticket) {
     res.status(404).json({ error: 'Ticket not found' })
     return
@@ -106,7 +121,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 router.patch('/:id', requireAuth, async (req, res) => {
   const id = parseTicketId(req.params.id, res)
   if (id === null) return
-  
+
   const ticket = await prisma.ticket.findUnique({ where: { id } })
   if (!ticket) {
     res.status(404).json({ error: 'Ticket not found' })
@@ -119,7 +134,9 @@ router.patch('/:id', requireAuth, async (req, res) => {
   const { assignedToId, status, category } = data
 
   if (assignedToId) {
-    const agent = await prisma.user.findUnique({ where: { id: assignedToId, deletedAt: null } })
+    const agent = await prisma.user.findUnique({
+      where: { id: assignedToId, deletedAt: null },
+    })
     if (!agent || agent.role !== UserRole.agent) {
       res.status(400).json({ error: 'Invalid agent' })
       return

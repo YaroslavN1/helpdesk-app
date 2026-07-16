@@ -1,7 +1,13 @@
 import { Client } from 'pg'
 import { test, expect, type Page } from '@playwright/test'
 import { DEFAULT_PAGE_SIZE } from '../../core/src/constants/ticket'
-import { loginAsAdmin, loginAsAgent, seedTicket, setTicketFields, type SeededTicket } from '../helpers'
+import {
+  loginAsAdmin,
+  loginAsAgent,
+  seedTicket,
+  setTicketFields,
+  type SeededTicket,
+} from '../helpers'
 
 const SERVER_BASE_URL = process.env.BETTER_AUTH_URL!
 
@@ -10,11 +16,7 @@ async function goToTicketsPage(page: Page) {
   await page.goto('/tickets')
 }
 
-async function selectFilterOption(
-  page: Page,
-  multiselectDataTestId: string,
-  optionLabel: string
-) {
+async function selectFilterOption(page: Page, multiselectDataTestId: string, optionLabel: string) {
   await page.getByTestId(multiselectDataTestId).click()
   await page.getByTestId('multiselect-item').filter({ hasText: optionLabel }).click()
   await page.keyboard.press('Escape')
@@ -56,7 +58,11 @@ test.describe('TicketsPage', () => {
     })
 
     test('response items include expected fields', async ({ page, request }) => {
-      await seedTicket(request, { from: 'fields@example.com', fromName: 'Fields Test', subject: 'Field check ticket' })
+      await seedTicket(request, {
+        from: 'fields@example.com',
+        fromName: 'Fields Test',
+        subject: 'Field check ticket',
+      })
 
       await loginAsAdmin(page)
       await page.goto('/')
@@ -86,17 +92,42 @@ test.describe('TicketsPage', () => {
     test.beforeAll(async ({ request }) => {
       await clearTickets()
 
-      ;[openTicket, closedTechnicalTicket, resolvedGeneralTicket, openRefundTicket] = await Promise.all([
-        seedTicket(request, { subject: 'Account login issue', from: 'alice@example.com', fromName: 'Alice' }),
-        seedTicket(request, { subject: 'Zoom not working',   from: 'zara@example.com',  fromName: 'Zara'  }),
-        seedTicket(request, { subject: 'Billing question',   from: 'bob@example.com',   fromName: 'Bob'   }),
-        seedTicket(request, { subject: 'Payment failure',    from: 'dana@example.com',  fromName: 'Dana'  }),
-      ])
+      ;[openTicket, closedTechnicalTicket, resolvedGeneralTicket, openRefundTicket] =
+        await Promise.all([
+          seedTicket(request, {
+            subject: 'Account login issue',
+            from: 'alice@example.com',
+            fromName: 'Alice',
+          }),
+          seedTicket(request, {
+            subject: 'Zoom not working',
+            from: 'zara@example.com',
+            fromName: 'Zara',
+          }),
+          seedTicket(request, {
+            subject: 'Billing question',
+            from: 'bob@example.com',
+            fromName: 'Bob',
+          }),
+          seedTicket(request, {
+            subject: 'Payment failure',
+            from: 'dana@example.com',
+            fromName: 'Dana',
+          }),
+        ])
 
       await setTicketFields([
-        { id: closedTechnicalTicket.id,  status: 'closed',   category: 'technical_question' },
-        { id: resolvedGeneralTicket.id,  status: 'resolved', category: 'general_question'   },
-        { id: openRefundTicket.id,       status: 'open',     category: 'refund_request'     },
+        {
+          id: closedTechnicalTicket.id,
+          status: 'closed',
+          category: 'technical_question',
+        },
+        {
+          id: resolvedGeneralTicket.id,
+          status: 'resolved',
+          category: 'general_question',
+        },
+        { id: openRefundTicket.id, status: 'open', category: 'refund_request' },
       ])
     })
 
@@ -126,19 +157,26 @@ test.describe('TicketsPage', () => {
 
     test.describe('filtering', () => {
       test.describe('search field', () => {
-        const cases: Array<{ field: string; getField: (ticket: SeededTicket) => string }> = [
-          { field: 'id',           getField: ticket => String(ticket.id) },
-          { field: 'subject',      getField: ticket => ticket.subject },
-          { field: 'sender name',  getField: ticket => ticket.fromName },
-          { field: 'sender email', getField: ticket => ticket.fromEmail },
+        const cases: Array<{
+          field: string
+          getField: (ticket: SeededTicket) => string
+        }> = [
+          { field: 'id', getField: (ticket) => String(ticket.id) },
+          { field: 'subject', getField: (ticket) => ticket.subject },
+          { field: 'sender name', getField: (ticket) => ticket.fromName },
+          { field: 'sender email', getField: (ticket) => ticket.fromEmail },
         ]
 
         cases.forEach(({ field, getField }) => {
           test(`filters tickets by ${field}`, async ({ page }) => {
             await page.getByPlaceholder('Search tickets…').fill(getField(openTicket))
 
-            await expect(page.getByRole('row').filter({ hasText: getField(openTicket) })).toBeVisible()
-            await expect(page.getByRole('row').filter({ hasText: getField(closedTechnicalTicket) })).not.toBeVisible()
+            await expect(
+              page.getByRole('row').filter({ hasText: getField(openTicket) }),
+            ).toBeVisible()
+            await expect(
+              page.getByRole('row').filter({ hasText: getField(closedTechnicalTicket) }),
+            ).not.toBeVisible()
           })
         })
       })
@@ -149,8 +187,12 @@ test.describe('TicketsPage', () => {
           await selectFilterOption(page, 'status-filter', 'resolved')
 
           await expect(page.getByRole('row').filter({ hasText: openTicket.subject })).toBeVisible()
-          await expect(page.getByRole('row').filter({ hasText: resolvedGeneralTicket.subject })).toBeVisible()
-          await expect(page.getByRole('row').filter({ hasText: closedTechnicalTicket.subject })).not.toBeVisible()
+          await expect(
+            page.getByRole('row').filter({ hasText: resolvedGeneralTicket.subject }),
+          ).toBeVisible()
+          await expect(
+            page.getByRole('row').filter({ hasText: closedTechnicalTicket.subject }),
+          ).not.toBeVisible()
         })
       })
 
@@ -159,9 +201,15 @@ test.describe('TicketsPage', () => {
           await selectFilterOption(page, 'category-filter', 'General')
           await selectFilterOption(page, 'category-filter', 'Refund')
 
-          await expect(page.getByRole('row').filter({ hasText: resolvedGeneralTicket.subject })).toBeVisible()
-          await expect(page.getByRole('row').filter({ hasText: openRefundTicket.subject })).toBeVisible()
-          await expect(page.getByRole('row').filter({ hasText: openTicket.subject })).not.toBeVisible()
+          await expect(
+            page.getByRole('row').filter({ hasText: resolvedGeneralTicket.subject }),
+          ).toBeVisible()
+          await expect(
+            page.getByRole('row').filter({ hasText: openRefundTicket.subject }),
+          ).toBeVisible()
+          await expect(
+            page.getByRole('row').filter({ hasText: openTicket.subject }),
+          ).not.toBeVisible()
         })
       })
 
@@ -171,13 +219,19 @@ test.describe('TicketsPage', () => {
           await selectFilterOption(page, 'status-filter', 'resolved')
           await selectFilterOption(page, 'category-filter', 'General')
 
-          await expect(page.getByRole('row').filter({ hasText: openTicket.subject })).not.toBeVisible()
+          await expect(
+            page.getByRole('row').filter({ hasText: openTicket.subject }),
+          ).not.toBeVisible()
 
           await page.getByRole('button', { name: 'Clear filters' }).click()
 
           await expect(page.getByPlaceholder('Search tickets…')).toHaveValue('')
-          await expect(page.getByRole('row').filter({ hasText: resolvedGeneralTicket.subject })).toBeVisible()
-          await expect(page.getByRole('row').filter({ hasText: closedTechnicalTicket.subject })).toBeVisible()
+          await expect(
+            page.getByRole('row').filter({ hasText: resolvedGeneralTicket.subject }),
+          ).toBeVisible()
+          await expect(
+            page.getByRole('row').filter({ hasText: closedTechnicalTicket.subject }),
+          ).toBeVisible()
         })
       })
     })
@@ -186,11 +240,15 @@ test.describe('TicketsPage', () => {
       test('sorts tickets by Subject ascending then descending', async ({ page }) => {
         await page.getByRole('columnheader', { name: 'Subject' }).getByRole('button').click()
 
-        await expect(page.getByRole('rowgroup').last().getByRole('row').first()).toContainText(openTicket.subject)
+        await expect(page.getByRole('rowgroup').last().getByRole('row').first()).toContainText(
+          openTicket.subject,
+        )
 
         await page.getByRole('columnheader', { name: 'Subject' }).getByRole('button').click()
 
-        await expect(page.getByRole('rowgroup').last().getByRole('row').first()).toContainText(closedTechnicalTicket.subject)
+        await expect(page.getByRole('rowgroup').last().getByRole('row').first()).toContainText(
+          closedTechnicalTicket.subject,
+        )
       })
     })
 
@@ -210,7 +268,11 @@ test.describe('TicketsPage', () => {
         const tickets = Array.from({ length: DEFAULT_PAGE_SIZE + 1 }, (_, index) => {
           const ticketId = index + 1
           const pageLabel = ticketId <= DEFAULT_PAGE_SIZE ? 'First' : 'Second'
-          return { subject: `${pageLabel} page ticket ${ticketId}`, from: `ticket${ticketId}@example.com`, fromName: `Ticket User ${ticketId}` }
+          return {
+            subject: `${pageLabel} page ticket ${ticketId}`,
+            from: `ticket${ticketId}@example.com`,
+            fromName: `Ticket User ${ticketId}`,
+          }
         })
 
         // Last seeded ticket will appear in database as first, so to preserve initial order they are reversed before seeding
@@ -220,42 +282,74 @@ test.describe('TicketsPage', () => {
       })
 
       test('navigates between pages using page number buttons', async ({ page }) => {
-        await expect(page.getByRole('row').filter({ hasText: 'First page ticket' }).first()).toBeVisible()
-        await expect(page.getByRole('row').filter({ hasText: 'Second page ticket' }).first()).not.toBeVisible()
+        await expect(
+          page.getByRole('row').filter({ hasText: 'First page ticket' }).first(),
+        ).toBeVisible()
+        await expect(
+          page.getByRole('row').filter({ hasText: 'Second page ticket' }).first(),
+        ).not.toBeVisible()
 
         await page.getByRole('button', { name: '2' }).click()
 
-        await expect(page.getByRole('row').filter({ hasText: 'Second page ticket' }).first()).toBeVisible()
-        await expect(page.getByRole('row').filter({ hasText: 'First page ticket' }).first()).not.toBeVisible()
+        await expect(
+          page.getByRole('row').filter({ hasText: 'Second page ticket' }).first(),
+        ).toBeVisible()
+        await expect(
+          page.getByRole('row').filter({ hasText: 'First page ticket' }).first(),
+        ).not.toBeVisible()
 
         await page.getByRole('button', { name: '1' }).click()
 
-        await expect(page.getByRole('row').filter({ hasText: 'First page ticket' }).first()).toBeVisible()
-        await expect(page.getByRole('row').filter({ hasText: 'Second page ticket' }).first()).not.toBeVisible()
+        await expect(
+          page.getByRole('row').filter({ hasText: 'First page ticket' }).first(),
+        ).toBeVisible()
+        await expect(
+          page.getByRole('row').filter({ hasText: 'Second page ticket' }).first(),
+        ).not.toBeVisible()
       })
 
       test('prev chevron button navigates back to page 1', async ({ page }) => {
         await page.getByRole('button', { name: '2' }).click()
 
-        await expect(page.getByRole('row').filter({ hasText: 'Second page ticket' }).first()).toBeVisible()
-        await expect(page.getByRole('row').filter({ hasText: 'First page ticket' }).first()).not.toBeVisible()
+        await expect(
+          page.getByRole('row').filter({ hasText: 'Second page ticket' }).first(),
+        ).toBeVisible()
+        await expect(
+          page.getByRole('row').filter({ hasText: 'First page ticket' }).first(),
+        ).not.toBeVisible()
 
-        const prevButton = page.getByRole('button').filter({ has: page.locator('svg.lucide-chevron-left') })
+        const prevButton = page
+          .getByRole('button')
+          .filter({ has: page.locator('svg.lucide-chevron-left') })
         await prevButton.click()
 
-        await expect(page.getByRole('row').filter({ hasText: 'First page ticket' }).first()).toBeVisible()
-        await expect(page.getByRole('row').filter({ hasText: 'Second page ticket' }).first()).not.toBeVisible()
+        await expect(
+          page.getByRole('row').filter({ hasText: 'First page ticket' }).first(),
+        ).toBeVisible()
+        await expect(
+          page.getByRole('row').filter({ hasText: 'Second page ticket' }).first(),
+        ).not.toBeVisible()
       })
 
       test('next chevron button navigates to page 2', async ({ page }) => {
-        await expect(page.getByRole('row').filter({ hasText: 'First page ticket' }).first()).toBeVisible()
-        await expect(page.getByRole('row').filter({ hasText: 'Second page ticket' }).first()).not.toBeVisible()
+        await expect(
+          page.getByRole('row').filter({ hasText: 'First page ticket' }).first(),
+        ).toBeVisible()
+        await expect(
+          page.getByRole('row').filter({ hasText: 'Second page ticket' }).first(),
+        ).not.toBeVisible()
 
-        const nextButton = page.getByRole('button').filter({ has: page.locator('svg.lucide-chevron-right') })
+        const nextButton = page
+          .getByRole('button')
+          .filter({ has: page.locator('svg.lucide-chevron-right') })
         await nextButton.click()
 
-        await expect(page.getByRole('row').filter({ hasText: 'Second page ticket' }).first()).toBeVisible()
-        await expect(page.getByRole('row').filter({ hasText: 'First page ticket' }).first()).not.toBeVisible()
+        await expect(
+          page.getByRole('row').filter({ hasText: 'Second page ticket' }).first(),
+        ).toBeVisible()
+        await expect(
+          page.getByRole('row').filter({ hasText: 'First page ticket' }).first(),
+        ).not.toBeVisible()
       })
     })
   })

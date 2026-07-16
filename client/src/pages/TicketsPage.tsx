@@ -15,7 +15,10 @@ import {
   type PaginatedTickets,
 } from '@helpdesk/core'
 
-const defaultSort: TicketsSort = { column: TicketSortColumn.createdAt, order: SortOrder.desc }
+const defaultSort: TicketsSort = {
+  column: TicketSortColumn.createdAt,
+  order: SortOrder.desc,
+}
 const defaultPage = 1
 
 type TicketsParams = { sort: TicketsSort; filters: FiltersState; page: number }
@@ -87,7 +90,7 @@ export default function TicketsPage() {
     setUrlParams(buildUrlParams(newParams))
     fetchTickets(newParams)
   }
-  
+
   function handleFiltersChange(newFilters: FiltersState) {
     applyParams({ sort, filters: newFilters, page: defaultPage })
   }

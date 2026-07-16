@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test'
-import { loginAsAdmin, loginAsAgent, seedTicket, setTicketFields, AGENT_NAME, type SeededTicket } from '../helpers'
+import {
+  loginAsAdmin,
+  loginAsAgent,
+  seedTicket,
+  setTicketFields,
+  AGENT_NAME,
+  type SeededTicket,
+} from '../helpers'
 
 let ticket: SeededTicket
 let htmlTicket: SeededTicket
@@ -112,7 +119,9 @@ test.describe('TicketDetailsPage', () => {
             await expect(page.getByTestId('status-select')).toContainText('Open')
           })
 
-          test('changes status to Resolved and reflects the change before and after a reload', async ({ page }) => {
+          test('changes status to Resolved and reflects the change before and after a reload', async ({
+            page,
+          }) => {
             await setTicketFields([{ id: ticket.id, status: 'open', category: null }])
             await page.reload()
 
@@ -129,13 +138,17 @@ test.describe('TicketDetailsPage', () => {
 
         test.describe('category', () => {
           test('renders the current category', async ({ page }) => {
-            await setTicketFields([{ id: ticket.id, status: 'open', category: 'technical_question' }])
+            await setTicketFields([
+              { id: ticket.id, status: 'open', category: 'technical_question' },
+            ])
             await page.reload()
 
             await expect(page.getByTestId('category-select')).toContainText('Technical')
           })
 
-          test('changes category from — to General and reflects the change before and after a reload', async ({ page }) => {
+          test('changes category from — to General and reflects the change before and after a reload', async ({
+            page,
+          }) => {
             await setTicketFields([{ id: ticket.id, status: 'open', category: null }])
             await page.reload()
 
@@ -157,7 +170,9 @@ test.describe('TicketDetailsPage', () => {
             await expect(page.getByTestId('assign-to-select')).toContainText('—')
           })
 
-          test('assigns an agent via the dropdown and reflects the change before and after a reload', async ({ page }) => {
+          test('assigns an agent via the dropdown and reflects the change before and after a reload', async ({
+            page,
+          }) => {
             await page.getByTestId('assign-to-select').click()
             await page.getByRole('option', { name: AGENT_NAME }).click()
 
@@ -178,7 +193,6 @@ test.describe('TicketDetailsPage', () => {
 
             await expect(page.getByTestId('assign-to-select')).toContainText('—')
           })
-
         })
 
         test('shows an error message when the PATCH request fails', async ({ page }) => {

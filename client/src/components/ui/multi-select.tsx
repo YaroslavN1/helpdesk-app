@@ -17,12 +17,20 @@ interface Props<T extends string> {
   testId?: string
 }
 
-const checkboxItemClass = 'flex cursor-default select-none items-center gap-2 rounded-md px-2 py-1.5 outline-none data-highlighted:bg-muted'
+const checkboxItemClass =
+  'flex cursor-default select-none items-center gap-2 rounded-md px-2 py-1.5 outline-none data-highlighted:bg-muted'
 
-export function MultiSelect<T extends string>({ label, options, selected, onChange, disabled, testId }: Props<T>) {
+export function MultiSelect<T extends string>({
+  label,
+  options,
+  selected,
+  onChange,
+  disabled,
+  testId,
+}: Props<T>) {
   function updateSelected(value: T) {
     const updatedSelected = selected.includes(value)
-      ? selected.filter(item => item !== value)
+      ? selected.filter((item) => item !== value)
       : [...selected, value]
     onChange(updatedSelected)
   }
@@ -44,7 +52,7 @@ export function MultiSelect<T extends string>({ label, options, selected, onChan
       <Menu.Portal>
         <Menu.Positioner sideOffset={4}>
           <Menu.Popup className="z-50 min-w-36 rounded-lg bg-popover p-1 text-sm shadow-md ring-1 ring-foreground/10 outline-none">
-            {options.map(option => (
+            {options.map((option) => (
               <Menu.CheckboxItem
                 key={option.value}
                 checked={selected.includes(option.value)}

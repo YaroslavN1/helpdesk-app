@@ -13,7 +13,15 @@ interface Props {
   testId?: string
 }
 
-export function InputDebounced({ value, onChange, placeholder, disabled, className, delay = 300, testId }: Props) {
+export function InputDebounced({
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  className,
+  delay = 300,
+  testId,
+}: Props) {
   const [localValue, setLocalValue] = useState(value)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 

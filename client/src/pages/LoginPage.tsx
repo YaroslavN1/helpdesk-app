@@ -38,7 +38,9 @@ export default function LoginPage() {
     const { error } = await authClient.signIn.email({ email, password })
 
     if (error) {
-      setError('root', { message: error.message ?? 'Invalid email or password.' })
+      setError('root', {
+        message: error.message ?? 'Invalid email or password.',
+      })
       return
     }
 
@@ -69,9 +71,7 @@ export default function LoginPage() {
                   placeholder="you@example.com"
                   {...register('email')}
                 />
-                {errors.email && (
-                  <p className="text-xs text-destructive">{errors.email.message}</p>
-                )}
+                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
               </div>
 
               <div className="space-y-1.5">

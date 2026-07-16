@@ -49,26 +49,40 @@ const AGENTS: AgentOption[] = [
   { id: 'agent-2', name: 'Carol Agent' },
 ]
 
-function mockFetch(ticket: unknown, {
-  ok = true,
-  agents = AGENTS,
-  patchTicket = ticket as TicketDetails,
-  patchOk = true,
-}: {
-  ok?: boolean
-  agents?: AgentOption[]
-  patchTicket?: TicketDetails
-  patchOk?: boolean
-} = {}) {
+function mockFetch(
+  ticket: unknown,
+  {
+    ok = true,
+    agents = AGENTS,
+    patchTicket = ticket as TicketDetails,
+    patchOk = true,
+  }: {
+    ok?: boolean
+    agents?: AgentOption[]
+    patchTicket?: TicketDetails
+    patchOk?: boolean
+  } = {},
+) {
   const fetchSpy = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
     if (url === '/api/users/agents') {
-      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(agents) })
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(agents),
+      })
     }
     if (url.includes('/api/tickets/')) {
       if (init?.method === 'PATCH') {
-        return Promise.resolve({ ok: patchOk, json: () => Promise.resolve(patchTicket) })
+        return Promise.resolve({
+          ok: patchOk,
+          json: () => Promise.resolve(patchTicket),
+        })
       }
-      return Promise.resolve({ ok, status: ok ? 200 : 500, json: () => Promise.resolve(ticket) })
+      return Promise.resolve({
+        ok,
+        status: ok ? 200 : 500,
+        json: () => Promise.resolve(ticket),
+      })
     }
   })
   vi.stubGlobal('fetch', fetchSpy)
@@ -112,7 +126,9 @@ describe('TicketDetailsPage', () => {
       vi.stubGlobal('fetch', fetchSpy)
       renderTicketDetailsPage()
 
-      expect(fetchSpy).toHaveBeenCalledWith('/api/tickets/42', { credentials: 'include' })
+      expect(fetchSpy).toHaveBeenCalledWith('/api/tickets/42', {
+        credentials: 'include',
+      })
     })
 
     it('shows the skeleton while fetch is pending', () => {
@@ -139,12 +155,17 @@ describe('TicketDetailsPage', () => {
     })
 
     it('shows "Ticket not found" on a 404', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) }))
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: false,
+          status: 404,
+          json: () => Promise.resolve(null),
+        }),
+      )
       renderTicketDetailsPage()
 
-      await waitFor(() =>
-        expect(screen.getByText('Ticket not found')).toBeInTheDocument(),
-      )
+      await waitFor(() => expect(screen.getByText('Ticket not found')).toBeInTheDocument())
     })
   })
 
@@ -216,7 +237,9 @@ describe('TicketDetailsPage', () => {
 
         it('changing status sends correct PATCH request and updates the Select', async () => {
           const user = userEvent.setup()
-          const fetchSpy = mockFetch(DEFAULT_TICKET, { patchTicket: TICKET_RESOLVED_STATUS })
+          const fetchSpy = mockFetch(DEFAULT_TICKET, {
+            patchTicket: TICKET_RESOLVED_STATUS,
+          })
           renderTicketDetailsPage()
           await screen.findByTestId('status-select')
           await findAndClickOption(user, 'status-select', 'Resolved')
@@ -249,20 +272,26 @@ describe('TicketDetailsPage', () => {
 
         it('changing category sends correct PATCH request and updates the Select', async () => {
           const user = userEvent.setup()
-          const fetchSpy = mockFetch(DEFAULT_TICKET, { patchTicket: TICKET_GENERAL_CATEGORY })
+          const fetchSpy = mockFetch(DEFAULT_TICKET, {
+            patchTicket: TICKET_GENERAL_CATEGORY,
+          })
           renderTicketDetailsPage()
           await screen.findByTestId('category-select')
           await findAndClickOption(user, 'category-select', 'General')
 
           await waitFor(() => {
-            expectPatchRequest(fetchSpy, { category: TicketCategory.general_question })
+            expectPatchRequest(fetchSpy, {
+              category: TicketCategory.general_question,
+            })
             expect(screen.getByTestId('category-select')).toHaveTextContent('General')
           })
         })
 
         it('clearing category sends correct PATCH request and updates the Select', async () => {
           const user = userEvent.setup()
-          const fetchSpy = mockFetch(DEFAULT_TICKET, { patchTicket: TICKET_NO_CATEGORY })
+          const fetchSpy = mockFetch(DEFAULT_TICKET, {
+            patchTicket: TICKET_NO_CATEGORY,
+          })
           renderTicketDetailsPage()
           await screen.findByTestId('category-select')
           await findAndClickOption(user, 'category-select', '—')
@@ -296,20 +325,28 @@ describe('TicketDetailsPage', () => {
 
         it('assigning an agent sends correct PATCH request and updates the Select', async () => {
           const user = userEvent.setup()
-          const fetchSpy = mockFetch(TICKET_NO_ASSIGNED, { patchTicket: DEFAULT_TICKET })
+          const fetchSpy = mockFetch(TICKET_NO_ASSIGNED, {
+            patchTicket: DEFAULT_TICKET,
+          })
           renderTicketDetailsPage()
           await screen.findByTestId('assign-to-select')
           await findAndClickOption(user, 'assign-to-select', DEFAULT_TICKET.assignedTo!.name)
 
           await waitFor(() => {
-            expectPatchRequest(fetchSpy, { assignedToId: DEFAULT_TICKET.assignedTo!.id })
-            expect(screen.getByTestId('assign-to-select')).toHaveTextContent(DEFAULT_TICKET.assignedTo!.name)
+            expectPatchRequest(fetchSpy, {
+              assignedToId: DEFAULT_TICKET.assignedTo!.id,
+            })
+            expect(screen.getByTestId('assign-to-select')).toHaveTextContent(
+              DEFAULT_TICKET.assignedTo!.name,
+            )
           })
         })
 
         it('unassigning sends correct PATCH request and updates the Select', async () => {
           const user = userEvent.setup()
-          const fetchSpy = mockFetch(DEFAULT_TICKET, { patchTicket: TICKET_NO_ASSIGNED })
+          const fetchSpy = mockFetch(DEFAULT_TICKET, {
+            patchTicket: TICKET_NO_ASSIGNED,
+          })
           renderTicketDetailsPage()
           await screen.findByTestId('assign-to-select')
           await findAndClickOption(user, 'assign-to-select', '—')

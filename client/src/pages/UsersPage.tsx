@@ -28,7 +28,7 @@ export default function UsersPage() {
     setUsers((prev) =>
       userFormState?.mode === 'edit'
         ? prev.map((user) => (user.id === savedUser.id ? savedUser : user))
-        : [...prev, savedUser]
+        : [...prev, savedUser],
     )
   }
 
@@ -43,7 +43,7 @@ export default function UsersPage() {
       })
 
       if (!res.ok) {
-        const json = await res.json() as { error?: string }
+        const json = (await res.json()) as { error?: string }
         setDeleteError(json.error ?? 'Failed to delete user')
         return
       }
@@ -59,28 +59,48 @@ export default function UsersPage() {
     <>
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Users</h2>
-        <Button onClick={() => setUserFormState({ mode: 'create', user: null })}><Plus className="size-4" />New user</Button>
+        <Button onClick={() => setUserFormState({ mode: 'create', user: null })}>
+          <Plus className="size-4" />
+          New user
+        </Button>
       </div>
       <UsersTable
         users={users}
         loading={loading}
         error={error}
         onEdit={(user) => setUserFormState({ mode: 'edit', user })}
-        onDelete={(user) => { setDeleteError(null); setUserToDelete(user) }}
+        onDelete={(user) => {
+          setDeleteError(null)
+          setUserToDelete(user)
+        }}
       />
       <UserForm
         form={userFormState}
-        onOpenChange={(open) => { if (!open) setUserFormState(null) }}
+        onOpenChange={(open) => {
+          if (!open) setUserFormState(null)
+        }}
         onSaved={handleSaved}
       />
       <ConfirmationDialog
         open={userToDelete !== null}
         title="Delete user"
-        description={<>Are you sure you want to delete <strong>{userToDelete?.name}</strong>? This action cannot be undone.</>}
+        description={
+          <>
+            Are you sure you want to delete <strong>{userToDelete?.name}</strong>? This action
+            cannot be undone.
+          </>
+        }
         confirmLabel="Delete"
         error={deleteError}
-        onConfirm={() => { void handleDeleteConfirm() }}
-        onOpenChange={(open) => { if (!open) { setDeleteError(null); setUserToDelete(null) } }}
+        onConfirm={() => {
+          void handleDeleteConfirm()
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteError(null)
+            setUserToDelete(null)
+          }
+        }}
       />
     </>
   )

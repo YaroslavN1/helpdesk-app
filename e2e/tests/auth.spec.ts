@@ -86,15 +86,15 @@ test.describe('Authentication', () => {
         await page.getByRole('button', { name: 'Sign in' }).click()
 
         await expect(page).toHaveURL('/login')
-        await expect(
-          page.getByText(/email is required|invalid email address/i)
-        ).toBeVisible()
+        await expect(page.getByText(/email is required|invalid email address/i)).toBeVisible()
       })
 
-      test('sign-in button is disabled and shows "Signing in…" while the request is in flight', async ({ page }) => {
+      test('sign-in button is disabled and shows "Signing in…" while the request is in flight', async ({
+        page,
+      }) => {
         // Delay the auth endpoint response so we can observe the loading state.
-        await page.route('**/api/auth/sign-in/email', async route => {
-          await new Promise<void>(resolve => setTimeout(resolve, 600))
+        await page.route('**/api/auth/sign-in/email', async (route) => {
+          await new Promise<void>((resolve) => setTimeout(resolve, 600))
           await route.continue()
         })
 
@@ -129,14 +129,16 @@ test.describe('Authentication', () => {
       const sessionCookieVisibleToJs = await page.evaluate(() =>
         document.cookie
           .split(';')
-          .map(c => c.trim())
-          .some(c => c.startsWith('better-auth.session_token'))
+          .map((c) => c.trim())
+          .some((c) => c.startsWith('better-auth.session_token')),
       )
 
       expect(sessionCookieVisibleToJs).toBe(false)
     })
 
-    test('two concurrent tabs in the same browser context share the session', async ({ context }) => {
+    test('two concurrent tabs in the same browser context share the session', async ({
+      context,
+    }) => {
       // Authenticate in the first tab
       const tab1 = await context.newPage()
       await tab1.goto('/login')
@@ -211,5 +213,4 @@ test.describe('Authentication', () => {
       await expect(page.getByRole('heading', { name: 'Dashboard' })).not.toBeVisible()
     })
   })
-
 })

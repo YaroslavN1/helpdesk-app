@@ -49,9 +49,11 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   ├── pages/
 │   │   │   ├── HomePage.tsx
 │   │   │   ├── LoginPage.tsx
-│   │   │   ├── TicketsPage.tsx        # /tickets — filter/sort/paginate tickets; state lives in URL search params
+│   │   │   ├── TicketsPage.tsx        # /tickets — filter/sort/paginate tickets; state lives in URL search params via useTicketsUrlParams
 │   │   │   ├── TicketDetailsPage.tsx  # /tickets/:id — fetches and displays a single ticket; owns updateTicket (returns TicketUpdateResult)
 │   │   │   └── UsersPage.tsx          # /users — admin only; fetches users
+│   │   ├── hooks/
+│   │   │   └── useTicketsUrlParams.ts # reads/writes TicketsPage's sort/filters/page as URL search params; also exports buildUrlParams/appendFilterParams/TicketsParams used by TicketsPage's fetch query builder
 │   │   ├── lib/
 │   │   │   ├── auth-client.ts  # Better Auth client with inferAdditionalFields
 │   │   │   ├── cn.ts           # cn() helper (clsx + tailwind-merge) for conditional class names

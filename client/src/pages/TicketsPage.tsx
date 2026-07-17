@@ -8,20 +8,20 @@ import {
   SortOrder,
   DEFAULT_PAGE_SIZE,
   type Ticket,
-  type TicketsSort,
-  type TicketsFilters as FiltersState,
+  type TicketsSortCriteria,
+  type TicketsFilterCriteria,
   type TicketStatus,
   type TicketCategory,
   type PaginatedTickets,
 } from '@helpdesk/core'
 
-const defaultSort: TicketsSort = {
+const defaultSort: TicketsSortCriteria = {
   column: TicketSortColumn.createdAt,
   order: SortOrder.desc,
 }
 const defaultPage = 1
 
-type TicketsParams = { sort: TicketsSort; filters: FiltersState; page: number }
+type TicketsParams = { sort: TicketsSortCriteria; filters: TicketsFilterCriteria; page: number }
 
 function getCurrentParams(params: URLSearchParams): TicketsParams {
   return {
@@ -91,11 +91,11 @@ export default function TicketsPage() {
     fetchTickets(newParams)
   }
 
-  function handleFiltersChange(newFilters: FiltersState) {
+  function handleFiltersChange(newFilters: TicketsFilterCriteria) {
     applyParams({ sort, filters: newFilters, page: defaultPage })
   }
 
-  function handleSortChange(newSort: TicketsSort) {
+  function handleSortChange(newSort: TicketsSortCriteria) {
     applyParams({ sort: newSort, filters, page: defaultPage })
   }
 

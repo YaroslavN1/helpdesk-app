@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router'
 import TicketsPage from './TicketsPage'
-import { TICKETS } from '@/test/fixtures'
+import { TICKETS } from '@/test-utils/fixtures'
 
 function renderTicketsPage(url = '/') {
   return render(

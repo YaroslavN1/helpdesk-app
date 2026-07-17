@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router'
 import { TicketDetailsSkeleton } from '@/components/tickets/TicketDetailsSkeleton'
 import { TicketFieldsEditor } from '@/components/tickets/TicketFieldsEditor'
-import { formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/format-date'
 import { type TicketDetails } from '@helpdesk/core'
 import { type TicketUpdateResult } from '@/components/tickets/TicketSelectField'
 

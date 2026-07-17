@@ -1,4 +1,4 @@
-import { formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/format-date'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router'
-import { formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/format-date'
 import { SortableHead } from '@/components/ui/sortable-head'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -12,15 +12,15 @@ import {
   type Ticket,
   type TicketSortColumn,
   type SortOrder,
-  type TicketsSort,
+  type TicketsSortCriteria,
 } from '@helpdesk/core'
 
 interface Props {
   tickets: Ticket[]
   loading: boolean
   error: string | null
-  sort: TicketsSort
-  onSortChange: (sort: TicketsSort) => void
+  sort: TicketsSortCriteria
+  onSortChange: (sort: TicketsSortCriteria) => void
 }
 
 const SKELETON_CELLS = [

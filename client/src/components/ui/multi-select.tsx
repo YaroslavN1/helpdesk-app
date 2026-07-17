@@ -1,6 +1,6 @@
 import { Menu } from '@base-ui/react/menu'
 import { ChevronDown, Check } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/cn'
 import { buttonVariants } from '@/components/ui/button'
 
 interface Option<T extends string> {

@@ -10,7 +10,7 @@ import {
   resolvedRefundTicket,
   closedTicket,
   openGeneralTicket,
-} from '@/test/fixtures'
+} from '@/test-utils/fixtures'
 
 function renderTicketsTable(overrides: Partial<React.ComponentProps<typeof TicketsTable>> = {}) {
   const onSortChange = vi.fn()

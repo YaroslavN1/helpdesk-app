@@ -23,13 +23,12 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── ui/                    # shadcn/ui components + custom reusables
+│   │   │   │   ├── confirmation-dialog.tsx # generic alert-dialog for destructive confirmations
 │   │   │   │   ├── input-debounced.tsx    # debounced search input with leading icon
 │   │   │   │   ├── multi-select.tsx       # generic multi-select dropdown (base-ui Menu)
 │   │   │   │   ├── pagination.tsx         # page nav with prev/next and ellipsis range
 │   │   │   │   ├── select.tsx             # single-value select (base-ui Select)
 │   │   │   │   └── sortable-head.tsx      # table <th> with asc/desc/unsorted icon
-│   │   │   ├── common/
-│   │   │   │   └── ConfirmationDialog.tsx # generic alert-dialog for destructive confirmations
 │   │   │   ├── layout/
 │   │   │   │   ├── Layout.tsx             # Navbar + <main> wrapper (Outlet)
 │   │   │   │   ├── LoadingScreen.tsx      # full-screen "Loading…" used by route guards and LoginPage
@@ -55,7 +54,8 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   └── UsersPage.tsx          # /users — admin only; fetches users
 │   │   ├── lib/
 │   │   │   ├── auth-client.ts  # Better Auth client with inferAdditionalFields
-│   │   │   └── utils.ts        # cn() helper (clsx + tailwind-merge); formatDate(date, format) date formatter
+│   │   │   ├── cn.ts           # cn() helper (clsx + tailwind-merge) for conditional class names
+│   │   │   └── format-date.ts  # formatDate(date, format) date formatter
 │   │   ├── App.tsx             # route tree (see Routing section)
 │   │   └── main.tsx
 │   ├── components.json     # shadcn/ui config
@@ -66,7 +66,8 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   └── src/
 │       ├── constants/      # Shared constants (e.g. role.ts — UserRole enum)
 │       ├── schemas/        # Zod schemas (one file per domain entity, e.g. user.ts)
-│       └── index.ts        # re-exports everything from schemas/ and constants/
+│       ├── types/          # Shared domain/response types (e.g. ticket.ts — Ticket, TicketDetails, AgentOption)
+│       └── index.ts        # re-exports everything from schemas/, constants/, and types/
 ├── server/               # Express backend
 │   ├── prisma/
 │   │   ├── migrations/
@@ -92,7 +93,8 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │       ├── auth.spec.ts             # authentication, session, route protection, navbar role visibility
 │       ├── ticket-details.spec.ts   # TicketDetailsPage rendering, selectors (status/category/agent), error states
 │       ├── tickets.spec.ts          # TicketsPage rendering, filter/sort/pagination flows
-│       └── users.spec.ts            # UsersPage rendering, API protection, create / edit / delete flows
+│       ├── users.spec.ts            # UsersPage rendering, API protection, create / edit / delete flows
+│       └── webhooks.spec.ts         # POST /api/webhooks/inbound-email — payload validation, secret check, subject normalisation
 ├── project-planning/     # Scope, tech stack, implementation plan
 ├── .env.test             # E2E env vars (single source of truth)
 ├── playwright.config.ts  # Playwright config; loads .env.test via dotenv
@@ -140,7 +142,8 @@ ProtectedRoute             → redirects to /login if no session
 Import via `@helpdesk/core` in either the client or server package.
 
 - **Schemas** — Zod schemas shared between client and server go in `core/src/schemas/` (one file per domain entity, e.g. `user.ts`), re-exported from `core/src/index.ts`.
-- **Constants** — Shared constants go in `core/src/constants/` (one file per domain, e.g. `role.ts`), re-exported from `core/src/index.ts`.
+- **Constants** — Shared constants/enums go in `core/src/constants/` (one file per domain, e.g. `role.ts`), re-exported from `core/src/index.ts`. Keep this to actual constants/enums — plain data-shape types belong in `types/`.
+- **Types** — Shared domain/response types go in `core/src/types/` (one file per domain entity, e.g. `ticket.ts` — `Ticket`, `TicketDetails`, `AgentOption`, `PaginatedTickets`, `TicketsSortCriteria`, `TicketsFilterCriteria`), re-exported from `core/src/index.ts`.
 - **`UserRole` enum** — Always import from `@helpdesk/core`, never hardcode `'admin'` or `'agent'` strings. Used in client components, server routes, and `auth.ts`.
 - **`TICKET_STATUS_LABELS` / `TICKET_CATEGORY_LABELS`** — Human-readable label maps (`Record<TicketStatus | TicketCategory, string>`). Import from `@helpdesk/core` whenever you need to display a ticket status or category as text. Category labels are short: `'General'`, `'Technical'`, `'Refund'`.
 
@@ -263,12 +266,12 @@ Soft-delete a user (sets `deletedAt`). Admin only. Admins cannot be deleted.
 ## UI Components
 - Add shadcn components with `bunx shadcn@latest add <component>` (run from `client/`)
 - Import using the `@/` alias: `import { Button } from '@/components/ui/button'`
-- Use `cn()` from `@/lib/utils` for conditional/merged class names
+- Use `cn()` from `@/lib/cn` for conditional/merged class names
 - Tailwind tokens (`text-muted-foreground`, `text-destructive`, `bg-background`, etc.) are defined as CSS vars in `src/index.css` — prefer these over hard-coded colors
 
-## Client Utilities (`client/src/lib/utils.ts`)
-- **`cn(...inputs)`** — clsx + tailwind-merge helper for conditional class names
-- **`formatDate(date, format?)`** — locale-aware date formatter. `format` is `'date'` (default, date only) or `'datetime'` (date + `HH:MM:SS`). Uses `en-US` locale with `toLocaleString`. Use `'datetime'` for ticket metadata (Received, Updated); `'date'` for table columns.
+## Client Utilities (`client/src/lib/`)
+- **`cn(...inputs)`** (`lib/cn.ts`) — clsx + tailwind-merge helper for conditional class names
+- **`formatDate(date, format?)`** (`lib/format-date.ts`) — locale-aware date formatter. `format` is `'date'` (default, date only) or `'datetime'` (date + `HH:MM:SS`). Uses `en-US` locale with `toLocaleString`. Use `'datetime'` for ticket metadata (Received, Updated); `'date'` for table columns.
   ```ts
   formatDate(ticket.createdAt)              // "Mar 15, 2024"
   formatDate(ticket.updatedAt, 'datetime')  // "Mar 15, 2024, 10:00:00 AM"
@@ -282,14 +285,14 @@ For most new features — a new page, a new component, API fetch behaviour — w
 ## Unit Testing
 All unit test writing must be delegated to the **`unit-test-writer`** agent — never write Vitest/React Testing Library tests inline.
 
-The agent owns all unit testing knowledge: Vitest config, jsdom environment, `fetch` mocking with `vi.stubGlobal`, `act()` warning patterns, selector strategy, and the setup file at `client/src/test/setup.ts`. Run tests with `bun test:unit`.
+The agent owns all unit testing knowledge: Vitest config, jsdom environment, `fetch` mocking with `vi.stubGlobal`, `act()` warning patterns, selector strategy, and the setup file at `client/src/test-utils/setup.ts`. Run tests with `bun test:unit`.
 
 Key conventions owned by the agent:
 - Test files live next to the component: `UsersPage.tsx` → `UsersPage.test.tsx`
 - Use a never-resolving fetch mock for synchronous-state tests (avoids `act()` warnings)
 - Put all assertions that depend on the same async state inside one `waitFor` callback
 - Do not add section-divider comments (e.g. `// --- Fixtures ---`, `// ---------- Helpers ----------`) — the code structure already communicates that
-- Shared ticket fixtures live in `client/src/test/fixtures.ts` — named exports (`openTechnicalTicket`, `resolvedRefundTicket`, `closedTicket`, `openGeneralTicket`) plus `TICKETS` array. Use named exports in tests that need a specific combination to avoid `getByText` ambiguity; `closedTicket` has `category: null` and `assignedTo: { name: 'Dave Agent' }` (non-null) for this reason.
+- Shared ticket fixtures live in `client/src/test-utils/fixtures.ts` — named exports (`openTechnicalTicket`, `resolvedRefundTicket`, `closedTicket`, `openGeneralTicket`) plus `TICKETS` array. Use named exports in tests that need a specific combination to avoid `getByText` ambiguity; `closedTicket` has `category: null` and `assignedTo: { name: 'Dave Agent' }` (non-null) for this reason.
 - Date assertions use a regex (`/Mar 15, 2024/`) rather than an exact string to stay timezone-safe across environments
 
 ## E2E Testing

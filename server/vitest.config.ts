@@ -1,11 +1,10 @@
 import { defineConfig } from 'vitest/config'
+import dotenv from 'dotenv'
+
+dotenv.config({ path: '.env.test' })
 
 export default defineConfig({
   test: {
     environment: 'node',
-    env: {
-      DATABASE_URL: 'postgresql://test:test@localhost:5432/test',
-      BETTER_AUTH_SECRET: 'test-secret-not-for-production',
-    },
   },
 })

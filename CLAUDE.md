@@ -283,9 +283,14 @@ Soft-delete a user (sets `deletedAt`). Admin only. Admins cannot be deleted.
 For most new features — a new page, a new component, API fetch behaviour — write unit tests first. Only reach for E2E when the feature genuinely needs it.
 
 ## Unit Testing
-All unit test writing must be delegated to the **`unit-test-writer`** agent — never write Vitest/React Testing Library tests inline.
+All unit test writing must be delegated to an agent — never write Vitest tests inline. Which agent depends on which side of the stack is under test:
+- **Client (React components/pages)** → `client-unit-test-writer`
+- **Server (Express middleware/routes/helpers)** → `server-unit-test-writer`
 
-The agent owns all unit testing knowledge: Vitest config, jsdom environment, `fetch` mocking with `vi.stubGlobal`, `act()` warning patterns, selector strategy, and the setup file at `client/src/test-utils/setup.ts`. Run tests with `bun test:unit`.
+Run all unit tests (client + server) with `bun test:unit`.
+
+### Client unit tests
+The `client-unit-test-writer` agent owns all client unit testing knowledge: Vitest config, jsdom environment, `fetch` mocking with `vi.stubGlobal`, `act()` warning patterns, selector strategy, and the setup file at `client/src/test-utils/setup.ts`.
 
 Key conventions owned by the agent:
 - Test files live next to the component: `UsersPage.tsx` → `UsersPage.test.tsx`
@@ -294,6 +299,15 @@ Key conventions owned by the agent:
 - Do not add section-divider comments (e.g. `// --- Fixtures ---`, `// ---------- Helpers ----------`) — the code structure already communicates that
 - Shared ticket fixtures live in `client/src/test-utils/fixtures.ts` — named exports (`openTechnicalTicket`, `resolvedRefundTicket`, `closedTicket`, `openGeneralTicket`) plus `TICKETS` array. Use named exports in tests that need a specific combination to avoid `getByText` ambiguity; `closedTicket` has `category: null` and `assignedTo: { name: 'Dave Agent' }` (non-null) for this reason.
 - Date assertions use a regex (`/Mar 15, 2024/`) rather than an exact string to stay timezone-safe across environments
+
+### Server unit tests
+The `server-unit-test-writer` agent owns all server unit testing knowledge: Vitest config (`node` environment, not jsdom), mocking local modules (`./auth`, `./prisma`) with `vi.mock`, hand-built Express `Request`/`Response`/`NextFunction` fakes, and env var handling via `server/.env.test`.
+
+Key conventions owned by the agent:
+- Test files live next to the source file: `middleware.ts` → `middleware.test.ts`
+- Never hit a real database or a real Better Auth session — mock at the module boundary with `vi.mock`
+- Restore any `process.env` mutation in `afterEach` so tests don't leak state into each other
+- Env vars a module needs at import time (e.g. `DATABASE_URL`, `BETTER_AUTH_SECRET`) go in `server/.env.test` (gitignored, dummy values only) — never hardcode them in `vitest.config.ts` or a test file
 
 ## E2E Testing
 Use sparingly — only when unit tests cannot cover the scenario. All e2e test writing must be delegated to the **`e2e-test-writer`** agent — never write Playwright tests inline.

@@ -9,10 +9,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@helpdesk/core": "workspace:*",
     "@base-ui/react": "^1.5.0",
     "@fontsource-variable/geist": "^5.2.9",
+    "@helpdesk/core": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
+    "@tanstack/react-query": "^5.101.3",
+    "axios": "^1.18.1",
     "better-auth": "^1.6.11",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

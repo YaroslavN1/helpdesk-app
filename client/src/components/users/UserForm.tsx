@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { createUserSchema, UserRole } from '@helpdesk/core'
+import { createUserSchema } from '@helpdesk/core'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,21 +14,16 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CircleAlert } from 'lucide-react'
+import { useCreateUser, useUpdateUser } from '@/hooks/useUsers'
+import { getErrorMessage } from '@/lib/api-client'
+import { type User } from '@/types/user'
 
 type FormValues = { name: string; email: string; password: string }
-export type User = {
-  id: string
-  name: string
-  email: string
-  role: UserRole
-  createdAt: string
-}
 export type FormState = { mode: 'create'; user: null } | { mode: 'edit'; user: User }
 
 interface Props {
   form: FormState | null
   onOpenChange: (open: boolean) => void
-  onSaved: (user: User) => void
 }
 
 const editUserSchema = z.object({
@@ -40,8 +35,10 @@ const editUserSchema = z.object({
   ]),
 })
 
-export function UserForm({ form, onOpenChange, onSaved }: Props) {
+export function UserForm({ form, onOpenChange }: Props) {
   const isEditing = form?.mode === 'edit'
+  const createUser = useCreateUser()
+  const updateUser = useUpdateUser()
 
   const {
     register,
@@ -68,35 +65,25 @@ export function UserForm({ form, onOpenChange, onSaved }: Props) {
     clearErrors('root')
 
     try {
-      const url = form?.mode === 'edit' ? `/api/users/${form.user.id}` : '/api/users'
-      const method = isEditing ? 'PATCH' : 'POST'
-      const body: Record<string, string> = {
-        name: data.name,
-        email: data.email,
-      }
-      if (data.password) body.password = data.password
-
-      const res = await fetch(url, {
-        method,
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const json = (await res.json()) as User | { error: string }
-
-      if (!res.ok) {
-        setError('root', {
-          message:
-            'error' in json ? json.error : `Failed to ${isEditing ? 'update' : 'create'} user`,
+      if (form?.mode === 'edit') {
+        await updateUser.mutateAsync({
+          id: form.user.id,
+          name: data.name,
+          email: data.email,
+          ...(data.password ? { password: data.password } : {}),
         })
-        return
+      } else {
+        await createUser.mutateAsync({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+        })
       }
-
-      onSaved(json as User)
       onOpenChange(false)
-    } catch {
+    } catch (err) {
       setError('root', {
-        message: `Failed to ${isEditing ? 'update' : 'create'} user`,
+        message:
+          getErrorMessage(err, `Failed to ${isEditing ? 'update' : 'create'} user`) ?? undefined,
       })
     }
   }

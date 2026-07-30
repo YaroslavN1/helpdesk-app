@@ -7,6 +7,7 @@ import {
   type TicketStatus,
   type TicketCategory,
 } from '@helpdesk/core'
+import { DEFAULT_PAGE_SIZE } from '@helpdesk/core'
 
 export type TicketsParams = {
   sort: TicketsSortCriteria
@@ -14,11 +15,16 @@ export type TicketsParams = {
   page: number
 }
 
+export const defaultPage = 1
 export const defaultSort: TicketsSortCriteria = {
   column: TicketSortColumn.createdAt,
   order: SortOrder.desc,
 }
-export const defaultPage = 1
+export const defaultFilters: TicketsFilterCriteria = {
+  search: '',
+  status: [],
+  category: [],
+}
 
 function getCurrentParams(params: URLSearchParams): TicketsParams {
   return {
@@ -27,7 +33,7 @@ function getCurrentParams(params: URLSearchParams): TicketsParams {
       order: (params.get('sortOrder') ?? defaultSort.order) as SortOrder,
     },
     filters: {
-      search: params.get('search') ?? '',
+      search: params.get('search') ?? defaultFilters.search,
       status: params.getAll('status') as TicketStatus[],
       category: params.getAll('category') as TicketCategory[],
     },
@@ -35,8 +41,7 @@ function getCurrentParams(params: URLSearchParams): TicketsParams {
   }
 }
 
-// Shared by buildUrlParams and the /api/tickets query builder in TicketsPage.
-export function appendFilterParams(urlParams: URLSearchParams, filters: TicketsFilterCriteria) {
+function appendFilterParams(urlParams: URLSearchParams, filters: TicketsFilterCriteria) {
   if (filters.search) urlParams.set('search', filters.search)
   for (const status of filters.status) urlParams.append('status', status)
   for (const category of filters.category) urlParams.append('category', category)
@@ -49,6 +54,16 @@ export function buildUrlParams({ sort, filters, page }: TicketsParams): URLSearc
   if (page > defaultPage) urlParams.set('page', String(page))
   appendFilterParams(urlParams, filters)
   return urlParams
+}
+
+export function buildRequestQuery({ sort, filters, page }: TicketsParams): URLSearchParams {
+  const query = new URLSearchParams()
+  query.set('sortBy', sort.column)
+  query.set('sortOrder', sort.order)
+  query.set('page', String(page))
+  query.set('pageSize', String(DEFAULT_PAGE_SIZE))
+  appendFilterParams(query, filters)
+  return query
 }
 
 export function useTicketsUrlParams() {

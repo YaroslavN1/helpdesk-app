@@ -1,79 +1,67 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { apiClient } from '@/lib/api-client'
+import { renderWithQueryClient } from '@/test-utils/render-with-query-client'
+import { mockResolved, mockRejected, mockReturn } from '@/test-utils/mock-helpers'
+import { USERS, NEW_USER } from '@/test-utils/fixtures'
 import UsersPage from './UsersPage'
 
-const USERS = [
-  {
-    id: '1',
-    name: 'Admin Test User',
-    email: 'admin_test@example.com',
-    role: 'admin' as const,
-    createdAt: '2024-01-15T00:00:00.000Z',
-  },
-  {
-    id: '2',
-    name: 'Agent Test User',
-    email: 'agent_test@example.com',
-    role: 'agent' as const,
-    createdAt: '2024-03-22T00:00:00.000Z',
-  },
-]
+// Mock shape lives in client/src/lib/__mocks__/api-client.ts (auto-used by Vitest)
+vi.mock('@/lib/api-client')
 
-function mockFetch(payload: unknown, ok = true) {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue({
-      ok,
-      json: () => Promise.resolve(payload),
-    }),
-  )
+async function renderUsersPage() {
+  mockResolved(apiClient.get, { data: USERS })
+  const user = userEvent.setup()
+  renderWithQueryClient(<UsersPage />)
+  await waitFor(() => expect(screen.getByText(USERS[0].name)).toBeInTheDocument())
+  return user
 }
 
 beforeEach(() => {
-  vi.unstubAllGlobals()
+  vi.clearAllMocks()
 })
 
 describe('UsersPage', () => {
   describe('loading state', () => {
-    it('calls /api/users with credentials include', () => {
-      const fetchSpy = vi.fn().mockReturnValue(new Promise(() => {}))
-      vi.stubGlobal('fetch', fetchSpy)
-      render(<UsersPage />)
+    it('calls /users', () => {
+      mockReturn(apiClient.get, new Promise(() => {}))
+      renderWithQueryClient(<UsersPage />)
 
-      expect(fetchSpy).toHaveBeenCalledWith('/api/users', {
-        credentials: 'include',
-      })
+      expect(apiClient.get).toHaveBeenCalledWith('/users')
     })
 
     it('shows skeleton rows while loading', () => {
-      vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
-      render(<UsersPage />)
+      mockReturn(apiClient.get, new Promise(() => {}))
+      renderWithQueryClient(<UsersPage />)
 
       expect(document.querySelectorAll('tbody tr')).toHaveLength(4)
     })
   })
 
   describe('error state', () => {
-    it('shows an error message when the fetch fails', async () => {
-      mockFetch(null, false)
-      render(<UsersPage />)
+    it('shows the server error message when the response contains an error field', async () => {
+      mockRejected(apiClient.get, {
+        isAxiosError: true,
+        response: { status: 500, data: { error: 'Something went wrong' } },
+      })
+      renderWithQueryClient(<UsersPage />)
 
-      await waitFor(() => expect(screen.getByText('Failed to load users')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText('Something went wrong')).toBeInTheDocument())
     })
 
-    it('shows an error message when fetch rejects', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')))
-      render(<UsersPage />)
+    it('shows a fallback error message when fetch rejects with no server message', async () => {
+      mockRejected(apiClient.get, { isAxiosError: true, response: undefined })
+      renderWithQueryClient(<UsersPage />)
 
-      await waitFor(() => expect(screen.getByText('Network error')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText('Failed to load users')).toBeInTheDocument())
     })
   })
 
   describe('loaded state', () => {
     it('hides skeletons after loading completes', async () => {
-      mockFetch(USERS)
-      render(<UsersPage />)
+      mockResolved(apiClient.get, { data: USERS })
+      renderWithQueryClient(<UsersPage />)
 
       await waitFor(() => expect(screen.getByText('Admin Test User')).toBeInTheDocument())
 
@@ -81,13 +69,14 @@ describe('UsersPage', () => {
     })
 
     it('renders the page heading', () => {
-      render(<UsersPage />)
+      mockReturn(apiClient.get, new Promise(() => {}))
+      renderWithQueryClient(<UsersPage />)
       expect(screen.getByRole('heading', { name: 'Users' })).toBeInTheDocument()
     })
 
     it('renders all five column headers', async () => {
-      mockFetch(USERS)
-      render(<UsersPage />)
+      mockResolved(apiClient.get, { data: USERS })
+      renderWithQueryClient(<UsersPage />)
 
       expect(screen.getByText('Name')).toBeInTheDocument()
       expect(screen.getByText('Email')).toBeInTheDocument()
@@ -97,46 +86,39 @@ describe('UsersPage', () => {
     })
 
     it('renders a row for each user', async () => {
-      mockFetch(USERS)
-      render(<UsersPage />)
+      mockResolved(apiClient.get, { data: USERS })
+      renderWithQueryClient(<UsersPage />)
 
       await waitFor(() => expect(document.querySelectorAll('tbody tr')).toHaveLength(USERS.length))
     })
 
     it('renders user name and email', async () => {
-      mockFetch(USERS)
-      render(<UsersPage />)
+      mockResolved(apiClient.get, { data: USERS })
+      renderWithQueryClient(<UsersPage />)
 
       await waitFor(() => expect(screen.getByText('Admin Test User')).toBeInTheDocument())
       expect(screen.getByText('admin_test@example.com')).toBeInTheDocument()
     })
 
     it('renders role badges for each user', async () => {
-      mockFetch(USERS)
-      render(<UsersPage />)
+      mockResolved(apiClient.get, { data: USERS })
+      renderWithQueryClient(<UsersPage />)
 
       await waitFor(() => expect(screen.getByText('admin')).toBeInTheDocument())
       expect(screen.getByText('agent')).toBeInTheDocument()
     })
 
     it('formats the joined date correctly', async () => {
-      mockFetch(USERS)
-      render(<UsersPage />)
+      mockResolved(apiClient.get, { data: USERS })
+      renderWithQueryClient(<UsersPage />)
 
       await waitFor(() => expect(screen.getByText('Jan 15, 2024')).toBeInTheDocument())
     })
   })
 
   describe('create user', () => {
-    function setup() {
-      vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
-      const user = userEvent.setup()
-      render(<UsersPage />)
-      return user
-    }
-
     it('shows the dialog when the "New user" button is clicked', async () => {
-      const user = setup()
+      const user = await renderUsersPage()
 
       await user.click(screen.getByRole('button', { name: /new user/i }))
 
@@ -144,7 +126,7 @@ describe('UsersPage', () => {
     })
 
     it('hides the dialog when Escape is pressed', async () => {
-      const user = setup()
+      const user = await renderUsersPage()
 
       await user.click(screen.getByRole('button', { name: /new user/i }))
       expect(screen.getByRole('heading', { name: 'Create user' })).toBeInTheDocument()
@@ -157,7 +139,7 @@ describe('UsersPage', () => {
     })
 
     it('hides the dialog when clicking outside', async () => {
-      const user = setup()
+      const user = await renderUsersPage()
 
       await user.click(screen.getByRole('button', { name: /new user/i }))
       expect(screen.getByRole('heading', { name: 'Create user' })).toBeInTheDocument()
@@ -170,19 +152,10 @@ describe('UsersPage', () => {
     })
 
     it('appends the new user to the table after successful creation', async () => {
-      const NEW_USER = {
-        id: '3',
-        name: 'New Person',
-        email: 'new@example.com',
-        role: 'agent' as const,
-        createdAt: '2024-06-01T00:00:00.000Z',
-      }
-      mockFetch(USERS)
-      const user = userEvent.setup()
-      render(<UsersPage />)
-      await waitFor(() => expect(screen.getByText(USERS[0].name)).toBeInTheDocument())
+      const user = await renderUsersPage()
 
-      mockFetch(NEW_USER)
+      mockResolved(apiClient.post, { data: NEW_USER })
+
       await user.click(screen.getByRole('button', { name: /new user/i }))
       await user.type(screen.getByLabelText('Name'), NEW_USER.name)
       await user.type(screen.getByLabelText('Email'), NEW_USER.email)
@@ -190,20 +163,15 @@ describe('UsersPage', () => {
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
       await waitFor(() => expect(screen.getByText(NEW_USER.name)).toBeInTheDocument())
+      // The new user is written directly into the query cache from the mutation
+      // response — no refetch of /users happens.
+      expect(apiClient.get).toHaveBeenCalledTimes(1)
     })
   })
 
   describe('edit user', () => {
-    async function setup() {
-      mockFetch(USERS)
-      const user = userEvent.setup()
-      render(<UsersPage />)
-      await waitFor(() => expect(screen.getByText(USERS[0].name)).toBeInTheDocument())
-      return user
-    }
-
     it('shows the "Edit user" dialog when an edit button is clicked', async () => {
-      const user = await setup()
+      const user = await renderUsersPage()
 
       await user.click(screen.getAllByRole('button', { name: 'Edit user' })[0])
 
@@ -211,7 +179,7 @@ describe('UsersPage', () => {
     })
 
     it('pre-populates name and email from the selected user', async () => {
-      const user = await setup()
+      const user = await renderUsersPage()
 
       await user.click(screen.getAllByRole('button', { name: 'Edit user' })[0])
 
@@ -222,7 +190,7 @@ describe('UsersPage', () => {
     })
 
     it('shows the password hint in edit mode', async () => {
-      const user = await setup()
+      const user = await renderUsersPage()
 
       await user.click(screen.getAllByRole('button', { name: 'Edit user' })[0])
 
@@ -230,7 +198,7 @@ describe('UsersPage', () => {
     })
 
     it('opens with the correct user when a different row edit button is clicked', async () => {
-      const user = await setup()
+      const user = await renderUsersPage()
 
       await user.click(screen.getAllByRole('button', { name: 'Edit user' })[1])
 
@@ -241,12 +209,13 @@ describe('UsersPage', () => {
     })
 
     it('updates the user row in the table after a successful edit', async () => {
-      const UPDATED = { ...USERS[0], name: 'Updated Name' }
-      const user = await setup()
+      const UPDATED_USER = { ...USERS[0], name: 'Updated Name' }
+      const user = await renderUsersPage()
 
-      mockFetch(UPDATED)
       await user.click(screen.getAllByRole('button', { name: 'Edit user' })[0])
       await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue(USERS[0].name))
+
+      mockResolved(apiClient.patch, { data: UPDATED_USER })
 
       await user.clear(screen.getByLabelText('Name'))
       await user.type(screen.getByLabelText('Name'), 'Updated Name')
@@ -254,10 +223,13 @@ describe('UsersPage', () => {
 
       await waitFor(() => expect(screen.getByText('Updated Name')).toBeInTheDocument())
       expect(screen.queryByText(USERS[0].name)).not.toBeInTheDocument()
+      // The updated user is written directly into the query cache from the mutation
+      // response — no refetch of /users happens.
+      expect(apiClient.get).toHaveBeenCalledTimes(1)
     })
 
     it('resets to an empty form when "New user" is opened after closing an edit dialog', async () => {
-      const user = await setup()
+      const user = await renderUsersPage()
 
       await user.click(screen.getAllByRole('button', { name: 'Edit user' })[0])
       await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue(USERS[0].name))
@@ -277,16 +249,8 @@ describe('UsersPage', () => {
   })
 
   describe('delete user', () => {
-    async function setup() {
-      mockFetch(USERS)
-      const user = userEvent.setup()
-      render(<UsersPage />)
-      await waitFor(() => expect(screen.getByText(USERS[0].name)).toBeInTheDocument())
-      return user
-    }
-
     it('hides the delete button for admin users and shows it for agents', async () => {
-      await setup()
+      await renderUsersPage()
 
       const deleteButtons = screen.getAllByRole('button', {
         name: 'Delete user',
@@ -295,7 +259,7 @@ describe('UsersPage', () => {
     })
 
     it('opens the confirmation dialog when the delete button is clicked', async () => {
-      const user = await setup()
+      const user = await renderUsersPage()
 
       await user.click(screen.getByRole('button', { name: 'Delete user' }))
 
@@ -303,7 +267,7 @@ describe('UsersPage', () => {
     })
 
     it('shows the user name in the dialog description', async () => {
-      const user = await setup()
+      const user = await renderUsersPage()
 
       await user.click(screen.getByRole('button', { name: 'Delete user' }))
 
@@ -313,55 +277,50 @@ describe('UsersPage', () => {
       })
     })
 
-    it('closes the dialog and makes no DELETE fetch call when Cancel is clicked', async () => {
-      const user = await setup()
+    it('closes the dialog and makes no DELETE call when Cancel is clicked', async () => {
+      const user = await renderUsersPage()
 
       await user.click(screen.getByRole('button', { name: 'Delete user' }))
       expect(screen.getByRole('heading', { name: 'Delete user' })).toBeInTheDocument()
-
-      const fetchSpy = vi.fn().mockReturnValue(new Promise(() => {}))
-      vi.stubGlobal('fetch', fetchSpy)
 
       await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
       await waitFor(() =>
         expect(screen.queryByRole('heading', { name: 'Delete user' })).not.toBeInTheDocument(),
       )
-      expect(fetchSpy).not.toHaveBeenCalled()
+      expect(apiClient.delete).not.toHaveBeenCalled()
     })
 
     it('removes the user row and closes the dialog after a successful deletion', async () => {
-      const user = await setup()
+      const user = await renderUsersPage()
 
       await user.click(screen.getByRole('button', { name: 'Delete user' }))
       expect(screen.getByRole('heading', { name: 'Delete user' })).toBeInTheDocument()
 
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(null) }),
-      )
+      mockResolved(apiClient.delete, { data: null })
 
       await user.click(screen.getByRole('button', { name: 'Delete' }))
 
       await waitFor(() => {
+        expect(apiClient.delete).toHaveBeenCalledWith(`/users/${USERS[1].id}`)
         expect(screen.queryByText(USERS[1].name)).not.toBeInTheDocument()
         expect(screen.queryByRole('heading', { name: 'Delete user' })).not.toBeInTheDocument()
       })
+      // The deleted user is removed directly from the query cache using the
+      // mutation's own variables — no refetch of /users happens.
+      expect(apiClient.get).toHaveBeenCalledTimes(1)
     })
 
     it('shows the error message in the dialog and keeps the dialog open on API failure', async () => {
-      const user = await setup()
+      const user = await renderUsersPage()
 
       await user.click(screen.getByRole('button', { name: 'Delete user' }))
       expect(screen.getByRole('heading', { name: 'Delete user' })).toBeInTheDocument()
 
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue({
-          ok: false,
-          json: () => Promise.resolve({ error: 'Something went wrong' }),
-        }),
-      )
+      mockRejected(apiClient.delete, {
+        isAxiosError: true,
+        response: { data: { error: 'Something went wrong' } },
+      })
 
       await user.click(screen.getByRole('button', { name: 'Delete' }))
 

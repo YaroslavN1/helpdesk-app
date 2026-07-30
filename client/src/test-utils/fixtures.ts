@@ -1,4 +1,5 @@
 import { TicketStatus, TicketCategory, type Ticket } from '@helpdesk/core'
+import { type User } from '@/types/user'
 
 export const openTechnicalTicket: Ticket = {
   id: 1,
@@ -50,3 +51,28 @@ export const TICKETS: Ticket[] = [
   closedTicket,
   openGeneralTicket,
 ]
+
+export const USERS: User[] = [
+  {
+    id: '1',
+    name: 'Admin Test User',
+    email: 'admin_test@example.com',
+    role: 'admin',
+    createdAt: '2024-01-15T00:00:00.000Z',
+  },
+  {
+    id: '2',
+    name: 'Agent Test User',
+    email: 'agent_test@example.com',
+    role: 'agent',
+    createdAt: '2024-03-22T00:00:00.000Z',
+  },
+]
+
+export const NEW_USER: User = {
+  id: '3',
+  name: 'New Person',
+  email: 'new@example.com',
+  role: 'agent',
+  createdAt: '2024-06-01T00:00:00.000Z',
+}

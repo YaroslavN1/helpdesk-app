@@ -1,58 +1,29 @@
-import { useEffect, useState } from 'react'
-import { UserForm, type User, type FormState } from '@/components/users/UserForm'
+import { useState } from 'react'
+import { UserForm, type FormState } from '@/components/users/UserForm'
 import { UsersTable } from '@/components/users/UsersTable'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
+import { useUsers, useDeleteUser } from '@/hooks/useUsers'
+import { getErrorMessage } from '@/lib/api-client'
+import { type User } from '@/types/user'
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: users, isPending, error } = useUsers()
+  const deleteUser = useDeleteUser()
   const [userFormState, setUserFormState] = useState<FormState | null>(null)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch('/api/users', { credentials: 'include' })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to load users')
-        return res.json() as Promise<User[]>
-      })
-      .then(setUsers)
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Unknown error'))
-      .finally(() => setLoading(false))
-  }, [])
-
-  function handleSaved(savedUser: User) {
-    setUsers((prev) =>
-      userFormState?.mode === 'edit'
-        ? prev.map((user) => (user.id === savedUser.id ? savedUser : user))
-        : [...prev, savedUser],
-    )
+  function updateUserToDelete(user: User | null) {
+    deleteUser.reset()
+    setUserToDelete(user)
   }
 
-  async function handleDeleteConfirm() {
+  function handleUserDelete() {
     if (!userToDelete) return
-    setDeleteError(null)
-
-    try {
-      const res = await fetch(`/api/users/${userToDelete.id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
-
-      if (!res.ok) {
-        const json = (await res.json()) as { error?: string }
-        setDeleteError(json.error ?? 'Failed to delete user')
-        return
-      }
-
-      setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id))
-      setUserToDelete(null)
-    } catch {
-      setDeleteError('Failed to delete user')
-    }
+    deleteUser.mutate(userToDelete.id, {
+      onSuccess: () => setUserToDelete(null),
+    })
   }
 
   return (
@@ -65,21 +36,17 @@ export default function UsersPage() {
         </Button>
       </div>
       <UsersTable
-        users={users}
-        loading={loading}
-        error={error}
+        users={users ?? []}
+        loading={isPending}
+        error={getErrorMessage(error, 'Failed to load users')}
         onEdit={(user) => setUserFormState({ mode: 'edit', user })}
-        onDelete={(user) => {
-          setDeleteError(null)
-          setUserToDelete(user)
-        }}
+        onDelete={updateUserToDelete}
       />
       <UserForm
         form={userFormState}
         onOpenChange={(open) => {
           if (!open) setUserFormState(null)
         }}
-        onSaved={handleSaved}
       />
       <ConfirmationDialog
         open={userToDelete !== null}
@@ -91,15 +58,10 @@ export default function UsersPage() {
           </>
         }
         confirmLabel="Delete"
-        error={deleteError}
-        onConfirm={() => {
-          void handleDeleteConfirm()
-        }}
+        error={getErrorMessage(deleteUser.error, 'Failed to delete user')}
+        onConfirm={handleUserDelete}
         onOpenChange={(open) => {
-          if (!open) {
-            setDeleteError(null)
-            setUserToDelete(null)
-          }
+          if (!open) updateUserToDelete(null)
         }}
       />
     </>

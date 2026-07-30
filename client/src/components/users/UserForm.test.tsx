@@ -1,49 +1,42 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { UserForm, type User } from './UserForm'
+import { apiClient } from '@/lib/api-client'
+import { renderWithQueryClient } from '@/test-utils/render-with-query-client'
+import { mockResolved, mockRejected, mockReturn } from '@/test-utils/mock-helpers'
+import { NEW_USER } from '@/test-utils/fixtures'
+import { UserForm } from './UserForm'
 
-const NEW_USER: User = {
-  id: '3',
-  name: 'Jane Smith',
-  email: 'jane@example.com',
-  role: 'agent',
-  createdAt: '2024-06-01T00:00:00.000Z',
-}
-
-function mockFetch(payload: unknown, ok = true) {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue({
-      ok,
-      json: () => Promise.resolve(payload),
-    }),
-  )
-}
+// Mock shape lives in client/src/lib/__mocks__/api-client.ts (auto-used by Vitest)
+vi.mock('@/lib/api-client')
 
 beforeEach(() => {
-  vi.unstubAllGlobals()
+  vi.clearAllMocks()
 })
 
-function setup() {
-  const onOpenChange = vi.fn()
-  const onSaved = vi.fn()
-  const user = userEvent.setup()
-  render(
-    <UserForm
-      form={{ mode: 'create', user: null }}
-      onOpenChange={onOpenChange}
-      onSaved={onSaved}
-    />,
-  )
-  return { user, onOpenChange, onSaved }
+const DEFAULT_USER_FORM_VALUES = {
+  name: 'Jane Smith',
+  email: 'jane@example.com',
+  password: 'password123',
 }
 
-async function fillForm(
+function renderUserForm() {
+  const onOpenChange = vi.fn()
+  const user = userEvent.setup()
+  const { rerender } = renderWithQueryClient(
+    <UserForm form={{ mode: 'create', user: null }} onOpenChange={onOpenChange} />,
+  )
+  return { user, onOpenChange, rerender }
+}
+
+async function fillUserForm(
   user: ReturnType<typeof userEvent.setup>,
-  values: { name?: string; email?: string; password?: string } = {},
+  {
+    name = DEFAULT_USER_FORM_VALUES.name,
+    email = DEFAULT_USER_FORM_VALUES.email,
+    password = DEFAULT_USER_FORM_VALUES.password,
+  }: { name?: string; email?: string; password?: string } = {},
 ) {
-  const { name = 'Jane Smith', email = 'jane@example.com', password = 'password123' } = values
   await user.type(screen.getByLabelText('Name'), name)
   await user.type(screen.getByLabelText('Email'), email)
   await user.type(screen.getByLabelText('Password'), password)
@@ -52,14 +45,14 @@ async function fillForm(
 describe('UserForm', () => {
   describe('form rendering', () => {
     it('renders name, email, and password fields', () => {
-      setup()
+      renderUserForm()
       expect(screen.getByLabelText('Name')).toBeInTheDocument()
       expect(screen.getByLabelText('Email')).toBeInTheDocument()
       expect(screen.getByLabelText('Password')).toBeInTheDocument()
     })
 
     it('renders Cancel and submit buttons', () => {
-      setup()
+      renderUserForm()
       expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Create user' })).toBeInTheDocument()
     })
@@ -67,7 +60,7 @@ describe('UserForm', () => {
 
   describe('validation', () => {
     it('shows all field errors when submitting an empty form', async () => {
-      const { user } = setup()
+      const { user } = renderUserForm()
 
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
@@ -79,8 +72,8 @@ describe('UserForm', () => {
     })
 
     it('shows an error when name is too short', async () => {
-      const { user } = setup()
-      await fillForm(user, { name: 'ab' })
+      const { user } = renderUserForm()
+      await fillUserForm(user, { name: 'ab' })
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
       await waitFor(() =>
@@ -89,16 +82,16 @@ describe('UserForm', () => {
     })
 
     it('shows an error when email is invalid', async () => {
-      const { user } = setup()
-      await fillForm(user, { email: 'notanemail' })
+      const { user } = renderUserForm()
+      await fillUserForm(user, { email: 'notanemail' })
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
       await waitFor(() => expect(screen.getByText('Valid email is required')).toBeInTheDocument())
     })
 
     it('shows an error when password is too short', async () => {
-      const { user } = setup()
-      await fillForm(user, { password: 'abc123' })
+      const { user } = renderUserForm()
+      await fillUserForm(user, { password: 'abc123' })
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
       await waitFor(() =>
@@ -108,70 +101,54 @@ describe('UserForm', () => {
   })
 
   describe('submission', () => {
-    it('POSTs to /api/users with the correct body', async () => {
-      const fetchSpy = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(NEW_USER),
-      })
-      vi.stubGlobal('fetch', fetchSpy)
-      const { user } = setup()
-      await fillForm(user)
+    it('POSTs to /users with the correct body', async () => {
+      mockResolved(apiClient.post, { data: NEW_USER })
+      const { user } = renderUserForm()
+      await fillUserForm(user)
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
       await waitFor(() =>
-        expect(fetchSpy).toHaveBeenCalledWith('/api/users', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: 'Jane Smith',
-            email: 'jane@example.com',
-            password: 'password123',
-          }),
-        }),
+        expect(apiClient.post).toHaveBeenCalledWith('/users', DEFAULT_USER_FORM_VALUES),
       )
     })
 
-    it('calls onSaved with the returned user on success', async () => {
-      mockFetch(NEW_USER)
-      const { user, onSaved } = setup()
-      await fillForm(user)
-      await user.click(screen.getByRole('button', { name: 'Create user' }))
-
-      await waitFor(() => expect(onSaved).toHaveBeenCalledWith(NEW_USER))
-    })
-
     it('calls onOpenChange(false) to close after successful creation', async () => {
-      mockFetch(NEW_USER)
-      const { user, onOpenChange } = setup()
-      await fillForm(user)
+      mockResolved(apiClient.post, { data: NEW_USER })
+      const { user, onOpenChange } = renderUserForm()
+      await fillUserForm(user)
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
       await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
     })
 
     it('shows the server error when the response contains an error field', async () => {
-      mockFetch({ error: 'Email already in use' }, false)
-      const { user } = setup()
-      await fillForm(user)
+      mockRejected(apiClient.post, {
+        isAxiosError: true,
+        response: { data: { error: 'Email already in use' } },
+      })
+      const { user } = renderUserForm()
+      await fillUserForm(user)
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
       await waitFor(() => expect(screen.getByText('Email already in use')).toBeInTheDocument())
     })
 
     it('shows a fallback error when the response has no error field', async () => {
-      mockFetch({}, false)
-      const { user } = setup()
-      await fillForm(user)
+      mockRejected(apiClient.post, {
+        isAxiosError: true,
+        response: { data: {} },
+      })
+      const { user } = renderUserForm()
+      await fillUserForm(user)
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
       await waitFor(() => expect(screen.getByText('Failed to create user')).toBeInTheDocument())
     })
 
     it('shows an error message on network failure', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error()))
-      const { user } = setup()
-      await fillForm(user)
+      mockRejected(apiClient.post, { isAxiosError: true, response: undefined })
+      const { user } = renderUserForm()
+      await fillUserForm(user)
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
       await waitFor(() => expect(screen.getByText('Failed to create user')).toBeInTheDocument())
@@ -180,9 +157,9 @@ describe('UserForm', () => {
 
   describe('loading state', () => {
     it('shows "Creating…" on the submit button and disables Cancel while submitting', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
-      const { user } = setup()
-      await fillForm(user)
+      mockReturn(apiClient.post, new Promise(() => {}))
+      const { user } = renderUserForm()
+      await fillUserForm(user)
       await user.click(screen.getByRole('button', { name: 'Create user' }))
 
       await waitFor(() => {
@@ -194,7 +171,7 @@ describe('UserForm', () => {
 
   describe('Cancel', () => {
     it('calls onOpenChange(false) when Cancel is clicked', async () => {
-      const { user, onOpenChange } = setup()
+      const { user, onOpenChange } = renderUserForm()
       await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
       expect(onOpenChange).toHaveBeenCalledWith(false)
@@ -203,29 +180,15 @@ describe('UserForm', () => {
 
   describe('reset on reopen', () => {
     it('clears validation errors when the dialog is reopened', async () => {
-      const onOpenChange = vi.fn()
-      const user = userEvent.setup()
-      const { rerender } = render(
-        <UserForm
-          form={{ mode: 'create', user: null }}
-          onOpenChange={onOpenChange}
-          onSaved={vi.fn()}
-        />,
-      )
+      const { user, onOpenChange, rerender } = renderUserForm()
 
       await user.click(screen.getByRole('button', { name: 'Create user' }))
       await waitFor(() =>
         expect(screen.getByText('Name must be at least 3 characters')).toBeInTheDocument(),
       )
 
-      rerender(<UserForm form={null} onOpenChange={onOpenChange} onSaved={vi.fn()} />)
-      rerender(
-        <UserForm
-          form={{ mode: 'create', user: null }}
-          onOpenChange={onOpenChange}
-          onSaved={vi.fn()}
-        />,
-      )
+      rerender(<UserForm form={null} onOpenChange={onOpenChange} />)
+      rerender(<UserForm form={{ mode: 'create', user: null }} onOpenChange={onOpenChange} />)
 
       await waitFor(() =>
         expect(screen.queryByText('Name must be at least 3 characters')).not.toBeInTheDocument(),

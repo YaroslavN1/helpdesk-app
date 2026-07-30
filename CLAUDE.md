@@ -10,6 +10,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (style: base-nova, neutral base color)
 - **Backend:** Express 5, TypeScript (run directly with Bun)
 - **Validation:** Zod 4 — schemas that are used on both client and server live in `core/src/schemas/`; server-only or client-only schemas can be defined locally
+- **Client data fetching:** TanStack Query + Axios — see Client Data Fetching section
 - **Database:** PostgreSQL, Prisma ORM, pgvector extension
 - **Auth:** Better Auth — email/password only, sign-up disabled, database sessions via HTTP-only cookie
 - **Email:** SendGrid or Mailgun (TBD) — inbound webhook + transactional sending
@@ -44,22 +45,27 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── TicketSelectField.tsx     # single editable dl row (label + Select + error); owns loading/error state; exports TicketUpdateResult
 │   │   │   │   └── ticket-badges.ts          # TICKET_STATUS_BADGE map (variant + className); labels live in @helpdesk/core
 │   │   │   └── users/
-│   │   │       ├── UserForm.tsx           # create/edit dialog + form; exports User and FormState types
+│   │   │       ├── UserForm.tsx           # create/edit dialog + form; exports FormState type (User type lives in @/types/user)
 │   │   │       └── UsersTable.tsx         # users table with loading/error/data states; edit + delete actions
 │   │   ├── pages/
 │   │   │   ├── HomePage.tsx
 │   │   │   ├── LoginPage.tsx
 │   │   │   ├── TicketsPage.tsx        # /tickets — filter/sort/paginate tickets; state lives in URL search params via useTicketsUrlParams
 │   │   │   ├── TicketDetailsPage.tsx  # /tickets/:id — fetches and displays a single ticket; owns updateTicket (returns TicketUpdateResult)
-│   │   │   └── UsersPage.tsx          # /users — admin only; fetches users
+│   │   │   └── UsersPage.tsx          # /users — admin only; fetches/creates/edits/deletes users via useUsers hooks
 │   │   ├── hooks/
-│   │   │   └── useTicketsUrlParams.ts # reads/writes TicketsPage's sort/filters/page as URL search params; also exports buildUrlParams/appendFilterParams/TicketsParams used by TicketsPage's fetch query builder
+│   │   │   ├── useTicketsUrlParams.ts # reads/writes TicketsPage's sort/filters/page as URL search params; also exports buildUrlParams/appendFilterParams/TicketsParams used by TicketsPage's fetch query builder
+│   │   │   └── useUsers.ts            # useUsers/useCreateUser/useUpdateUser/useDeleteUser — TanStack Query hooks; mutations write results directly into the query cache instead of invalidating
 │   │   ├── lib/
+│   │   │   ├── api-client.ts   # shared Axios instance (baseURL /api, withCredentials) + getErrorMessage(error, fallback)
 │   │   │   ├── auth-client.ts  # Better Auth client with inferAdditionalFields
 │   │   │   ├── cn.ts           # cn() helper (clsx + tailwind-merge) for conditional class names
-│   │   │   └── format-date.ts  # formatDate(date, format) date formatter
+│   │   │   ├── format-date.ts  # formatDate(date, format) date formatter
+│   │   │   └── query-client.ts # shared QueryClient instance, provided in main.tsx
+│   │   ├── types/
+│   │   │   └── user.ts         # User type (id, name, email, role, createdAt)
 │   │   ├── App.tsx             # route tree (see Routing section)
-│   │   └── main.tsx
+│   │   └── main.tsx            # wraps <App /> in QueryClientProvider
 │   ├── components.json     # shadcn/ui config
 │   ├── vite.config.ts      # proxies /api → localhost:3000; @ alias → ./src
 │   └── tsconfig.json       # @ path alias configured
@@ -279,6 +285,13 @@ Soft-delete a user (sets `deletedAt`). Admin only. Admins cannot be deleted.
   formatDate(ticket.updatedAt, 'datetime')  // "Mar 15, 2024, 10:00:00 AM"
   ```
 
+## Client Data Fetching
+- **TanStack Query + Axios** — all client API calls go through the shared `apiClient` (`client/src/lib/api-client.ts`, an Axios instance with `baseURL: '/api'` and `withCredentials: true`) inside `useQuery`/`useMutation` hooks. Never call `fetch()` directly from a component.
+- **One hooks file per domain entity** — e.g. `client/src/hooks/useUsers.ts` exports `useUsers` (query) plus `useCreateUser`/`useUpdateUser`/`useDeleteUser` (mutations).
+- **Direct cache writes over invalidation** — mutation `onSuccess` handlers write the result straight into the query cache with `queryClient.setQueryData(queryKey, updater)` (append for create, map for update, filter for delete) instead of calling `invalidateQueries()`. This avoids an extra refetch after every create/update/delete. See `useCreateUser`/`useUpdateUser`/`useDeleteUser` in `useUsers.ts` for the pattern. A `DELETE` mutation's `onSuccess` must derive the removed id from the mutation's variables (its second argument), not from `data` — `DELETE` responses have no body.
+- **`getErrorMessage(error, fallback)`** (`client/src/lib/api-client.ts`) — extracts a server-provided error string from an Axios error's response body, falling back to `fallback` otherwise. Returns `null` for falsy `error` input, so call sites can pass query/mutation `error` state directly (`getErrorMessage(error, '...')`) without a ternary.
+- **`queryClient`** (`client/src/lib/query-client.ts`) — single app-wide `QueryClient` instance, provided via `QueryClientProvider` in `main.tsx`.
+
 ## Testing Strategy
 **Default to component (unit) tests. Use E2E tests only for flows that require a real browser, real auth session, or multi-step UI interactions that are impractical to unit-test** (e.g. full login flow, role-based redirects, cross-page workflows).
 
@@ -292,14 +305,16 @@ All unit test writing must be delegated to an agent — never write Vitest tests
 Run all unit tests (client + server) with `bun test:unit`.
 
 ### Client unit tests
-The `client-unit-test-writer` agent owns all client unit testing knowledge: Vitest config, jsdom environment, `fetch` mocking with `vi.stubGlobal`, `act()` warning patterns, selector strategy, and the setup file at `client/src/test-utils/setup.ts`.
+The `client-unit-test-writer` agent owns all client unit testing knowledge: Vitest config, jsdom environment, mocking `apiClient` at the module boundary, `act()` warning patterns, selector strategy, and the setup file at `client/src/test-utils/setup.ts`.
 
 Key conventions owned by the agent:
 - Test files live next to the component: `UsersPage.tsx` → `UsersPage.test.tsx`
-- Use a never-resolving fetch mock for synchronous-state tests (avoids `act()` warnings)
+- **Mocking `apiClient`** — call the bare `vi.mock('@/lib/api-client')` (no factory argument) at the top of the test file. Vitest auto-substitutes `client/src/lib/__mocks__/api-client.ts`, which replaces `get`/`post`/`patch`/`delete` with `vi.fn()` while re-exporting the real `getErrorMessage`. Do not pass an inline factory to `vi.mock()` here — a factory is hoisted above all imports in the file, so a factory that references an imported helper throws `ReferenceError: Cannot access '...' before initialization` at runtime.
+- **`mockResolved(fn, value)` / `mockRejected(fn, error)` / `mockReturn(fn, value)`** (`client/src/test-utils/mock-helpers.ts`) — use these instead of inline `vi.mocked(apiClient.get).mockResolvedValue(...)`-style calls. E.g. `mockResolved(apiClient.get, { data: USERS })`, `mockRejected(apiClient.post, { isAxiosError: true, response: { data: { error: '...' } } })`, `mockReturn(apiClient.get, new Promise(() => {}))` for a never-resolving mock in synchronous-state tests (avoids `act()` warnings).
+- **`renderWithQueryClient(ui)` / `renderHookWithQueryClient(renderCallback)`** (`client/src/test-utils/render-with-query-client.tsx`) — wrap RTL's `render`/`renderHook` with a fresh `QueryClient` (query retries disabled) inside a `QueryClientProvider`. Use these instead of RTL's `render`/`renderHook` directly for any component or hook that calls a TanStack Query hook. `renderHookWithQueryClient` also returns the `queryClient` instance so a test can seed (`queryClient.setQueryData(...)`) or inspect (`queryClient.getQueryData(...)`) cache state directly.
 - Put all assertions that depend on the same async state inside one `waitFor` callback
 - Do not add section-divider comments (e.g. `// --- Fixtures ---`, `// ---------- Helpers ----------`) — the code structure already communicates that
-- Shared ticket fixtures live in `client/src/test-utils/fixtures.ts` — named exports (`openTechnicalTicket`, `resolvedRefundTicket`, `closedTicket`, `openGeneralTicket`) plus `TICKETS` array. Use named exports in tests that need a specific combination to avoid `getByText` ambiguity; `closedTicket` has `category: null` and `assignedTo: { name: 'Dave Agent' }` (non-null) for this reason.
+- Shared fixtures live in `client/src/test-utils/fixtures.ts` — named ticket exports (`openTechnicalTicket`, `resolvedRefundTicket`, `closedTicket`, `openGeneralTicket`) plus a `TICKETS` array, and named user exports (`USERS`, `NEW_USER`). Use named exports in tests that need a specific combination to avoid `getByText` ambiguity; `closedTicket` has `category: null` and `assignedTo: { name: 'Dave Agent' }` (non-null) for this reason.
 - Date assertions use a regex (`/Mar 15, 2024/`) rather than an exact string to stay timezone-safe across environments
 
 ### Server unit tests
@@ -330,6 +345,7 @@ Key conventions the agent must follow:
 ## Code Style
 - Use full descriptive names for iterator variables — never single-letter shorthands like `s`, `c`, `i` (except `_` for ignored values). E.g. `.map(status => ...)`, `.filter(category => ...)`.
 - Use full descriptive names for function parameters — never abbreviated shorthands like `sp`, `req`, `res`, `cb`, `fn`, `e`. E.g. `searchParams` not `sp`, `event` not `e`.
+- Use full descriptive names for constants and local variables — avoid vague abbreviations. E.g. `FALLBACK_ERROR_MESSAGE` not `FALLBACK`.
 
 ## Docs
 Always use **context7** to fetch up-to-date documentation before working with any library or framework — including Express, React, Prisma, Vite, Bun, shadcn/ui, and the Anthropic SDK. Do not rely on training data alone for API signatures or configuration options.

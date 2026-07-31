@@ -41,29 +41,30 @@ function getCurrentParams(params: URLSearchParams): TicketsParams {
   }
 }
 
-function appendFilterParams(urlParams: URLSearchParams, filters: TicketsFilterCriteria) {
-  if (filters.search) urlParams.set('search', filters.search)
-  for (const status of filters.status) urlParams.append('status', status)
-  for (const category of filters.category) urlParams.append('category', category)
+function appendFiltersQuery(query: URLSearchParams, filters: TicketsFilterCriteria) {
+  if (filters.search) query.set('search', filters.search)
+  for (const status of filters.status) query.append('status', status)
+  for (const category of filters.category) query.append('category', category)
 }
 
-export function buildUrlParams({ sort, filters, page }: TicketsParams): URLSearchParams {
-  const urlParams = new URLSearchParams()
-  if (sort.column !== defaultSort.column) urlParams.set('sortBy', sort.column)
-  if (sort.order !== defaultSort.order) urlParams.set('sortOrder', sort.order)
-  if (page > defaultPage) urlParams.set('page', String(page))
-  appendFilterParams(urlParams, filters)
-  return urlParams
+//Default values are omitted in URL
+function buildUrlQuery({ sort, filters, page }: TicketsParams): URLSearchParams {
+  const urlQuery = new URLSearchParams()
+  if (sort.column !== defaultSort.column) urlQuery.set('sortBy', sort.column)
+  if (sort.order !== defaultSort.order) urlQuery.set('sortOrder', sort.order)
+  if (page > defaultPage) urlQuery.set('page', String(page))
+  appendFiltersQuery(urlQuery, filters)
+  return urlQuery
 }
 
 export function buildRequestQuery({ sort, filters, page }: TicketsParams): URLSearchParams {
-  const query = new URLSearchParams()
-  query.set('sortBy', sort.column)
-  query.set('sortOrder', sort.order)
-  query.set('page', String(page))
-  query.set('pageSize', String(DEFAULT_PAGE_SIZE))
-  appendFilterParams(query, filters)
-  return query
+  const requestQuery = new URLSearchParams()
+  requestQuery.set('sortBy', sort.column)
+  requestQuery.set('sortOrder', sort.order)
+  requestQuery.set('page', String(page))
+  requestQuery.set('pageSize', String(DEFAULT_PAGE_SIZE))
+  appendFiltersQuery(requestQuery, filters)
+  return requestQuery
 }
 
 export function useTicketsUrlParams() {
@@ -71,6 +72,6 @@ export function useTicketsUrlParams() {
 
   return {
     ...getCurrentParams(urlParams),
-    setUrlParams: (params: TicketsParams) => setUrlParams(buildUrlParams(params)),
+    setUrlParams: (params: TicketsParams) => setUrlParams(buildUrlQuery(params)),
   }
 }

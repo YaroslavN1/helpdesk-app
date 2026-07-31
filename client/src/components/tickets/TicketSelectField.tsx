@@ -1,15 +1,12 @@
-import { useState } from 'react'
 import { Select, type SelectOption } from '@/components/ui/select'
-import { type TicketDetails } from '@helpdesk/core'
-
-export type TicketUpdateResult = { updatedTicket: TicketDetails } | { error: string }
 
 interface TicketSelectFieldProps {
   label: string
   value: string | null
   options: SelectOption[]
-  updateTicket: (body: Record<string, unknown>) => Promise<TicketUpdateResult>
-  mapSelected: (value: string | null) => Record<string, unknown> | null
+  onValueChange: (value: string | null) => void
+  disabled?: boolean
+  error?: string | null
   className?: string
   'data-testid'?: string
 }
@@ -18,26 +15,12 @@ export function TicketSelectField({
   label,
   value,
   options,
-  updateTicket,
-  mapSelected,
+  onValueChange,
+  disabled,
+  error,
   className,
   'data-testid': testId,
 }: TicketSelectFieldProps) {
-  const [isUpdating, setIsUpdating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  function handleChange(newValue: string | null) {
-    const body = mapSelected(newValue)
-    if (!body) return
-    setIsUpdating(true)
-    setError(null)
-    updateTicket(body)
-      .then((result) => {
-        if ('error' in result) setError(result.error)
-      })
-      .finally(() => setIsUpdating(false))
-  }
-
   return (
     <div className="flex items-center gap-2">
       <dt className="w-24 shrink-0 text-muted-foreground">{label}</dt>
@@ -45,8 +28,8 @@ export function TicketSelectField({
         <Select
           value={value}
           options={options}
-          onValueChange={handleChange}
-          disabled={isUpdating}
+          onValueChange={onValueChange}
+          disabled={disabled}
           className={className}
           data-testid={testId}
         />

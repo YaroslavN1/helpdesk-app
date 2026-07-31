@@ -1,51 +1,13 @@
-import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router'
 import { TicketDetailsSkeleton } from '@/components/tickets/TicketDetailsSkeleton'
 import { TicketFieldsEditor } from '@/components/tickets/TicketFieldsEditor'
 import { formatDate } from '@/lib/format-date'
-import { type TicketDetails } from '@helpdesk/core'
-import { type TicketUpdateResult } from '@/components/tickets/TicketSelectField'
+import { getErrorMessage } from '@/lib/api-client'
+import { useTicket } from '@/hooks/useTicket'
 
 export default function TicketDetailsPage() {
   const { id } = useParams<{ id: string }>()
-  const [ticket, setTicket] = useState<TicketDetails | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  async function updateTicket(body: Record<string, unknown>): Promise<TicketUpdateResult> {
-    let updatedTicket: TicketDetails
-    try {
-      const response = await fetch(`/api/tickets/${id}`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      if (!response.ok) throw new Error('Failed to update ticket')
-      updatedTicket = (await response.json()) as TicketDetails
-    } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Unknown error' }
-    }
-    setTicket(updatedTicket)
-    return { updatedTicket }
-  }
-
-  useEffect(() => {
-    setLoading(true)
-    setTicket(null)
-    setError(null)
-    fetch(`/api/tickets/${id}`, { credentials: 'include' })
-      .then((response) => {
-        if (!response.ok) {
-          if (response.status === 404) throw new Error('Ticket not found')
-          throw new Error('Failed to load ticket')
-        }
-        return response.json() as Promise<TicketDetails>
-      })
-      .then(setTicket)
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Unknown error'))
-      .finally(() => setLoading(false))
-  }, [id])
+  const { data: ticket, isPending, error } = useTicket(id)
 
   return (
     <>
@@ -56,15 +18,15 @@ export default function TicketDetailsPage() {
         ← Tickets
       </Link>
 
-      {loading && <TicketDetailsSkeleton />}
+      {isPending && <TicketDetailsSkeleton />}
 
       {error && (
         <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
-          {error}
+          {getErrorMessage(error, 'Failed to load ticket')}
         </p>
       )}
 
-      {!loading && ticket && (
+      {!isPending && ticket && (
         <div className="space-y-6">
           <h2 className="text-2xl font-bold tracking-tight">
             <span className="text-muted-foreground/70 font-normal">#{ticket.id}</span>{' '}
@@ -105,7 +67,7 @@ export default function TicketDetailsPage() {
             </div>
 
             <dl className="space-y-2 text-sm">
-              <TicketFieldsEditor ticket={ticket} updateTicket={updateTicket} />
+              <TicketFieldsEditor ticket={ticket} />
             </dl>
           </div>
         </div>

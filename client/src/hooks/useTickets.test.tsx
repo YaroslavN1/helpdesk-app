@@ -4,20 +4,12 @@ import { apiClient } from '@/lib/api-client'
 import { renderHookWithQueryClient } from '@/test-utils/render-with-query-client'
 import { mockResolved } from '@/test-utils/mock-helpers'
 import { useTickets } from './useTickets'
-import { TICKETS } from '@/test-utils/fixtures'
-import {
-  TicketSortColumn,
-  SortOrder,
-  TicketStatus,
-  TicketCategory,
-  type PaginatedTickets,
-} from '@helpdesk/core'
+import { PAGINATED_TICKETS } from '@/test-utils/fixtures'
+import { TicketSortColumn, SortOrder, TicketStatus, TicketCategory } from '@helpdesk/core'
 import { buildRequestQuery, type TicketsParams } from './useTicketsUrlParams'
 
 // Mock shape lives in client/src/lib/__mocks__/api-client.ts (auto-used by Vitest)
 vi.mock('@/lib/api-client')
-
-const PAGINATED_TICKETS: PaginatedTickets = { tickets: TICKETS, total: TICKETS.length }
 
 beforeEach(() => {
   vi.clearAllMocks()

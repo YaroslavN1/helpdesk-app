@@ -35,10 +35,10 @@ beforeEach(() => {
 
 describe('TicketsTable', () => {
   describe('loading state', () => {
-    it('shows 4 skeleton rows while loading', () => {
+    it('shows skeleton while loading', () => {
       renderTicketsTable({ loading: true, tickets: [] })
 
-      expect(document.querySelectorAll('tbody tr')).toHaveLength(4)
+      expect(screen.getAllByTestId('tickets-table-skeleton')[0]).toBeInTheDocument()
     })
   })
 

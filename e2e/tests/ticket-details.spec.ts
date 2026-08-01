@@ -57,7 +57,7 @@ test.describe('TicketDetailsPage', () => {
       await page.route('**/api/tickets/*', (route) => route.abort('failed'))
       await page.goto('/tickets/1')
 
-      await expect(page.getByText(/failed to fetch|failed to load ticket/i)).toBeVisible()
+      await expect(page.getByText('Failed to load ticket')).toBeVisible()
     })
   })
 
@@ -207,7 +207,7 @@ test.describe('TicketDetailsPage', () => {
           await page.getByTestId('assign-to-select').click()
           await page.getByRole('option', { name: AGENT_NAME }).click()
 
-          await expect(page.getByText(/failed to fetch|failed to update assignment/i)).toBeVisible()
+          await expect(page.getByText('Failed to update ticket')).toBeVisible()
         })
       })
     })

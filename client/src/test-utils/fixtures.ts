@@ -4,6 +4,7 @@ import {
   type Ticket,
   type TicketDetails,
   type AgentOption,
+  type PaginatedTickets,
 } from '@helpdesk/core'
 import { type User } from '@/types/user'
 
@@ -57,6 +58,8 @@ export const TICKETS: Ticket[] = [
   closedTicket,
   openGeneralTicket,
 ]
+
+export const PAGINATED_TICKETS: PaginatedTickets = { tickets: TICKETS, total: TICKETS.length }
 
 export const openTechnicalTicketDetails: TicketDetails = {
   ...openTechnicalTicket,

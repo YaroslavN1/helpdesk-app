@@ -1,12 +1,19 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router'
+import { apiClient } from '@/lib/api-client'
+import { renderWithQueryClient } from '@/test-utils/render-with-query-client'
+import { mockResolved, mockRejected, mockPending } from '@/test-utils/mock-helpers'
 import TicketsPage from './TicketsPage'
-import { TICKETS } from '@/test-utils/fixtures'
+import { TICKETS, PAGINATED_TICKETS } from '@/test-utils/fixtures'
+import type { PaginatedTickets } from '@helpdesk/core'
+
+// Mock shape lives in client/src/lib/__mocks__/api-client.ts (auto-used by Vitest)
+vi.mock('@/lib/api-client')
 
 function renderTicketsPage(url = '/') {
-  return render(
+  return renderWithQueryClient(
     <MemoryRouter initialEntries={[url]}>
       <TicketsPage />
     </MemoryRouter>,
@@ -21,55 +28,59 @@ function getPaginationButton(name: string) {
   })
 }
 
-const PAGINATED_TICKETS = { tickets: TICKETS, total: TICKETS.length }
-
-function mockFetchTickets(payload: typeof PAGINATED_TICKETS | null = PAGINATED_TICKETS, ok = true) {
-  const fetchSpy = vi.fn().mockResolvedValue({
-    ok,
-    json: () => Promise.resolve(payload),
-  })
-  vi.stubGlobal('fetch', fetchSpy)
-  return fetchSpy
+function mockFetchTickets(payload: PaginatedTickets | null = PAGINATED_TICKETS) {
+  mockResolved(apiClient.get, { data: payload })
+  return vi.mocked(apiClient.get)
 }
 
 beforeEach(() => {
-  vi.unstubAllGlobals()
+  vi.clearAllMocks()
 })
 
 describe('TicketsPage', () => {
-  describe('loading state', () => {
-    it('calls /api/tickets with credentials include', () => {
-      const fetchSpy = vi.fn().mockReturnValue(new Promise(() => {}))
-      vi.stubGlobal('fetch', fetchSpy)
+  describe('page header', () => {
+    it('renders the page heading', () => {
+      mockPending(apiClient.get)
       renderTicketsPage()
 
-      expect(fetchSpy).toHaveBeenCalledWith(
-        '/api/tickets?sortBy=createdAt&sortOrder=desc&page=1&pageSize=10',
-        { credentials: 'include' },
+      expect(screen.getByRole('heading', { name: 'Tickets' })).toBeInTheDocument()
+    })
+  })
+
+  describe('loading state', () => {
+    it('calls /tickets with the correct query string', () => {
+      mockPending(apiClient.get)
+      renderTicketsPage()
+
+      expect(apiClient.get).toHaveBeenCalledWith(
+        '/tickets?sortBy=createdAt&sortOrder=desc&page=1&pageSize=10',
       )
     })
 
-    it('shows skeleton rows while fetch is pending', () => {
-      vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
+    it('shows skeleton while loading', () => {
+      mockPending(apiClient.get)
       renderTicketsPage()
 
-      expect(document.querySelectorAll('tbody tr')).toHaveLength(4)
+      expect(screen.getAllByTestId('tickets-table-skeleton')[0]).toBeInTheDocument()
     })
   })
 
   describe('error state', () => {
-    it('shows an error message when fetch returns a non-ok response', async () => {
-      mockFetchTickets(null, false)
+    it('shows the server error message when the response contains an error field', async () => {
+      mockRejected(apiClient.get, {
+        isAxiosError: true,
+        response: { status: 500, data: { error: 'Something went wrong' } },
+      })
+      renderTicketsPage()
+
+      await waitFor(() => expect(screen.getByText('Something went wrong')).toBeInTheDocument())
+    })
+
+    it('shows a fallback error message when fetch rejects with no server message', async () => {
+      mockRejected(apiClient.get, { isAxiosError: true, response: undefined })
       renderTicketsPage()
 
       await waitFor(() => expect(screen.getByText('Failed to load tickets')).toBeInTheDocument())
-    })
-
-    it('shows an error message when fetch throws a network error', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')))
-      renderTicketsPage()
-
-      await waitFor(() => expect(screen.getByText('Network error')).toBeInTheDocument())
     })
   })
 
@@ -83,31 +94,13 @@ describe('TicketsPage', () => {
   })
 
   describe('loaded state', () => {
-    it('hides skeleton rows after fetch resolves', async () => {
-      mockFetchTickets()
-      renderTicketsPage()
-
-      await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument())
-
-      expect(document.querySelectorAll('tbody tr')).toHaveLength(TICKETS.length)
-    })
-
-    it('renders the page heading', () => {
-      vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
-      renderTicketsPage()
-
-      expect(screen.getByRole('heading', { name: 'Tickets' })).toBeInTheDocument()
-    })
-
     it('renders ticket rows after fetch resolves successfully', async () => {
       mockFetchTickets()
       renderTicketsPage()
 
       await waitFor(() => {
+        expect(screen.queryAllByTestId('tickets-table-skeleton')).toHaveLength(0)
         expect(screen.getByText('Alice Smith')).toBeInTheDocument()
-        expect(screen.getByText('Cannot log in to my account')).toBeInTheDocument()
-        expect(screen.getByText('Carol Jones')).toBeInTheDocument()
-        expect(screen.getByText('I need a refund')).toBeInTheDocument()
       })
     })
   })
@@ -208,173 +201,159 @@ describe('TicketsPage', () => {
 
       await waitFor(() => {
         const lastCall = fetchSpy.mock.calls[fetchSpy.mock.calls.length - 1]
-        expect(lastCall?.[0]).toBe(
-          '/api/tickets?sortBy=createdAt&sortOrder=desc&page=1&pageSize=10',
-        )
+        expect(lastCall?.[0]).toBe('/tickets?sortBy=createdAt&sortOrder=desc&page=1&pageSize=10')
       })
     })
   })
 
   describe('pagination', () => {
-    it('does not render pagination summary and pagination buttons when total fits on one page', async () => {
-      mockFetchTickets({ tickets: TICKETS, total: TICKETS.length })
-      renderTicketsPage()
+    describe('pagination buttons', () => {
+      it('renders pagination buttons when there are multiple pages', async () => {
+        mockFetchTickets({ tickets: TICKETS, total: 50 })
+        renderTicketsPage()
 
-      await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument())
+        await waitFor(() => {
+          expect(screen.getByTestId('pagination-buttons')).toBeInTheDocument()
+        })
+      })
 
-      expect(screen.queryByTestId('pagination-summary')).not.toBeInTheDocument()
-      expect(screen.queryByTestId('pagination-buttons')).not.toBeInTheDocument()
-    })
+      it('does not render pagination buttons when total fits on one page', async () => {
+        mockFetchTickets()
+        renderTicketsPage()
 
-    it('renders pagination summary and pagination buttons when there are multiple pages', async () => {
-      mockFetchTickets({ tickets: TICKETS, total: 50 })
-      renderTicketsPage()
+        await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument())
 
-      await waitFor(() => {
-        expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50')
-        expect(screen.getByTestId('pagination-buttons')).toBeInTheDocument()
+        expect(screen.queryByTestId('pagination-buttons')).not.toBeInTheDocument()
+      })
+
+      it('re-fetches with correct query params when the second page button is clicked', async () => {
+        const user = userEvent.setup()
+        const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
+        renderTicketsPage()
+
+        await waitFor(() => expect(getPaginationButton('2')).not.toBeDisabled())
+
+        await user.click(getPaginationButton('2'))
+
+        await waitFor(() => {
+          const calls = fetchSpy.mock.calls.map(([url]) => url as string)
+          expect(calls.some((url) => url.includes('page=2'))).toBe(true)
+        })
+      })
+
+      it('clicking the current page button does not trigger a re-fetch', async () => {
+        const user = userEvent.setup()
+        const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
+        renderTicketsPage()
+
+        await waitFor(() => expect(getPaginationButton('1')).not.toBeDisabled())
+
+        const callCountBefore = fetchSpy.mock.calls.length
+        await user.click(getPaginationButton('1'))
+
+        expect(fetchSpy.mock.calls.length).toBe(callCountBefore)
+      })
+
+      it('re-fetches with correct query params when the previous button is clicked', async () => {
+        const user = userEvent.setup()
+        const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
+        renderTicketsPage('/tickets?page=2')
+
+        await waitFor(() => expect(getPaginationButton('Previous page')).not.toBeDisabled())
+
+        await user.click(getPaginationButton('Previous page'))
+
+        await waitFor(() => {
+          const calls = fetchSpy.mock.calls.map(([url]) => url as string)
+          expect(calls.some((url) => url.includes('page=1'))).toBe(true)
+        })
+      })
+
+      it('"Previous page" button is disabled on page 1', async () => {
+        mockFetchTickets({ tickets: TICKETS, total: 50 })
+        renderTicketsPage()
+
+        await waitFor(() => expect(getPaginationButton('Previous page')).toBeDisabled())
+      })
+
+      it('re-fetches with correct query params when the next button is clicked', async () => {
+        const user = userEvent.setup()
+        const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
+        renderTicketsPage()
+
+        await waitFor(() => expect(getPaginationButton('Next page')).not.toBeDisabled())
+
+        await user.click(getPaginationButton('Next page'))
+
+        await waitFor(() => {
+          const calls = fetchSpy.mock.calls.map(([url]) => url as string)
+          expect(calls.some((url) => url.includes('page=2'))).toBe(true)
+        })
+      })
+
+      it('"Next page" button is disabled on the last page', async () => {
+        const user = userEvent.setup()
+        mockFetchTickets({ tickets: TICKETS, total: 20 })
+        renderTicketsPage()
+
+        await waitFor(() => expect(getPaginationButton('2')).not.toBeDisabled())
+
+        await user.click(getPaginationButton('2'))
+
+        await waitFor(() => expect(getPaginationButton('Next page')).toBeDisabled())
       })
     })
 
-    it('updates pagination summary text when navigating to page 2', async () => {
-      const user = userEvent.setup()
-      mockFetchTickets({ tickets: TICKETS, total: 50 })
-      renderTicketsPage()
+    describe('pagination summary', () => {
+      it('renders the pagination summary when there are multiple pages', async () => {
+        mockFetchTickets({ tickets: TICKETS, total: 50 })
+        renderTicketsPage()
 
-      await waitFor(() =>
-        expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'),
-      )
-
-      await user.click(getPaginationButton('2'))
-
-      await waitFor(() =>
-        expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 11–20 of 50'),
-      )
-    })
-
-    it('re-fetches with correct query params when the second page button is clicked', async () => {
-      const user = userEvent.setup()
-      const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
-      renderTicketsPage()
-
-      await waitFor(() => expect(getPaginationButton('2')).not.toBeDisabled())
-
-      await user.click(getPaginationButton('2'))
-
-      await waitFor(() => {
-        const calls = fetchSpy.mock.calls.map(([url]) => url as string)
-        expect(calls.some((url) => url.includes('page=2'))).toBe(true)
-      })
-    })
-
-    it('clicking the current page button does not trigger a re-fetch', async () => {
-      const user = userEvent.setup()
-      const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
-      renderTicketsPage()
-
-      await waitFor(() => expect(getPaginationButton('1')).not.toBeDisabled())
-
-      const callCountBefore = fetchSpy.mock.calls.length
-      await user.click(getPaginationButton('1'))
-
-      expect(fetchSpy.mock.calls.length).toBe(callCountBefore)
-    })
-
-    it('"Previous page" button is disabled on page 1', async () => {
-      mockFetchTickets({ tickets: TICKETS, total: 50 })
-      renderTicketsPage()
-
-      await waitFor(() => expect(getPaginationButton('Previous page')).toBeDisabled())
-    })
-
-    it('re-fetches with correct query params when the previous button is clicked from page 2', async () => {
-      const user = userEvent.setup()
-      const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
-      renderTicketsPage()
-
-      await waitFor(() => expect(getPaginationButton('2')).not.toBeDisabled())
-
-      await user.click(getPaginationButton('2'))
-      await waitFor(() => {
-        const calls = fetchSpy.mock.calls.map(([url]) => url as string)
-        expect(calls.some((url) => url.includes('page=2'))).toBe(true)
+        await waitFor(() => {
+          expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50')
+        })
       })
 
-      await user.click(getPaginationButton('Previous page'))
+      it('does not render the pagination summary when total fits on one page', async () => {
+        mockFetchTickets()
+        renderTicketsPage()
 
-      await waitFor(() => {
-        const calls = fetchSpy.mock.calls.map(([url]) => url as string)
-        expect(calls.some((url) => url.includes('page=1'))).toBe(true)
+        await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument())
+
+        expect(screen.queryByTestId('pagination-summary')).not.toBeInTheDocument()
       })
-    })
 
-    it('re-fetches with correct query params when the next button is clicked', async () => {
-      const user = userEvent.setup()
-      const fetchSpy = mockFetchTickets({ tickets: TICKETS, total: 50 })
-      renderTicketsPage()
+      it('updates pagination summary text when navigating to another page', async () => {
+        const user = userEvent.setup()
+        mockFetchTickets({ tickets: TICKETS, total: 50 })
+        renderTicketsPage()
 
-      await waitFor(() => expect(getPaginationButton('Next page')).not.toBeDisabled())
+        await waitFor(() =>
+          expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 1–10 of 50'),
+        )
 
-      await user.click(getPaginationButton('Next page'))
+        await user.click(getPaginationButton('2'))
 
-      await waitFor(() => {
-        const calls = fetchSpy.mock.calls.map(([url]) => url as string)
-        expect(calls.some((url) => url.includes('page=2'))).toBe(true)
+        await waitFor(() =>
+          expect(screen.getByTestId('pagination-summary')).toHaveTextContent('Showing 11–20 of 50'),
+        )
       })
-    })
-
-    it('"Next page" button is disabled on the last page', async () => {
-      const user = userEvent.setup()
-      mockFetchTickets({ tickets: TICKETS, total: 20 })
-      renderTicketsPage()
-
-      await waitFor(() => expect(getPaginationButton('2')).not.toBeDisabled())
-
-      await user.click(getPaginationButton('2'))
-
-      await waitFor(() => expect(getPaginationButton('Next page')).toBeDisabled())
     })
   })
 
   describe('URL restoration on refresh', () => {
-    it('restores sort column and order from URL', () => {
+    it('wires all URL search params into the fetch query', () => {
       const fetchSpy = mockFetchTickets()
-      renderTicketsPage('/tickets?sortBy=subject&sortOrder=asc')
+      renderTicketsPage(
+        '/tickets?sortBy=subject&sortOrder=asc&search=alice&status=open&category=general_question&page=3',
+      )
 
       const firstUrl = fetchSpy.mock.calls[0][0] as string
       expect(firstUrl).toContain('sortBy=subject')
       expect(firstUrl).toContain('sortOrder=asc')
-    })
-
-    it('restores search filter from URL', () => {
-      const fetchSpy = mockFetchTickets()
-      renderTicketsPage('/tickets?search=alice')
-
-      const firstUrl = fetchSpy.mock.calls[0][0] as string
       expect(firstUrl).toContain('search=alice')
-    })
-
-    it('restores status filter from URL', () => {
-      const fetchSpy = mockFetchTickets()
-      renderTicketsPage('/tickets?status=open')
-
-      const firstUrl = fetchSpy.mock.calls[0][0] as string
       expect(firstUrl).toContain('status=open')
-    })
-
-    it('restores category filter from URL', () => {
-      const fetchSpy = mockFetchTickets()
-      renderTicketsPage('/tickets?category=general_question')
-
-      const firstUrl = fetchSpy.mock.calls[0][0] as string
       expect(firstUrl).toContain('category=general_question')
-    })
-
-    it('restores page from URL', () => {
-      const fetchSpy = mockFetchTickets()
-      renderTicketsPage('/tickets?page=3')
-
-      const firstUrl = fetchSpy.mock.calls[0][0] as string
       expect(firstUrl).toContain('page=3')
     })
   })

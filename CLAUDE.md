@@ -1,11 +1,13 @@
 # Helpdesk — Project Memory
 
 ## Overview
+
 AI-powered ticket management system. Customers submit issues via email; the system creates tickets automatically, classifies them, and uses Claude AI to generate responses. High-confidence responses are sent automatically; low-confidence tickets are escalated to a human agent.
 
 See `project-planning/` for full scope, tech stack decisions, and implementation plan.
 
 ## Tech Stack
+
 - **Runtime / package manager:** Bun
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (style: base-nova, neutral base color)
 - **Backend:** Express 5, TypeScript (run directly with Bun)
@@ -18,6 +20,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 - **Deployment:** Docker + cloud provider (TBD)
 
 ## Project Structure
+
 ```
 /
 ├── client/               # React frontend (Vite)
@@ -41,8 +44,8 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── TicketsFilters.tsx        # search input + status/category multi-selects
 │   │   │   │   ├── TicketsTable.tsx          # sortable table; clicking a row navigates to /tickets/:id
 │   │   │   │   ├── TicketDetailsSkeleton.tsx # skeleton loader shown while ticket details are fetching
-│   │   │   │   ├── TicketFieldsEditor.tsx    # inline status/category/agent selects for TicketDetailsPage; fetches agents internally
-│   │   │   │   ├── TicketSelectField.tsx     # single editable dl row (label + Select + error); owns loading/error state; exports TicketUpdateResult
+│   │   │   │   ├── TicketFieldsEditor.tsx    # status/category/agent TicketSelectFields for TicketDetailsPage; owns one useUpdateTicket mutation per field
+│   │   │   │   ├── TicketSelectField.tsx     # labeled Select + optional error message; props-driven, owns no mutation
 │   │   │   │   └── ticket-badges.ts          # TICKET_STATUS_BADGE map (variant + className); labels live in @helpdesk/core
 │   │   │   └── users/
 │   │   │       ├── UserForm.tsx           # create/edit dialog + form; exports FormState type (User type lives in @/types/user)
@@ -50,11 +53,14 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   ├── pages/
 │   │   │   ├── HomePage.tsx
 │   │   │   ├── LoginPage.tsx
-│   │   │   ├── TicketsPage.tsx        # /tickets — filter/sort/paginate tickets; state lives in URL search params via useTicketsUrlParams
-│   │   │   ├── TicketDetailsPage.tsx  # /tickets/:id — fetches and displays a single ticket; owns updateTicket (returns TicketUpdateResult)
+│   │   │   ├── TicketsPage.tsx        # /tickets — filter/sort/paginate tickets via useTickets; state lives in URL search params via useTicketsUrlParams
+│   │   │   ├── TicketDetailsPage.tsx  # /tickets/:id — fetches a single ticket via useTicket; field edits go through TicketFieldsEditor/useUpdateTicket
 │   │   │   └── UsersPage.tsx          # /users — admin only; fetches/creates/edits/deletes users via useUsers hooks
 │   │   ├── hooks/
-│   │   │   ├── useTicketsUrlParams.ts # reads/writes TicketsPage's sort/filters/page as URL search params; also exports buildUrlParams/appendFilterParams/TicketsParams used by TicketsPage's fetch query builder
+│   │   │   ├── useAgents.ts           # useAgents — TanStack Query hook fetching /users/agents, for assignment dropdowns
+│   │   │   ├── useTicket.ts           # useTicket(id) + useUpdateTicket(id); share a ticketQueryKey(id) builder so the mutation's direct cache write always targets the same key the query reads
+│   │   │   ├── useTickets.ts          # useTickets({ sort, filters, page }) — list query; builds its request query string via buildRequestQuery from useTicketsUrlParams
+│   │   │   ├── useTicketsUrlParams.ts # reads/writes TicketsPage's sort/filters/page as URL search params (useSearchParams); exports buildUrlQuery (omits values matching the defaults, for a clean shareable URL) and buildRequestQuery (always includes sortBy/sortOrder/page/pageSize, for the actual API call) — two different serializations of the same TicketsParams, built for different consumers
 │   │   │   └── useUsers.ts            # useUsers/useCreateUser/useUpdateUser/useDeleteUser — TanStack Query hooks; mutations write results directly into the query cache instead of invalidating
 │   │   ├── lib/
 │   │   │   ├── api-client.ts   # shared Axios instance (baseURL /api, withCredentials) + getErrorMessage(error, fallback)
@@ -110,6 +116,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 ```
 
 ## Dev Commands
+
 ```bash
 bun dev               # start both client and server in parallel
 bun client            # start client only  (http://localhost:5173)
@@ -122,6 +129,7 @@ bun test:e2e:debug    # run Playwright E2E tests in debug mode
 ```
 
 ## Authentication
+
 - **Library:** Better Auth — email/password only, sign-up disabled, HTTP-only cookie sessions
 - **Roles:** `UserRole` enum — `admin` | `agent`. Exposed via `additionalFields` in `server/src/lib/auth.ts`; typed on the client via `inferAdditionalFields<typeof auth>()` in `auth-client.ts`
 - **Client usage:** `authClient.signIn.email({ email, password })` to sign in; `authClient.useSession()` hook for session/role
@@ -130,7 +138,9 @@ bun test:e2e:debug    # run Playwright E2E tests in debug mode
 - **All authentication changes must be delegated to the `security-reviewer` agent** — it holds the complete auth context and security requirements
 
 ## Routing
+
 Route tree in `client/src/App.tsx`:
+
 ```
 /login                     → LoginPage (public)
 ProtectedRoute             → redirects to /login if no session
@@ -142,11 +152,13 @@ ProtectedRoute             → redirects to /login if no session
               └── /users   → UsersPage
 * → redirect to /
 ```
+
 - **ProtectedRoute** — checks `authClient.useSession()`; shows `<LoadingScreen />` while pending
 - **AdminRoute** — checks `session.user.role === 'admin'`; also shows `<LoadingScreen />` while pending (session resolves in ProtectedRoute first, but AdminRoute re-reads it for the role check)
 - **Layout** — owns the page shell (Navbar + main wrapper); page components only render their own content
 
 ## Shared Code (`core/`)
+
 Import via `@helpdesk/core` in either the client or server package.
 
 - **Schemas** — Zod schemas shared between client and server go in `core/src/schemas/` (one file per domain entity, e.g. `user.ts`), re-exported from `core/src/index.ts`.
@@ -173,59 +185,69 @@ Import via `@helpdesk/core` in either the client or server package.
   Never write the `safeParse` / `issues[0].message` block inline — always use this helper.
 
 - **`middleware.ts`** — `requireAuth` and `requireAdmin` Express middleware. Session is stored in `res.locals.session` after `requireAuth`.
-- 
+
 ## Express 5 Error Handling
+
 Express 5 automatically forwards errors thrown (or rejected promises) in async route handlers to the error-handling middleware — no `try/catch` needed in routes. Only catch explicitly when you need to distinguish error types or return a specific status (e.g. 404 vs 500). Never wrap an entire route body in `try/catch` just to return a 500.
 
 ## Tickets API
 
 ### `GET /api/tickets`
+
 Filter, sort, and paginate tickets. Auth required.
 
 **Query params**
-| Param | Type | Default | Notes |
-|---|---|---|---|
-| `sortBy` | `TicketSortColumn` | `createdAt` | `id`, `subject`, `fromName`, `status`, `category`, `createdAt` |
-| `sortOrder` | `asc` \| `desc` | `desc` | |
-| `search` | `string` | — | matches id, subject, fromName, fromEmail |
-| `status` | `TicketStatus[]` | `[]` | repeatable param |
-| `category` | `TicketCategory[]` | `[]` | repeatable param |
-| `page` | `number` | `1` | |
-| `pageSize` | `number` | `DEFAULT_PAGE_SIZE` | max 100 |
+
+| Param       | Type               | Default             | Notes                                                          |
+| ----------- | ------------------ | ------------------- | -------------------------------------------------------------- |
+| `sortBy`    | `TicketSortColumn` | `createdAt`         | `id`, `subject`, `fromName`, `status`, `category`, `createdAt` |
+| `sortOrder` | `asc` \| `desc`    | `desc`              |                                                                |
+| `search`    | `string`           | —                   | matches id, subject, fromName, fromEmail                       |
+| `status`    | `TicketStatus[]`   | `[]`                | repeatable param                                               |
+| `category`  | `TicketCategory[]` | `[]`                | repeatable param                                               |
+| `page`      | `number`           | `1`                 |                                                                |
+| `pageSize`  | `number`           | `DEFAULT_PAGE_SIZE` | max 100                                                        |
 
 **Response** `200` — `PaginatedTickets` (`{ tickets: Ticket[], total: number }`)
 
-> URL state in `TicketsPage` — all params are kept in URL search params via `useSearchParams`; defaults are omitted; any filter/sort change resets page to 1.
+> URL state in `TicketsPage` — all params are kept in URL search params via `useTicketsUrlParams` (`useSearchParams` underneath); defaults are omitted from the URL itself, but always sent explicitly to this endpoint via `useTickets`'s `buildRequestQuery`; any filter/sort change resets page to 1.
 
 ### `GET /api/tickets/:id`
+
 Fetch a single ticket by numeric ID. Auth required.
 
 **Path params**
-| Param | Type | Notes |
-|---|---|---|
-| `id` | `number` | must be a valid integer |
+
+| Param | Type     | Notes                   |
+| ----- | -------- | ----------------------- |
+| `id`  | `number` | must be a valid integer |
 
 **Response**
+
 - `200` — `TicketDetails` (`Ticket` + `body: string`, `htmlBody: string | null`, `assignedTo: AgentOption | null`, `updatedAt: string`)
 - `400` — invalid (non-integer) ID
 - `404` — ticket not found
 
 ### `PATCH /api/tickets/:id`
+
 Update a ticket's status, category, and/or assigned agent. All fields are optional; only provided fields are updated. Auth required.
 
 **Path params**
-| Param | Type | Notes |
-|---|---|---|
-| `id` | `number` | must be a valid integer |
+
+| Param | Type     | Notes                   |
+| ----- | -------- | ----------------------- |
+| `id`  | `number` | must be a valid integer |
 
 **Body** (`updateTicketSchema`)
-| Field | Type | Notes |
-|---|---|---|
-| `assignedToId` | `string \| null` | optional; must be a non-deleted agent; `null` to unassign |
-| `status` | `TicketStatus` | optional |
-| `category` | `TicketCategory \| null` | optional; `null` to clear |
+
+| Field          | Type                     | Notes                                                     |
+| -------------- | ------------------------ | --------------------------------------------------------- |
+| `assignedToId` | `string \| null`         | optional; must be a non-deleted agent; `null` to unassign |
+| `status`       | `TicketStatus`           | optional                                                  |
+| `category`     | `TicketCategory \| null` | optional; `null` to clear                                 |
 
 **Response**
+
 - `200` — full `TicketDetails` (same shape as `GET /api/tickets/:id`)
 - `400` — invalid ticket ID, invalid body, or `assignedToId` is not a valid agent
 - `404` — ticket not found
@@ -233,100 +255,123 @@ Update a ticket's status, category, and/or assigned agent. All fields are option
 ## Users API
 
 ### `GET /api/users/agents`
+
 List all non-deleted agents for assignment dropdowns. Auth required (any role).
 
 **Response** `200` — `AgentOption[]` (`{ id: string, name: string }[]`), ordered by name
 
 ### `GET /api/users`
+
 List all non-deleted users. Admin only.
 
 **Response** `200` — `{ id, name, email, role, createdAt }[]`, ordered by createdAt asc
 
 ### `POST /api/users`
+
 Create an agent account. Admin only.
 
 **Body** (`createUserSchema`) — `name`, `email`, `password`
 
 **Response**
+
 - `201` — created user `{ id, name, email, role, createdAt }`
 - `409` — email already exists
 
 ### `PATCH /api/users/:id`
+
 Edit a user's name, email, or password. Admin only.
 
 **Body** (`editUserSchema`) — `name`, `email`, optional `password`
 
 **Response**
+
 - `200` — updated user `{ id, name, email, role, createdAt }`
 - `404` — user not found
 - `409` — email already exists
 
 ### `DELETE /api/users/:id`
+
 Soft-delete a user (sets `deletedAt`). Admin only. Admins cannot be deleted.
 
 **Response**
+
 - `204` — success
 - `403` — target is an admin
 - `404` — user not found
 
-> All types and schemas (`AgentOption`, `TicketDetails`, `updateTicketSchema`, `createUserSchema`, `editUserSchema`, etc.) are exported from `@helpdesk/core`. `TicketUpdateResult` is exported from `client/src/components/tickets/TicketSelectField.tsx`.
+> All types and schemas (`AgentOption`, `TicketDetails`, `updateTicketSchema`, `createUserSchema`, `editUserSchema`, etc.) are exported from `@helpdesk/core`.
 
 ## UI Components
+
 - Add shadcn components with `bunx shadcn@latest add <component>` (run from `client/`)
 - Import using the `@/` alias: `import { Button } from '@/components/ui/button'`
 - Use `cn()` from `@/lib/cn` for conditional/merged class names
 - Tailwind tokens (`text-muted-foreground`, `text-destructive`, `bg-background`, etc.) are defined as CSS vars in `src/index.css` — prefer these over hard-coded colors
 
 ## Client Utilities (`client/src/lib/`)
+
 - **`cn(...inputs)`** (`lib/cn.ts`) — clsx + tailwind-merge helper for conditional class names
 - **`formatDate(date, format?)`** (`lib/format-date.ts`) — locale-aware date formatter. `format` is `'date'` (default, date only) or `'datetime'` (date + `HH:MM:SS`). Uses `en-US` locale with `toLocaleString`. Use `'datetime'` for ticket metadata (Received, Updated); `'date'` for table columns.
   ```ts
-  formatDate(ticket.createdAt)              // "Mar 15, 2024"
-  formatDate(ticket.updatedAt, 'datetime')  // "Mar 15, 2024, 10:00:00 AM"
+  formatDate(ticket.createdAt) // "Mar 15, 2024"
+  formatDate(ticket.updatedAt, 'datetime') // "Mar 15, 2024, 10:00:00 AM"
   ```
 
 ## Client Data Fetching
+
 - **TanStack Query + Axios** — all client API calls go through the shared `apiClient` (`client/src/lib/api-client.ts`, an Axios instance with `baseURL: '/api'` and `withCredentials: true`) inside `useQuery`/`useMutation` hooks. Never call `fetch()` directly from a component.
 - **One hooks file per domain entity** — e.g. `client/src/hooks/useUsers.ts` exports `useUsers` (query) plus `useCreateUser`/`useUpdateUser`/`useDeleteUser` (mutations).
 - **Direct cache writes over invalidation** — mutation `onSuccess` handlers write the result straight into the query cache with `queryClient.setQueryData(queryKey, updater)` (append for create, map for update, filter for delete) instead of calling `invalidateQueries()`. This avoids an extra refetch after every create/update/delete. See `useCreateUser`/`useUpdateUser`/`useDeleteUser` in `useUsers.ts` for the pattern. A `DELETE` mutation's `onSuccess` must derive the removed id from the mutation's variables (its second argument), not from `data` — `DELETE` responses have no body.
 - **`getErrorMessage(error, fallback)`** (`client/src/lib/api-client.ts`) — extracts a server-provided error string from an Axios error's response body, falling back to `fallback` otherwise. Returns `null` for falsy `error` input, so call sites can pass query/mutation `error` state directly (`getErrorMessage(error, '...')`) without a ternary.
 - **`queryClient`** (`client/src/lib/query-client.ts`) — single app-wide `QueryClient` instance, provided via `QueryClientProvider` in `main.tsx`. Query retries are capped at 1 (`defaultOptions.queries.retry: 1`) — TanStack Query's default (3 retries, exponential backoff) delays a failed query's `error` state by ~7s, which reads as a stuck loading skeleton before any error ever appears. This only affects `useQuery` reads (e.g. `useUsers`) — mutations (`useCreateUser`/`useUpdateUser`/`useDeleteUser`) have their own separate retry setting under `defaultOptions.mutations`, which is left at TanStack Query's default of `0`.
+- **Shared query-key builders** — when a query and a mutation both target the same cache entry (e.g. `useTicket`/`useUpdateTicket`), define the key once as a function (e.g. `ticketQueryKey(id)`) and reuse it in both places, rather than writing the key array literal twice. Otherwise the two can silently drift apart — the mutation's cache write stops matching what the query reads, with no error anywhere to point at why.
+- **Two serializations of the same params, for two different consumers** (`useTicketsUrlParams.ts`) — `buildUrlQuery` omits any field that matches its default, keeping the browser's address bar clean/shareable; `buildRequestQuery` always includes `sortBy`/`sortOrder`/`page`/`pageSize` regardless of defaults, since the API call needs an explicit, unambiguous request every time. Both delegate filter serialization (`search`/`status`/`category`) to the same shared `appendFiltersQuery` helper — filters are applied identically in both cases, only the sort/page fields differ in omission behavior between the two.
 
 ## Testing Strategy
+
 **Default to component (unit) tests. Use E2E tests only for flows that require a real browser, real auth session, or multi-step UI interactions that are impractical to unit-test** (e.g. full login flow, role-based redirects, cross-page workflows).
 
 For most new features — a new page, a new component, API fetch behaviour — write unit tests first. Only reach for E2E when the feature genuinely needs it.
 
 ## Unit Testing
+
 All unit test writing must be delegated to an agent — never write Vitest tests inline. Which agent depends on which side of the stack is under test:
+
 - **Client (React components/pages)** → `client-unit-test-writer`
 - **Server (Express middleware/routes/helpers)** → `server-unit-test-writer`
 
 Run all unit tests (client + server) with `bun test:unit`.
 
 ### Client unit tests
+
 The `client-unit-test-writer` agent owns all client unit testing knowledge: Vitest config, jsdom environment, mocking `apiClient` at the module boundary, `act()` warning patterns, selector strategy, and the setup file at `client/src/test-utils/setup.ts`.
 
 Key conventions owned by the agent:
+
 - Test files live next to the component: `UsersPage.tsx` → `UsersPage.test.tsx`
 - **Mocking `apiClient`** — call the bare `vi.mock('@/lib/api-client')` (no factory argument) at the top of the test file. Vitest auto-substitutes `client/src/lib/__mocks__/api-client.ts`, which replaces `get`/`post`/`patch`/`delete` with `vi.fn()` while re-exporting the real `getErrorMessage`. Do not pass an inline factory to `vi.mock()` here — a factory is hoisted above all imports in the file, so a factory that references an imported helper throws `ReferenceError: Cannot access '...' before initialization` at runtime.
-- **`mockResolved(fn, value)` / `mockRejected(fn, error)` / `mockReturn(fn, value)`** (`client/src/test-utils/mock-helpers.ts`) — use these instead of inline `vi.mocked(apiClient.get).mockResolvedValue(...)`-style calls. E.g. `mockResolved(apiClient.get, { data: USERS })`, `mockRejected(apiClient.post, { isAxiosError: true, response: { data: { error: '...' } } })`, `mockReturn(apiClient.get, new Promise(() => {}))` for a never-resolving mock in synchronous-state tests (avoids `act()` warnings).
+- **`mockResolved(fn, value)` / `mockRejected(fn, error)` / `mockReturn(fn, value)` / `mockPending(fn)`** (`client/src/test-utils/mock-helpers.ts`) — use these instead of inline `vi.mocked(apiClient.get).mockResolvedValue(...)`-style calls. E.g. `mockResolved(apiClient.get, { data: USERS })`, `mockRejected(apiClient.post, { isAxiosError: true, response: { data: { error: '...' } } })`, `mockPending(apiClient.get)` for a never-resolving mock in synchronous-state tests (avoids `act()` warnings).
 - **`renderWithQueryClient(ui)` / `renderHookWithQueryClient(renderCallback)`** (`client/src/test-utils/render-with-query-client.tsx`) — wrap RTL's `render`/`renderHook` with a fresh `QueryClient` (query retries disabled) inside a `QueryClientProvider`. Use these instead of RTL's `render`/`renderHook` directly for any component or hook that calls a TanStack Query hook. `renderHookWithQueryClient` also returns the `queryClient` instance so a test can seed (`queryClient.setQueryData(...)`) or inspect (`queryClient.getQueryData(...)`) cache state directly.
 - Put all assertions that depend on the same async state inside one `waitFor` callback
 - Do not add section-divider comments (e.g. `// --- Fixtures ---`, `// ---------- Helpers ----------`) — the code structure already communicates that
 - Shared fixtures live in `client/src/test-utils/fixtures.ts` — named ticket exports (`openTechnicalTicket`, `resolvedRefundTicket`, `closedTicket`, `openGeneralTicket`) plus a `TICKETS` array, and named user exports (`USERS`, `NEW_USER`). Use named exports in tests that need a specific combination to avoid `getByText` ambiguity; `closedTicket` has `category: null` and `assignedTo: { name: 'Dave Agent' }` (non-null) for this reason.
 - Date assertions use a regex (`/Mar 15, 2024/`) rather than an exact string to stay timezone-safe across environments
+- **Testing a `useSearchParams`-backed hook** (e.g. `useTicketsUrlParams`) — wrap the render helper's callback to call `useLocation()` alongside the hook under test and return both (`() => ({ hook: useHook(), location: useLocation() })`), wrapped in a `MemoryRouter`. Assert state-mutating behavior (e.g. omitting a default value from the URL) against `location.search` directly, not just the hook's own parsed-back return value — reading a parsed value back can't distinguish "the URL genuinely omitted this param" from "the URL has it, and it happens to equal the default," since both parse back identically.
+- **Seed test state through the hook's own real write path, not a shortcut** — e.g. prefer rendering with an empty URL and calling the hook's own setter to populate it, over passing a raw pre-built URL string straight into `MemoryRouter`'s `initialEntries`. The latter bypasses the hook entirely and tests parsing a URL shape that may never actually occur in the running app.
 
 ### Server unit tests
+
 The `server-unit-test-writer` agent owns all server unit testing knowledge: Vitest config (`node` environment, not jsdom), mocking local modules (`./auth`, `./prisma`) with `vi.mock`, hand-built Express `Request`/`Response`/`NextFunction` fakes, and env var handling via `server/.env.test`.
 
 Key conventions owned by the agent:
+
 - Test files live next to the source file: `middleware.ts` → `middleware.test.ts`
 - Never hit a real database or a real Better Auth session — mock at the module boundary with `vi.mock`
 - Restore any `process.env` mutation in `afterEach` so tests don't leak state into each other
 - Env vars a module needs at import time (e.g. `DATABASE_URL`, `BETTER_AUTH_SECRET`) go in `server/.env.test` (gitignored, dummy values only) — never hardcode them in `vitest.config.ts` or a test file
 
 ## E2E Testing
+
 Use sparingly — only when unit tests cannot cover the scenario. All e2e test writing must be delegated to the **`e2e-test-writer`** agent — never write Playwright tests inline.
 
 The agent owns all Playwright knowledge: test structure, selector strategy, auth helpers, global setup, env vars, ports, and the `helpdesk_test` database setup. Run tests with `bun test:e2e`.
@@ -334,6 +379,7 @@ The agent owns all Playwright knowledge: test structure, selector strategy, auth
 **Ports:** E2E tests run against a dedicated test server — client on `http://localhost:5174`, API server on `http://localhost:3001`. These differ from the dev ports (5173 / 3000). Always read the exact URLs from `process.env` (set in `.env.test`) rather than hardcoding.
 
 Key conventions the agent must follow:
+
 - Shared helpers live in `e2e/helpers.ts` — import `loginAsAdmin(page)` / `loginAsAgent(page)` instead of calling credentials manually; add new shared helpers there
 - Always read URLs, ports, secrets, and other environment-specific values from `process.env` — check `.env.test` for the available variables before hardcoding anything
 - Do not add section-divider comments (e.g. `// --- Route protection ---`) above `test.describe()` blocks — the describe label already serves that purpose
@@ -343,10 +389,12 @@ Key conventions the agent must follow:
 - `ticket-details.spec.ts` is structured to mirror the unit test file: single top-level `test.describe('TicketDetailsPage')` with nested `route protection`, `error states`, and `data rendering` (which contains `page header`, `ticket metadata → static metadata / metadata selectors`, and `conversation`)
 
 ## Code Style
+
 - Use full descriptive names for iterator variables — never single-letter shorthands like `s`, `c`, `i` (except `_` for ignored values). E.g. `.map(status => ...)`, `.filter(category => ...)`.
 - Use full descriptive names for function parameters — never abbreviated shorthands like `sp`, `req`, `res`, `cb`, `fn`, `e`. E.g. `searchParams` not `sp`, `event` not `e`.
 - Use full descriptive names for constants and local variables — avoid vague abbreviations. E.g. `FALLBACK_ERROR_MESSAGE` not `FALLBACK`.
 - When asserting or destructuring multiple fields sourced from the same object, keep them in the same order as that object's own property definition — easier to scan and diff against the source.
 
 ## Docs
+
 Always use **context7** to fetch up-to-date documentation before working with any library or framework — including Express, React, Prisma, Vite, Bun, shadcn/ui, and the Anthropic SDK. Do not rely on training data alone for API signatures or configuration options.

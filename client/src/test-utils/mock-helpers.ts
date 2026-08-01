@@ -11,3 +11,7 @@ export function mockRejected(fn: (...args: never[]) => unknown, error: unknown) 
 export function mockReturn(fn: (...args: never[]) => unknown, value: unknown) {
   vi.mocked(fn).mockReturnValue(value)
 }
+
+export function mockPending(fn: (...args: never[]) => unknown) {
+  mockReturn(fn, new Promise(() => {}))
+}

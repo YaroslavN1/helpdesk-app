@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { apiClient } from '@/lib/api-client'
 import { renderWithQueryClient } from '@/test-utils/render-with-query-client'
-import { mockResolved, mockRejected, mockReturn } from '@/test-utils/mock-helpers'
+import { mockResolved, mockRejected, mockPending } from '@/test-utils/mock-helpers'
 import { NEW_USER } from '@/test-utils/fixtures'
 import { UserForm } from './UserForm'
 
@@ -157,7 +157,7 @@ describe('UserForm', () => {
 
   describe('loading state', () => {
     it('shows "Creating…" on the submit button and disables Cancel while submitting', async () => {
-      mockReturn(apiClient.post, new Promise(() => {}))
+      mockPending(apiClient.post)
       const { user } = renderUserForm()
       await fillUserForm(user)
       await user.click(screen.getByRole('button', { name: 'Create user' }))

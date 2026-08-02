@@ -9,12 +9,7 @@ import {
   TICKET_CATEGORY_LABELS,
   type TicketsFilterCriteria,
 } from '@helpdesk/core'
-
-const ticketsDefaultFilters: TicketsFilterCriteria = {
-  search: '',
-  status: [],
-  category: [],
-}
+import { defaultFilters } from '@/hooks/useTicketsUrlParams'
 
 interface Props {
   filters: TicketsFilterCriteria
@@ -66,7 +61,7 @@ export function TicketsFilters({ filters, onFiltersChange, loading }: Props) {
         <Button
           variant="ghost"
           size="default"
-          onClick={() => onFiltersChange(ticketsDefaultFilters)}
+          onClick={() => onFiltersChange(defaultFilters)}
           disabled={loading}
         >
           <X className="h-3.5 w-3.5" />

@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { TicketSelectField } from '@/components/tickets/TicketSelectField'
 import { type SelectOption } from '@/components/ui/select'
-import { TicketSelectField, type TicketUpdateResult } from '@/components/tickets/TicketSelectField'
+import { useAgents } from '@/hooks/useAgents'
+import { useUpdateTicket } from '@/hooks/useTicket'
+import { getErrorMessage } from '@/lib/api-client'
 import {
   type TicketDetails,
   type AgentOption,
@@ -26,25 +28,22 @@ const CATEGORY_OPTIONS: SelectOption[] = [
 ]
 
 function mapAgentOptions(agents: AgentOption[]): SelectOption[] {
-  return [
-    { value: null, label: '—' },
-    ...agents.map((agent) => ({ value: agent.id, label: agent.name })),
-  ]
+  const defaultOption = { value: null, label: '—' }
+  return [defaultOption, ...agents.map((agent) => ({ value: agent.id, label: agent.name }))]
 }
 
 interface TicketFieldsEditorProps {
   ticket: TicketDetails
-  updateTicket: (body: Record<string, unknown>) => Promise<TicketUpdateResult>
 }
 
-export function TicketFieldsEditor({ ticket, updateTicket }: TicketFieldsEditorProps) {
-  const [agentOptions, setAgentOptions] = useState<SelectOption[]>([])
+export function TicketFieldsEditor({ ticket }: TicketFieldsEditorProps) {
+  const { data: agents } = useAgents()
+  const agentOptions = mapAgentOptions(agents ?? [])
+  const ticketId = String(ticket.id)
 
-  useEffect(() => {
-    fetch('/api/users/agents', { credentials: 'include' })
-      .then((response) => (response.ok ? (response.json() as Promise<AgentOption[]>) : []))
-      .then((agents) => setAgentOptions(mapAgentOptions(agents)))
-  }, [])
+  const updateStatus = useUpdateTicket(ticketId)
+  const updateCategory = useUpdateTicket(ticketId)
+  const updateAssignee = useUpdateTicket(ticketId)
 
   return (
     <>
@@ -52,8 +51,9 @@ export function TicketFieldsEditor({ ticket, updateTicket }: TicketFieldsEditorP
         label="Status"
         value={ticket.status}
         options={STATUS_OPTIONS}
-        updateTicket={updateTicket}
-        mapSelected={(value) => ({ status: value as TicketStatus })}
+        onValueChange={(value) => updateStatus.mutate({ status: value as TicketStatus })}
+        disabled={updateStatus.isPending}
+        error={getErrorMessage(updateStatus.error, 'Failed to update ticket')}
         className="h-7 w-36 text-sm"
         data-testid="status-select"
       />
@@ -61,8 +61,11 @@ export function TicketFieldsEditor({ ticket, updateTicket }: TicketFieldsEditorP
         label="Category"
         value={ticket.category}
         options={CATEGORY_OPTIONS}
-        updateTicket={updateTicket}
-        mapSelected={(value) => ({ category: value as TicketCategory | null })}
+        onValueChange={(value) =>
+          updateCategory.mutate({ category: value as TicketCategory | null })
+        }
+        disabled={updateCategory.isPending}
+        error={getErrorMessage(updateCategory.error, 'Failed to update ticket')}
         className="h-7 w-48 text-sm"
         data-testid="category-select"
       />
@@ -70,8 +73,9 @@ export function TicketFieldsEditor({ ticket, updateTicket }: TicketFieldsEditorP
         label="Assigned to"
         value={ticket.assignedTo?.id ?? null}
         options={agentOptions}
-        updateTicket={updateTicket}
-        mapSelected={(value) => ({ assignedToId: value })}
+        onValueChange={(value) => updateAssignee.mutate({ assignedToId: value })}
+        disabled={updateAssignee.isPending}
+        error={getErrorMessage(updateAssignee.error, 'Failed to update ticket')}
         className="h-7 w-48 text-sm"
         data-testid="assign-to-select"
       />

@@ -77,7 +77,7 @@ export function TicketsTable({ tickets, loading, error, sort, onSortChange }: Pr
           <TableBody>
             {loading &&
               Array.from({ length: 4 }).map((_, i) => (
-                <TableRow key={i}>
+                <TableRow key={i} data-testid="tickets-table-skeleton">
                   {SKELETON_CELLS.map((className, index) => (
                     <TableCell key={index}>
                       <Skeleton className={className} />

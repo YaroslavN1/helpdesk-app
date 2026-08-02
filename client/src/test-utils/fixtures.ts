@@ -1,4 +1,11 @@
-import { TicketStatus, TicketCategory, type Ticket } from '@helpdesk/core'
+import {
+  TicketStatus,
+  TicketCategory,
+  type Ticket,
+  type TicketDetails,
+  type AgentOption,
+  type PaginatedTickets,
+} from '@helpdesk/core'
 import { type User } from '@/types/user'
 
 export const openTechnicalTicket: Ticket = {
@@ -52,6 +59,16 @@ export const TICKETS: Ticket[] = [
   openGeneralTicket,
 ]
 
+export const PAGINATED_TICKETS: PaginatedTickets = { tickets: TICKETS, total: TICKETS.length }
+
+export const openTechnicalTicketDetails: TicketDetails = {
+  ...openTechnicalTicket,
+  assignedTo: { id: 'agent-1', name: 'Bob Agent' },
+  updatedAt: '2024-03-16T08:00:00.000Z',
+  body: 'Plain text body content.',
+  htmlBody: null,
+}
+
 export const USERS: User[] = [
   {
     id: '1',
@@ -76,3 +93,8 @@ export const NEW_USER: User = {
   role: 'agent',
   createdAt: '2024-06-01T00:00:00.000Z',
 }
+
+export const AGENTS: AgentOption[] = [
+  { id: 'agent-1', name: 'Bob Agent' },
+  { id: 'agent-2', name: 'Carol Agent' },
+]

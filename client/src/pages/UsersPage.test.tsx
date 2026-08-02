@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { apiClient } from '@/lib/api-client'
 import { renderWithQueryClient } from '@/test-utils/render-with-query-client'
-import { mockResolved, mockRejected, mockReturn } from '@/test-utils/mock-helpers'
+import { mockResolved, mockRejected, mockPending } from '@/test-utils/mock-helpers'
 import { USERS, NEW_USER } from '@/test-utils/fixtures'
 import UsersPage from './UsersPage'
 
@@ -25,14 +25,14 @@ beforeEach(() => {
 describe('UsersPage', () => {
   describe('loading state', () => {
     it('calls /users', () => {
-      mockReturn(apiClient.get, new Promise(() => {}))
+      mockPending(apiClient.get)
       renderWithQueryClient(<UsersPage />)
 
       expect(apiClient.get).toHaveBeenCalledWith('/users')
     })
 
     it('shows skeleton rows while loading', () => {
-      mockReturn(apiClient.get, new Promise(() => {}))
+      mockPending(apiClient.get)
       renderWithQueryClient(<UsersPage />)
 
       expect(document.querySelectorAll('tbody tr')).toHaveLength(4)
@@ -69,7 +69,7 @@ describe('UsersPage', () => {
     })
 
     it('renders the page heading', () => {
-      mockReturn(apiClient.get, new Promise(() => {}))
+      mockPending(apiClient.get)
       renderWithQueryClient(<UsersPage />)
       expect(screen.getByRole('heading', { name: 'Users' })).toBeInTheDocument()
     })

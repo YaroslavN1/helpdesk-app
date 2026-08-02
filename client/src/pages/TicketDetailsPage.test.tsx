@@ -5,26 +5,14 @@ import { MemoryRouter, Routes, Route } from 'react-router'
 import { apiClient } from '@/lib/api-client'
 import { renderWithQueryClient } from '@/test-utils/render-with-query-client'
 import { mockResolved, mockRejected, mockPending } from '@/test-utils/mock-helpers'
-import { AGENTS } from '@/test-utils/fixtures'
+import { AGENTS, openTechnicalTicketDetails } from '@/test-utils/fixtures'
 import TicketDetailsPage from './TicketDetailsPage'
 import { TicketStatus, TicketCategory, type TicketDetails } from '@helpdesk/core'
 
 // Mock shape lives in client/src/lib/__mocks__/api-client.ts (auto-used by Vitest)
 vi.mock('@/lib/api-client')
 
-const DEFAULT_TICKET: TicketDetails = {
-  id: 42,
-  fromEmail: 'alice@example.com',
-  fromName: 'Alice Smith',
-  subject: 'Cannot log in to my account',
-  status: TicketStatus.open,
-  category: TicketCategory.technical_question,
-  assignedTo: { id: 'agent-1', name: 'Bob Agent' },
-  createdAt: '2024-03-15T10:00:00.000Z',
-  updatedAt: '2024-03-16T08:00:00.000Z',
-  body: 'Plain text body content.',
-  htmlBody: null,
-}
+const DEFAULT_TICKET: TicketDetails = openTechnicalTicketDetails
 
 const TICKET_WITH_HTML_BODY: TicketDetails = {
   ...DEFAULT_TICKET,
@@ -62,7 +50,7 @@ function mockPatchTicket(patchTicket: TicketDetails) {
   mockResolved(apiClient.patch, { data: patchTicket })
 }
 
-function renderTicketDetailsPage(id: string | number = '42') {
+function renderTicketDetailsPage(id: string | number = '1') {
   return renderWithQueryClient(
     <MemoryRouter initialEntries={[`/tickets/${id}`]}>
       <Routes>
@@ -87,7 +75,7 @@ describe('TicketDetailsPage', () => {
       mockPending(apiClient.get)
       renderTicketDetailsPage()
 
-      expect(apiClient.get).toHaveBeenCalledWith('/tickets/42')
+      expect(apiClient.get).toHaveBeenCalledWith('/tickets/1')
     })
 
     it('shows the skeleton while fetch is pending', () => {
@@ -140,7 +128,7 @@ describe('TicketDetailsPage', () => {
 
       await waitFor(() => {
         expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument()
-        expect(screen.getByText('#42')).toBeInTheDocument()
+        expect(screen.getByText('#1')).toBeInTheDocument()
         expect(screen.getByText('Cannot log in to my account')).toBeInTheDocument()
       })
     })
@@ -199,7 +187,7 @@ describe('TicketDetailsPage', () => {
           await findAndClickOption(user, 'status-select', 'Resolved')
 
           await waitFor(() => {
-            expect(apiClient.patch).toHaveBeenCalledWith('/tickets/42', {
+            expect(apiClient.patch).toHaveBeenCalledWith('/tickets/1', {
               status: TicketStatus.resolved,
             })
             expect(screen.getByTestId('status-select')).toHaveTextContent('Resolved')
@@ -235,7 +223,7 @@ describe('TicketDetailsPage', () => {
           await findAndClickOption(user, 'category-select', 'General')
 
           await waitFor(() => {
-            expect(apiClient.patch).toHaveBeenCalledWith('/tickets/42', {
+            expect(apiClient.patch).toHaveBeenCalledWith('/tickets/1', {
               category: TicketCategory.general_question,
             })
             expect(screen.getByTestId('category-select')).toHaveTextContent('General')
@@ -251,7 +239,7 @@ describe('TicketDetailsPage', () => {
           await findAndClickOption(user, 'category-select', '—')
 
           await waitFor(() => {
-            expect(apiClient.patch).toHaveBeenCalledWith('/tickets/42', { category: null })
+            expect(apiClient.patch).toHaveBeenCalledWith('/tickets/1', { category: null })
             expect(screen.getByTestId('category-select')).not.toHaveTextContent('Technical')
           })
         })
@@ -286,7 +274,7 @@ describe('TicketDetailsPage', () => {
           await findAndClickOption(user, 'assign-to-select', DEFAULT_TICKET.assignedTo!.name)
 
           await waitFor(() => {
-            expect(apiClient.patch).toHaveBeenCalledWith('/tickets/42', {
+            expect(apiClient.patch).toHaveBeenCalledWith('/tickets/1', {
               assignedToId: DEFAULT_TICKET.assignedTo!.id,
             })
             expect(screen.getByTestId('assign-to-select')).toHaveTextContent(
@@ -304,7 +292,7 @@ describe('TicketDetailsPage', () => {
           await findAndClickOption(user, 'assign-to-select', '—')
 
           await waitFor(() => {
-            expect(apiClient.patch).toHaveBeenCalledWith('/tickets/42', { assignedToId: null })
+            expect(apiClient.patch).toHaveBeenCalledWith('/tickets/1', { assignedToId: null })
             expect(screen.getByTestId('assign-to-select')).toHaveTextContent('—')
           })
         })

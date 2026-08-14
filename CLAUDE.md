@@ -32,7 +32,8 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── multi-select.tsx       # generic multi-select dropdown (base-ui Menu)
 │   │   │   │   ├── pagination.tsx         # page nav with prev/next and ellipsis range
 │   │   │   │   ├── select.tsx             # single-value select (base-ui Select)
-│   │   │   │   └── sortable-head.tsx      # table <th> with asc/desc/unsorted icon
+│   │   │   │   ├── sortable-head.tsx      # table <th> with asc/desc/unsorted icon
+│   │   │   │   └── textarea.tsx           # native <textarea>, styled to match Input; no base-ui primitive for this one
 │   │   │   ├── layout/
 │   │   │   │   ├── Layout.tsx             # Navbar + <main> wrapper (Outlet)
 │   │   │   │   ├── LoadingScreen.tsx      # full-screen "Loading…" used by route guards and LoginPage
@@ -46,6 +47,9 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── TicketDetailsSkeleton.tsx # skeleton loader shown while ticket details are fetching
 │   │   │   │   ├── TicketFieldsEditor.tsx    # status/category/agent TicketSelectFields for TicketDetailsPage; owns one useUpdateTicket mutation per field
 │   │   │   │   ├── TicketSelectField.tsx     # labeled Select + optional error message; props-driven, owns no mutation
+│   │   │   │   ├── TicketHtmlBody.tsx        # auto-resizing sandboxed <iframe srcDoc> for an HTML message body; shared by TicketDetailsPage (ticket) and TicketReplies (each reply)
+│   │   │   │   ├── TicketReplies.tsx         # reply thread + form for TicketDetailsPage; owns useReplies/useCreateReply
+│   │   │   │   ├── TicketReplyForm.tsx       # compose box; props-driven, owns no mutation
 │   │   │   │   └── ticket-badges.ts          # TICKET_STATUS_BADGE map (variant + className); labels live in @helpdesk/core
 │   │   │   └── users/
 │   │   │       ├── UserForm.tsx           # create/edit dialog + form; exports FormState type (User type lives in @/types/user)
@@ -54,11 +58,12 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   ├── HomePage.tsx
 │   │   │   ├── LoginPage.tsx
 │   │   │   ├── TicketsPage.tsx        # /tickets — filter/sort/paginate tickets via useTickets; state lives in URL search params via useTicketsUrlParams
-│   │   │   ├── TicketDetailsPage.tsx  # /tickets/:id — fetches a single ticket via useTicket; field edits go through TicketFieldsEditor/useUpdateTicket
+│   │   │   ├── TicketDetailsPage.tsx  # /tickets/:id — fetches a single ticket via useTicket; field edits go through TicketFieldsEditor/useUpdateTicket; replies render via TicketReplies below the message
 │   │   │   └── UsersPage.tsx          # /users — admin only; fetches/creates/edits/deletes users via useUsers hooks
 │   │   ├── hooks/
 │   │   │   ├── useAgents.ts           # useAgents — TanStack Query hook fetching /users/agents, for assignment dropdowns
-│   │   │   ├── useTicket.ts           # useTicket(id) + useUpdateTicket(id); share a ticketQueryKey(id) builder so the mutation's direct cache write always targets the same key the query reads
+│   │   │   ├── useReplies.ts          # useReplies(ticketId) + useCreateReply(ticketId); create appends to its own cache and invalidates useTicket's ticketQueryKey (reply creation bumps the ticket's updatedAt server-side)
+│   │   │   ├── useTicket.ts           # useTicket(id) + useUpdateTicket(id); share a ticketQueryKey(id) builder so the mutation's direct cache write always targets the same key the query reads; ticketQueryKey is exported for useReplies.ts to reuse
 │   │   │   ├── useTickets.ts          # useTickets({ sort, filters, page }) — list query; builds its request query string via buildRequestQuery from useTicketsUrlParams
 │   │   │   ├── useTicketsUrlParams.ts # reads/writes TicketsPage's sort/filters/page as URL search params (useSearchParams); exports buildUrlQuery (omits values matching the defaults, for a clean shareable URL) and buildRequestQuery (always includes sortBy/sortOrder/page/pageSize, for the actual API call) — two different serializations of the same TicketsParams, built for different consumers
 │   │   │   └── useUsers.ts            # useUsers/useCreateUser/useUpdateUser/useDeleteUser — TanStack Query hooks; mutations write results directly into the query cache instead of invalidating
@@ -97,6 +102,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   ├── routes/
 │   │   │   ├── tickets/
 │   │   │   │   ├── index.ts           # assembles the router; router.param('id', ticketIdParam) is registered once here, shared by every :id route below
+│   │   │   │   ├── reply-routes.ts    # GET/POST /:id/replies — registerReplyRoutes(router) called from index.ts
 │   │   │   │   ├── ticket-id-param.ts # ticketIdParam — parses/loads the ticket once per :id request, 404s if missing, attaches the result to res.locals.ticket
 │   │   │   │   └── ticket-routes.ts   # GET /, GET /:id, PATCH /:id — registerTicketRoutes(router) called from index.ts
 │   │   │   ├── users.ts
@@ -169,6 +175,7 @@ Import via `@helpdesk/core` in either the client or server package.
 - **Types** — Shared domain/response types go in `core/src/types/` (one file per domain entity, e.g. `ticket.ts` — `Ticket`, `TicketDetails`, `AgentOption`, `PaginatedTickets`, `TicketsSortCriteria`, `TicketsFilterCriteria`), re-exported from `core/src/index.ts`.
 - **`UserRole` enum** — Always import from `@helpdesk/core`, never hardcode `'admin'` or `'agent'` strings. Used in client components, server routes, and `auth.ts`.
 - **`TICKET_STATUS_LABELS` / `TICKET_CATEGORY_LABELS`** — Human-readable label maps (`Record<TicketStatus | TicketCategory, string>`). Import from `@helpdesk/core` whenever you need to display a ticket status or category as text. Category labels are short: `'General'`, `'Technical'`, `'Refund'`.
+- **`SENDER_TYPE_LABELS`** — Same convention, for `SenderType` (`Record<SenderType, string>` — `'Agent'` / `'Customer'`). Import whenever displaying who sent a reply.
 
 ## Server Utilities (`server/src/lib/`)
 
@@ -255,6 +262,44 @@ Update a ticket's status, category, and/or assigned agent. All fields are option
 - `400` — invalid ticket ID, invalid body, or `assignedToId` is not a valid agent
 - `404` — ticket not found
 
+### `GET /api/tickets/:id/replies`
+
+List all replies for a ticket, ordered oldest first. Auth required.
+
+**Path params**
+
+| Param | Type     | Notes                   |
+| ----- | -------- | ----------------------- |
+| `id`  | `number` | must be a valid integer |
+
+**Response**
+
+- `200` — `Reply[]`, ordered by `createdAt` ascending
+- `400` — invalid (non-integer) ID
+- `404` — ticket not found
+
+### `POST /api/tickets/:id/replies`
+
+Add a reply to a ticket. Always created as `senderType: 'agent'`, authored by the authenticated session user — nothing currently creates a `'customer'`-sender reply; that value is provisioned in the schema for future use (e.g. threading follow-up customer emails) but no code path populates it yet. Creating a reply also bumps the parent ticket's `updatedAt` — both writes happen in the same Prisma `$transaction`, so the reply and the ticket's "last activity" timestamp change atomically (`data: {}` alone does **not** trigger `@updatedAt` in this Prisma setup — the field must be set explicitly, e.g. `updatedAt: new Date()`). Auth required.
+
+**Path params**
+
+| Param | Type     | Notes                   |
+| ----- | -------- | ----------------------- |
+| `id`  | `number` | must be a valid integer |
+
+**Body** (`createReplySchema`)
+
+| Field  | Type     | Notes               |
+| ------ | -------- | ------------------- |
+| `body` | `string` | required, non-empty |
+
+**Response**
+
+- `201` — created `Reply`
+- `400` — invalid ticket ID or invalid body
+- `404` — ticket not found
+
 ## Users API
 
 ### `GET /api/users/agents`
@@ -302,7 +347,7 @@ Soft-delete a user (sets `deletedAt`). Admin only. Admins cannot be deleted.
 - `403` — target is an admin
 - `404` — user not found
 
-> All types and schemas (`AgentOption`, `TicketDetails`, `updateTicketSchema`, `createUserSchema`, `editUserSchema`, etc.) are exported from `@helpdesk/core`.
+> All types and schemas (`AgentOption`, `TicketDetails`, `updateTicketSchema`, `createUserSchema`, `editUserSchema`, `Reply`, `createReplySchema`, etc.) are exported from `@helpdesk/core`.
 
 ## UI Components
 
@@ -328,6 +373,7 @@ Soft-delete a user (sets `deletedAt`). Admin only. Admins cannot be deleted.
 - **`getErrorMessage(error, fallback)`** (`client/src/lib/api-client.ts`) — extracts a server-provided error string from an Axios error's response body, falling back to `fallback` otherwise. Returns `null` for falsy `error` input, so call sites can pass query/mutation `error` state directly (`getErrorMessage(error, '...')`) without a ternary.
 - **`queryClient`** (`client/src/lib/query-client.ts`) — single app-wide `QueryClient` instance, provided via `QueryClientProvider` in `main.tsx`. Query retries are capped at 1 (`defaultOptions.queries.retry: 1`) — TanStack Query's default (3 retries, exponential backoff) delays a failed query's `error` state by ~7s, which reads as a stuck loading skeleton before any error ever appears. This only affects `useQuery` reads (e.g. `useUsers`) — mutations (`useCreateUser`/`useUpdateUser`/`useDeleteUser`) have their own separate retry setting under `defaultOptions.mutations`, which is left at TanStack Query's default of `0`.
 - **Shared query-key builders** — when a query and a mutation both target the same cache entry (e.g. `useTicket`/`useUpdateTicket`), define the key once as a function (e.g. `ticketQueryKey(id)`) and reuse it in both places, rather than writing the key array literal twice. Otherwise the two can silently drift apart — the mutation's cache write stops matching what the query reads, with no error anywhere to point at why.
+- **Cross-resource cache invalidation** — a mutation can affect a *different* resource's cache than the one it directly owns. `useCreateReply` (`useReplies.ts`) appends to its own `repliesQueryKey` cache directly (as above), but also calls `queryClient.invalidateQueries({ queryKey: ticketQueryKey(String(ticketId)) })`, since creating a reply also bumps the parent ticket's `updatedAt` server-side — without this, `useTicket`'s cached copy would stay stale until some unrelated refetch. `ticketQueryKey` is exported from `useTicket.ts` specifically so `useReplies.ts` can target the exact same cache entry instead of duplicating the key shape. The `String(ticketId)` conversion at that call site is intentional, not a bug — `useTicket`'s key is built from the route-param string, while `useReplies`/`useCreateReply`'s `ticketId` is a real number (matching `Reply.ticketId`'s actual type), so this is the one place those two representations have to be bridged.
 - **Two serializations of the same params, for two different consumers** (`useTicketsUrlParams.ts`) — `buildUrlQuery` omits any field that matches its default, keeping the browser's address bar clean/shareable; `buildRequestQuery` always includes `sortBy`/`sortOrder`/`page`/`pageSize` regardless of defaults, since the API call needs an explicit, unambiguous request every time. Both delegate filter serialization (`search`/`status`/`category`) to the same shared `appendFiltersQuery` helper — filters are applied identically in both cases, only the sort/page fields differ in omission behavior between the two.
 
 ## Testing Strategy
@@ -361,6 +407,7 @@ Key conventions owned by the agent:
 - Date assertions use a regex (`/Mar 15, 2024/`) rather than an exact string to stay timezone-safe across environments
 - **Testing a `useSearchParams`-backed hook** (e.g. `useTicketsUrlParams`) — wrap the render helper's callback to call `useLocation()` alongside the hook under test and return both (`() => ({ hook: useHook(), location: useLocation() })`), wrapped in a `MemoryRouter`. Assert state-mutating behavior (e.g. omitting a default value from the URL) against `location.search` directly, not just the hook's own parsed-back return value — reading a parsed value back can't distinguish "the URL genuinely omitted this param" from "the URL has it, and it happens to equal the default," since both parse back identically.
 - **Seed test state through the hook's own real write path, not a shortcut** — e.g. prefer rendering with an empty URL and calling the hook's own setter to populate it, over passing a raw pre-built URL string straight into `MemoryRouter`'s `initialEntries`. The latter bypasses the hook entirely and tests parsing a URL shape that may never actually occur in the running app.
+- **Testing cross-hook cache invalidation** (e.g. `useReplies.test.tsx`'s "refetches an active ticket query" test) — same multi-hook-render technique as the `useSearchParams` case above, applied to two TanStack Query hooks instead of a hook + router state: render both together in one callback (`() => ({ ticket: useTicket('1'), createReply: useCreateReply(1) })`) so the target query has a real active observer, then assert a *second* `apiClient` call happens after the mutation resolves. Asserting `invalidateQueries` was called is not sufficient — it's an implementation detail, and TanStack Query's default `refetchType: 'active'` means invalidating a query with no mounted observer is a no-op, so the only way to prove the invalidation → refetch chain actually fires is to mount the observer and watch for the resulting request.
 
 ### Server unit tests
 

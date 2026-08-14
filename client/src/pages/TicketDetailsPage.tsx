@@ -4,6 +4,7 @@ import { TicketFieldsEditor } from '@/components/tickets/TicketFieldsEditor'
 import { formatDate } from '@/lib/format-date'
 import { getErrorMessage } from '@/lib/api-client'
 import { useTicket } from '@/hooks/useTicket'
+import { TicketReplies } from '@/components/tickets/TicketReplies'
 
 export default function TicketDetailsPage() {
   const { id } = useParams<{ id: string }>()
@@ -64,6 +65,8 @@ export default function TicketDetailsPage() {
                   {ticket.body}
                 </div>
               )}
+
+              <TicketReplies ticketId={ticket.id} />
             </div>
 
             <dl className="space-y-2 text-sm">

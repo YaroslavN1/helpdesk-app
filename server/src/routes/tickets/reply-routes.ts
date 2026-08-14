@@ -1,10 +1,11 @@
 import { Router } from 'express'
+import { z } from 'zod'
 import { prisma } from '../../lib/prisma'
 import { requireAuth } from '../../lib/middleware'
 import { validate } from '../../lib/validate'
-import { SenderType, createReplySchema } from '@helpdesk/core'
+import { SenderType, createReplySchema, replySchema } from '@helpdesk/core'
 
-const ticketReplySelect = {
+const replySelect = {
   id: true,
   body: true,
   htmlBody: true,
@@ -14,14 +15,14 @@ const ticketReplySelect = {
 } as const
 
 export function registerReplyRoutes(router: Router) {
-  router.get('/:id/replies', requireAuth, async (req, res) => {
+  router.get('/:id/replies', requireAuth, async (_req, res) => {
     const replies = await prisma.reply.findMany({
       where: { ticketId: res.locals.ticket.id },
       orderBy: { createdAt: 'asc' },
-      select: ticketReplySelect,
+      select: replySelect,
     })
 
-    res.json(replies)
+    res.json(z.array(replySchema).parse(replies))
   })
 
   router.post('/:id/replies', requireAuth, async (req, res) => {
@@ -35,9 +36,9 @@ export function registerReplyRoutes(router: Router) {
         ticketId: res.locals.ticket.id,
         userId: res.locals.session.user.id,
       },
-      select: ticketReplySelect,
+      select: replySelect,
     })
 
-    res.status(201).json(createdReply)
+    res.status(201).json(replySchema.parse(createdReply))
   })
 }

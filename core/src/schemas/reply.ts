@@ -14,4 +14,4 @@ export const replySchema = z.object({
   createdAt: z.date().transform((date) => date.toISOString()),
   user: z.object({ id: z.string(), name: z.string() }).nullable(),
 })
-export type ReplySchema = z.infer<typeof replySchema>
+export type Reply = z.infer<typeof replySchema>

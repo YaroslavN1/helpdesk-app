@@ -6,12 +6,12 @@ import { mockResolved } from '@/test-utils/mock-helpers'
 import { useReplies, useCreateReply } from './useReplies'
 import { useTicket } from './useTicket'
 import { openTechnicalTicketDetails } from '@/test-utils/fixtures'
-import { SenderType, type ReplySchema } from '@helpdesk/core'
+import { SenderType, type Reply } from '@helpdesk/core'
 
 // Mock shape lives in client/src/lib/__mocks__/api-client.ts (auto-used by Vitest)
 vi.mock('@/lib/api-client')
 
-const CUSTOMER_REPLY: ReplySchema = {
+const CUSTOMER_REPLY: Reply = {
   id: 1,
   body: 'My printer is still broken.',
   htmlBody: null,
@@ -20,7 +20,7 @@ const CUSTOMER_REPLY: ReplySchema = {
   user: null,
 }
 
-const AGENT_REPLY: ReplySchema = {
+const AGENT_REPLY: Reply = {
   id: 2,
   body: 'Have you tried turning it off and on again?',
   htmlBody: '<p>Have you tried turning it off and on again?</p>',
@@ -29,7 +29,7 @@ const AGENT_REPLY: ReplySchema = {
   user: { id: 'agent-1', name: 'Bob Agent' },
 }
 
-const REPLIES: ReplySchema[] = [CUSTOMER_REPLY, AGENT_REPLY]
+const REPLIES: Reply[] = [CUSTOMER_REPLY, AGENT_REPLY]
 
 beforeEach(() => {
   vi.clearAllMocks()

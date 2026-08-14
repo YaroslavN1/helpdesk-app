@@ -3,7 +3,8 @@ import { SENDER_TYPE_LABELS } from '@helpdesk/core'
 import { useCreateReply, useReplies } from '@/hooks/useReplies'
 import { formatDate } from '@/lib/format-date'
 import { getErrorMessage } from '@/lib/api-client'
-import { TicketReplyForm } from './TicketReplyForm'
+import { TicketReplyForm } from '@/components/tickets/TicketReplyForm'
+import { TicketHtmlBody } from '@/components/tickets/TicketHtmlBody'
 
 interface TicketRepliesProps {
   ticketId: number | undefined
@@ -39,12 +40,7 @@ export function TicketReplies({ ticketId }: TicketRepliesProps) {
             <span>{formatDate(reply.createdAt, 'datetime')}</span>
           </div>
           {reply.htmlBody ? (
-            <iframe
-              srcDoc={reply.htmlBody}
-              sandbox="allow-same-origin"
-              className="w-full min-h-32 bg-white"
-              title="Reply body"
-            />
+            <TicketHtmlBody htmlBody={reply.htmlBody} iframeTitle="Reply body" />
           ) : (
             <div className="whitespace-pre-wrap pt-2 text-sm">{reply.body}</div>
           )}

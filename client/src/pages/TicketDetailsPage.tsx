@@ -5,6 +5,7 @@ import { formatDate } from '@/lib/format-date'
 import { getErrorMessage } from '@/lib/api-client'
 import { useTicket } from '@/hooks/useTicket'
 import { TicketReplies } from '@/components/tickets/TicketReplies'
+import { TicketHtmlBody } from '@/components/tickets/TicketHtmlBody'
 
 export default function TicketDetailsPage() {
   const { id } = useParams<{ id: string }>()
@@ -54,12 +55,7 @@ export default function TicketDetailsPage() {
               </dl>
 
               {ticket.htmlBody ? (
-                <iframe
-                  srcDoc={ticket.htmlBody}
-                  sandbox="allow-same-origin"
-                  className="w-full min-h-96 rounded-lg border bg-white shadow-md"
-                  title="Email body"
-                />
+                <TicketHtmlBody htmlBody={ticket.htmlBody} iframeTitle="Email body" />
               ) : (
                 <div className="whitespace-pre-wrap text-sm rounded-lg border p-4 bg-muted/30 shadow-md">
                   {ticket.body}

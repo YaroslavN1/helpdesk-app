@@ -16,7 +16,7 @@ export const ticketDetailSelect = {
 } as const
 
 export async function ticketIdParam(
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction,
   rawId: string,

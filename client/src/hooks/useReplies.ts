@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import type { ReplySchema } from '@helpdesk/core'
 import type { CreateReplyInput } from '@helpdesk/core'
+import { ticketQueryKey } from './useTicket'
 
 function repliesQueryKey(ticketId: number | undefined) {
   return ['ticket', ticketId, 'replies'] as const
@@ -31,6 +32,7 @@ export function useCreateReply(ticketId: number | undefined) {
         ...previousReplies,
         createdReply,
       ])
+      queryClient.invalidateQueries({ queryKey: ticketQueryKey(String(ticketId)) })
     },
   })
 }

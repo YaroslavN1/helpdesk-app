@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { type TicketDetails, type UpdateTicketInput } from '@helpdesk/core'
 
-function ticketQueryKey(id: string | undefined) {
+export function ticketQueryKey(id: string | undefined) {
   return ['ticket', id] as const
 }
 

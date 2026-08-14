@@ -29,15 +29,21 @@ export function registerReplyRoutes(router: Router) {
     const data = validate(createReplySchema, req.body, res)
     if (!data) return
 
-    const createdReply = await prisma.reply.create({
-      data: {
-        body: data.body,
-        senderType: SenderType.agent,
-        ticketId: res.locals.ticket.id,
-        userId: res.locals.session.user.id,
-      },
-      select: replySelect,
-    })
+    const [createdReply] = await prisma.$transaction([
+      prisma.reply.create({
+        data: {
+          body: data.body,
+          senderType: SenderType.agent,
+          ticketId: res.locals.ticket.id,
+          userId: res.locals.session.user.id,
+        },
+        select: replySelect,
+      }),
+      prisma.ticket.update({
+        where: { id: res.locals.ticket.id },
+        data: { updatedAt: new Date() },
+      }),
+    ])
 
     res.status(201).json(replySchema.parse(createdReply))
   })

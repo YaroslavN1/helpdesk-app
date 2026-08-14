@@ -4,6 +4,8 @@ import { apiClient } from '@/lib/api-client'
 import { renderHookWithQueryClient } from '@/test-utils/render-with-query-client'
 import { mockResolved } from '@/test-utils/mock-helpers'
 import { useReplies, useCreateReply } from './useReplies'
+import { useTicket } from './useTicket'
+import { openTechnicalTicketDetails } from '@/test-utils/fixtures'
 import { SenderType, type ReplySchema } from '@helpdesk/core'
 
 // Mock shape lives in client/src/lib/__mocks__/api-client.ts (auto-used by Vitest)
@@ -55,7 +57,19 @@ describe('useReplies', () => {
 })
 
 describe('useCreateReply', () => {
-  it('appends the created reply to the cached list with no follow-up GET', async () => {
+  it('appends first ever created reply (hooks default [] value assertion)', async () => {
+    mockResolved(apiClient.post, { data: CUSTOMER_REPLY })
+
+    const { result, queryClient } = renderHookWithQueryClient(() => useCreateReply(1))
+
+    await result.current.mutateAsync({ body: CUSTOMER_REPLY.body })
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(['ticket', 1, 'replies'])).toEqual([CUSTOMER_REPLY])
+    })
+  })
+
+  it('appends the created reply to the cached list without refetching the replies list', async () => {
     mockResolved(apiClient.post, { data: AGENT_REPLY })
 
     const { result, queryClient } = renderHookWithQueryClient(() => useCreateReply(1))
@@ -73,15 +87,21 @@ describe('useCreateReply', () => {
     expect(apiClient.get).not.toHaveBeenCalled()
   })
 
-  it('initializes the cache with just the created reply when no prior entry exists', async () => {
-    mockResolved(apiClient.post, { data: CUSTOMER_REPLY })
+  it('refetches an active ticket after reply created', async () => {
+    mockResolved(apiClient.get, { data: openTechnicalTicketDetails })
+    mockResolved(apiClient.post, { data: AGENT_REPLY })
 
-    const { result, queryClient } = renderHookWithQueryClient(() => useCreateReply(1))
+    const { result } = renderHookWithQueryClient(() => ({
+      ticket: useTicket('1'),
+      createReply: useCreateReply(1),
+    }))
 
-    await result.current.mutateAsync({ body: CUSTOMER_REPLY.body })
+    await waitFor(() => expect(result.current.ticket.data).toEqual(openTechnicalTicketDetails))
+    expect(apiClient.get).toHaveBeenCalledTimes(1)
 
-    await waitFor(() => {
-      expect(queryClient.getQueryData(['ticket', 1, 'replies'])).toEqual([CUSTOMER_REPLY])
-    })
+    await result.current.createReply.mutateAsync({ body: AGENT_REPLY.body })
+
+    await waitFor(() => expect(apiClient.get).toHaveBeenCalledTimes(2))
+    expect(apiClient.get).toHaveBeenNthCalledWith(2, '/tickets/1')
   })
 })

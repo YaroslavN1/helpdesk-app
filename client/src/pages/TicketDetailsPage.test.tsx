@@ -42,6 +42,7 @@ const TICKET_GENERAL_CATEGORY: TicketDetails = {
 function mockGetTicket(ticket: TicketDetails = DEFAULT_TICKET) {
   vi.mocked(apiClient.get).mockImplementation((url: string) => {
     if (url === '/users/agents') return Promise.resolve({ data: AGENTS })
+    if (url.endsWith('/replies')) return Promise.resolve({ data: [] })
     return Promise.resolve({ data: ticket })
   })
 }

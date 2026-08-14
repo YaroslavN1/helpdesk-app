@@ -98,15 +98,16 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   ├── auth.ts       # Better Auth config (Prisma adapter, additionalFields)
 │   │   │   ├── middleware.ts # requireAuth / requireAdmin Express middleware
 │   │   │   ├── prisma.ts
+│   │   │   ├── reply.ts      # createReply({ ticketId, body, htmlBody, senderType, userId }) — creates a Reply + bumps the ticket's updatedAt in one transaction; shared by reply-routes.ts (agent replies) and webhooks.ts (customer replies via inbound email)
 │   │   │   └── validate.ts   # validate(schema, body, res) — Zod validation helper for routes
 │   │   ├── routes/
 │   │   │   ├── tickets/
 │   │   │   │   ├── index.ts           # assembles the router; router.param('id', ticketIdParam) is registered once here, shared by every :id route below
-│   │   │   │   ├── reply-routes.ts    # GET/POST /:id/replies — registerReplyRoutes(router) called from index.ts
+│   │   │   │   ├── reply-routes.ts    # GET/POST /:id/replies — registerReplyRoutes(router) called from index.ts; POST delegates to lib/reply.ts's createReply
 │   │   │   │   ├── ticket-id-param.ts # ticketIdParam — parses/loads the ticket once per :id request, 404s if missing, attaches the result to res.locals.ticket
 │   │   │   │   └── ticket-routes.ts   # GET /, GET /:id, PATCH /:id — registerTicketRoutes(router) called from index.ts
 │   │   │   ├── users.ts
-│   │   │   └── webhooks.ts
+│   │   │   └── webhooks.ts    # POST /inbound-email — creates a Ticket, or attaches as a Reply (via createReply) to a matching open ticket from the same sender+subject if one exists
 │   │   └── index.ts
 │   └── tsconfig.json
 ├── e2e/                  # Playwright end-to-end tests
@@ -280,7 +281,7 @@ List all replies for a ticket, ordered oldest first. Auth required.
 
 ### `POST /api/tickets/:id/replies`
 
-Add a reply to a ticket. Always created as `senderType: 'agent'`, authored by the authenticated session user — nothing currently creates a `'customer'`-sender reply; that value is provisioned in the schema for future use (e.g. threading follow-up customer emails) but no code path populates it yet. Creating a reply also bumps the parent ticket's `updatedAt` — both writes happen in the same Prisma `$transaction`, so the reply and the ticket's "last activity" timestamp change atomically (`data: {}` alone does **not** trigger `@updatedAt` in this Prisma setup — the field must be set explicitly, e.g. `updatedAt: new Date()`). Auth required.
+Add a reply to a ticket. Always created as `senderType: 'agent'`, authored by the authenticated session user — this endpoint has no way to create a `'customer'`-sender reply; that only happens via `POST /api/webhooks/inbound-email` (see Webhooks API below). Creating a reply also bumps the parent ticket's `updatedAt` — both writes happen in the same Prisma `$transaction`, via the shared `createReply` helper (`server/src/lib/reply.ts`, also used by the inbound-email webhook), so the reply and the ticket's "last activity" timestamp change atomically (`data: {}` alone does **not** trigger `@updatedAt` in this Prisma setup — the field must be set explicitly, e.g. `updatedAt: new Date()`). Auth required.
 
 **Path params**
 
@@ -299,6 +300,33 @@ Add a reply to a ticket. Always created as `senderType: 'agent'`, authored by th
 - `201` — created `Reply`
 - `400` — invalid ticket ID or invalid body
 - `404` — ticket not found
+
+## Webhooks API
+
+### `POST /api/webhooks/inbound-email`
+
+Ingests an inbound email. Requires the `x-webhook-secret` header to match `WEBHOOK_SECRET` (`requireWebhookSecret` middleware).
+
+**Body** (`inboundEmailSchema`)
+
+| Field      | Type     | Notes                     |
+| ---------- | -------- | -------------------------- |
+| `from`     | `string` | valid email                |
+| `fromName` | `string` | required                   |
+| `subject`  | `string` | required                   |
+| `body`     | `string` | plain text, required       |
+| `htmlBody` | `string` | optional                   |
+
+**Behavior:** `subject` is run through `normalizeSubject()` first, which strips leading `Re:`/`Fwd:` prefixes (repeated, case-insensitive). The server then looks for an existing ticket from the same `fromEmail`, with the same normalized `subject` (case-insensitive), and `status: 'open'`:
+
+- **Match found** — the email is attached as a `Reply` (`senderType: 'customer'`, `userId: null`) via the shared `createReply` helper (`server/src/lib/reply.ts`), which also bumps the matched ticket's `updatedAt` in the same transaction. No new ticket is created.
+- **No match** — a new `Ticket` is created (`status: 'open'`), same as if this feature didn't exist. This also covers the case where a matching ticket exists but isn't `open` (e.g. already resolved) — a new ticket is started rather than reopening or appending to the old one.
+
+**Response**
+
+- `201` — either the created `Reply` or the created `Ticket`, depending on which branch fired. Neither response includes an explicit "kind" discriminator field — check for `senderType`'s presence to tell them apart if consuming this response programmatically.
+- `400` — invalid payload
+- `401` — missing or incorrect `x-webhook-secret`
 
 ## Users API
 

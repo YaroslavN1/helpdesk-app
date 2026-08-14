@@ -95,7 +95,10 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   ├── prisma.ts
 │   │   │   └── validate.ts   # validate(schema, body, res) — Zod validation helper for routes
 │   │   ├── routes/
-│   │   │   ├── tickets.ts
+│   │   │   ├── tickets/
+│   │   │   │   ├── index.ts           # assembles the router; router.param('id', ticketIdParam) is registered once here, shared by every :id route below
+│   │   │   │   ├── ticket-id-param.ts # ticketIdParam — parses/loads the ticket once per :id request, 404s if missing, attaches the result to res.locals.ticket
+│   │   │   │   └── ticket-routes.ts   # GET /, GET /:id, PATCH /:id — registerTicketRoutes(router) called from index.ts
 │   │   │   ├── users.ts
 │   │   │   └── webhooks.ts
 │   │   └── index.ts

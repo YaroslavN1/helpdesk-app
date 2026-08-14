@@ -17,6 +17,11 @@ enum UserRole {
   agent
 }
 
+enum SenderType {
+  agent
+  customer
+}
+
 enum TicketStatus {
   open
   resolved
@@ -42,6 +47,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   tickets       Ticket[]
+  replies       Reply[]
 
   @@unique([email])
   @@map("user")
@@ -108,9 +114,25 @@ model Ticket {
   assignedTo   User?           @relation(fields: [assignedToId], references: [id])
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+  replies      Reply[]
 
   @@index([status])
   @@index([createdAt])
   @@index([assignedToId])
   @@map("ticket")
+}
+
+model Reply {
+  id         Int        @id @default(autoincrement())
+  body       String
+  htmlBody   String?
+  senderType SenderType
+  ticketId   Int
+  ticket     Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId     String?
+  user       User?      @relation(fields: [userId], references: [id])
+  createdAt  DateTime   @default(now())
+
+  @@index([ticketId])
+  @@map("reply")
 }

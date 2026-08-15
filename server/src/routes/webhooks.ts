@@ -1,8 +1,9 @@
 import { Router } from 'express'
-import { inboundEmailSchema, TicketStatus } from '@helpdesk/core'
+import { inboundEmailSchema, replySchema, SenderType, TicketStatus } from '@helpdesk/core'
 import { prisma } from '../lib/prisma'
 import { requireWebhookSecret } from '../lib/middleware'
 import { validate } from '../lib/validate'
+import { createReply } from '../lib/reply'
 
 function normalizeSubject(subject: string): string {
   return subject.replace(/^((re|fwd?)\s*:\s*)+/i, '').trim()
@@ -17,7 +18,27 @@ router.post('/inbound-email', requireWebhookSecret, async (req, res) => {
   const { from, fromName, subject: rawSubject, body, htmlBody } = data
   const subject = normalizeSubject(rawSubject)
 
-  const ticket = await prisma.ticket.create({
+  const existingTicket = await prisma.ticket.findFirst({
+    where: {
+      fromEmail: from,
+      status: TicketStatus.open,
+      subject: { equals: subject, mode: 'insensitive' },
+    },
+  })
+
+  if (existingTicket) {
+    const createdReply = await createReply({
+      ticketId: existingTicket.id,
+      body,
+      htmlBody,
+      senderType: SenderType.customer,
+      userId: null,
+    })
+    res.status(201).json(replySchema.parse(createdReply))
+    return
+  }
+
+  const createdTicket = await prisma.ticket.create({
     data: {
       fromEmail: from,
       fromName,
@@ -27,7 +48,7 @@ router.post('/inbound-email', requireWebhookSecret, async (req, res) => {
       status: TicketStatus.open,
     },
   })
-  res.status(201).json(ticket)
+  res.status(201).json(createdTicket)
 })
 
 export default router

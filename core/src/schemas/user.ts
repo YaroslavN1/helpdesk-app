@@ -1,4 +1,14 @@
 import { z } from 'zod'
+import { UserRole } from '../constants/role'
+
+export const userSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  role: z.enum(UserRole),
+  createdAt: z.date().transform((date) => date.toISOString()),
+})
+export type User = z.infer<typeof userSchema>
 
 export const createUserSchema = z.object({
   name: z.string().trim().min(3, 'Name must be at least 3 characters'),
@@ -15,3 +25,6 @@ export const editUserSchema = z.object({
 })
 
 export type EditUserInput = z.infer<typeof editUserSchema>
+
+export const agentSchema = z.object({ id: z.string(), name: z.string() })
+export type Agent = z.infer<typeof agentSchema>

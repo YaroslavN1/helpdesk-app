@@ -26,7 +26,7 @@ interface Props {
   onOpenChange: (open: boolean) => void
 }
 
-const editUserSchema = z.object({
+const updateUserSchema = z.object({
   name: z.string().trim().min(3, 'Name must be at least 3 characters'),
   email: z.email('Valid email is required'),
   password: z.union([
@@ -48,7 +48,7 @@ export function UserForm({ form, onOpenChange }: Props) {
     clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    resolver: zodResolver(isEditing ? editUserSchema : createUserSchema),
+    resolver: zodResolver(isEditing ? updateUserSchema : createUserSchema),
   })
 
   useEffect(() => {

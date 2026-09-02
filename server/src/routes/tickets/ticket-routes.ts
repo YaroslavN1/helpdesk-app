@@ -100,7 +100,7 @@ export function registerTicketRoutes(router: Router) {
       }
     }
 
-    const updated = await prisma.ticket.update({
+    const updatedTicket = await prisma.ticket.update({
       where: { id: res.locals.ticket.id },
       data: {
         ...(assignedToId !== undefined && { assignedToId }),
@@ -110,6 +110,6 @@ export function registerTicketRoutes(router: Router) {
       select: ticketDetailSelect,
     })
 
-    res.json(ticketDetailsSchema.parse(updated))
+    res.json(ticketDetailsSchema.parse(updatedTicket))
   })
 }

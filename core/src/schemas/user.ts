@@ -15,16 +15,14 @@ export const createUserSchema = z.object({
   email: z.email('Valid email is required'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
 })
+export type CreateUser = z.infer<typeof createUserSchema>
 
-export type CreateUserInput = z.infer<typeof createUserSchema>
-
-export const editUserSchema = z.object({
+export const updateUserSchema = z.object({
   name: z.string().trim().min(3, 'Name must be at least 3 characters'),
   email: z.email('Valid email is required'),
   password: z.string().min(8, 'Password must be at least 8 characters').optional(),
 })
-
-export type EditUserInput = z.infer<typeof editUserSchema>
+export type UpdateUser = z.infer<typeof updateUserSchema>
 
 export const agentSchema = z.object({ id: z.string(), name: z.string() })
 export type Agent = z.infer<typeof agentSchema>

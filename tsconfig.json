@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "exclude": ["node_modules", "client", "server"]
+  "exclude": ["node_modules", "client", "server", "core"]
 }

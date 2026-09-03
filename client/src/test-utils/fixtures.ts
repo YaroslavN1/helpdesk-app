@@ -3,7 +3,7 @@ import {
   TicketCategory,
   type Ticket,
   type TicketDetails,
-  type AgentOption,
+  type Agent,
   type PaginatedTickets,
 } from '@helpdesk/core'
 import { type User } from '@/types/user'
@@ -94,7 +94,7 @@ export const NEW_USER: User = {
   createdAt: '2024-06-01T00:00:00.000Z',
 }
 
-export const AGENTS: AgentOption[] = [
+export const AGENTS: Agent[] = [
   { id: 'agent-1', name: 'Bob Agent' },
   { id: 'agent-2', name: 'Carol Agent' },
 ]

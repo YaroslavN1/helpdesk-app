@@ -6,11 +6,11 @@ import { getErrorMessage } from '@/lib/api-client'
 import { TicketReplyForm } from '@/components/ticket/TicketReplyForm'
 import { TicketHtmlBody } from '@/components/ticket/TicketHtmlBody'
 
-interface TicketRepliesProps {
+interface TicketReplyThreadProps {
   ticketId: number | undefined
 }
 
-export function TicketReplies({ ticketId }: TicketRepliesProps) {
+export function TicketReplyThread({ ticketId }: TicketReplyThreadProps) {
   const { data: replies, isLoading } = useReplies(ticketId)
   const createReply = useCreateReply(ticketId)
   const [body, setBody] = useState('')

@@ -1,6 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton'
 
-export function TicketDetailsSkeleton() {
+export function TicketPageSkeleton() {
   return (
     <div data-testid="ticket-detail-skeleton" className="space-y-4">
       <div className="space-y-2">

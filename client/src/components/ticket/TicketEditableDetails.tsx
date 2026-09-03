@@ -32,11 +32,11 @@ function mapAgentOptions(agents: Agent[]): SelectOption[] {
   return [defaultOption, ...agents.map((agent) => ({ value: agent.id, label: agent.name }))]
 }
 
-interface TicketFieldsEditorProps {
+interface TicketEditableDetailsProps {
   ticket: TicketDetails
 }
 
-export function TicketFieldsEditor({ ticket }: TicketFieldsEditorProps) {
+export function TicketEditableDetails({ ticket }: TicketEditableDetailsProps) {
   const { data: agents } = useAgents()
   const agentOptions = mapAgentOptions(agents ?? [])
   const ticketId = String(ticket.id)

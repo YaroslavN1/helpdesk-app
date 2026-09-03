@@ -1,13 +1,13 @@
 import { useParams, Link } from 'react-router'
-import { TicketDetailsSkeleton } from '@/components/ticket/TicketDetailsSkeleton'
-import { TicketFieldsEditor } from '@/components/ticket/TicketFieldsEditor'
+import { TicketPageSkeleton } from '@/components/ticket/TicketPageSkeleton'
+import { TicketEditableDetails } from '@/components/ticket/TicketEditableDetails'
 import { formatDate } from '@/lib/format-date'
 import { getErrorMessage } from '@/lib/api-client'
 import { useTicket } from '@/hooks/useTicket'
-import { TicketReplies } from '@/components/ticket/TicketReplies'
+import { TicketReplyThread } from '@/components/ticket/TicketReplyThread'
 import { TicketHtmlBody } from '@/components/ticket/TicketHtmlBody'
 
-export default function TicketDetailsPage() {
+export default function TicketPage() {
   const { id } = useParams<{ id: string }>()
   const { data: ticket, isPending, error } = useTicket(id)
 
@@ -20,7 +20,7 @@ export default function TicketDetailsPage() {
         ← Tickets
       </Link>
 
-      {isPending && <TicketDetailsSkeleton />}
+      {isPending && <TicketPageSkeleton />}
 
       {error && (
         <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
@@ -62,11 +62,11 @@ export default function TicketDetailsPage() {
                 </div>
               )}
 
-              <TicketReplies ticketId={ticket.id} />
+              <TicketReplyThread ticketId={ticket.id} />
             </div>
 
             <dl className="space-y-2 text-sm">
-              <TicketFieldsEditor ticket={ticket} />
+              <TicketEditableDetails ticket={ticket} />
             </dl>
           </div>
         </div>

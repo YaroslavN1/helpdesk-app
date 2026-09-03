@@ -6,7 +6,7 @@ import { apiClient } from '@/lib/api-client'
 import { renderWithQueryClient } from '@/test-utils/render-with-query-client'
 import { mockResolved, mockRejected, mockPending } from '@/test-utils/mock-helpers'
 import { AGENTS, openTechnicalTicketDetails } from '@/test-utils/fixtures'
-import TicketDetailsPage from './TicketDetailsPage'
+import TicketPage from './TicketPage'
 import { TicketStatus, TicketCategory, type TicketDetails } from '@helpdesk/core'
 
 // Mock shape lives in client/src/lib/__mocks__/api-client.ts (auto-used by Vitest)
@@ -51,11 +51,11 @@ function mockPatchTicket(patchTicket: TicketDetails) {
   mockResolved(apiClient.patch, { data: patchTicket })
 }
 
-function renderTicketDetailsPage(id: string | number = '1') {
+function renderTicketPage(id: string | number = '1') {
   return renderWithQueryClient(
     <MemoryRouter initialEntries={[`/tickets/${id}`]}>
       <Routes>
-        <Route path="/tickets/:id" element={<TicketDetailsPage />} />
+        <Route path="/tickets/:id" element={<TicketPage />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -70,25 +70,25 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('TicketDetailsPage', () => {
+describe('TicketPage', () => {
   describe('loading the data', () => {
     it('calls the correct API endpoint', () => {
       mockPending(apiClient.get)
-      renderTicketDetailsPage()
+      renderTicketPage()
 
       expect(apiClient.get).toHaveBeenCalledWith('/tickets/1')
     })
 
     it('shows the skeleton while fetch is pending', () => {
       mockPending(apiClient.get)
-      renderTicketDetailsPage()
+      renderTicketPage()
 
       expect(screen.getByTestId('ticket-detail-skeleton')).toBeInTheDocument()
     })
 
     it('does not show an error while fetch is pending', () => {
       mockPending(apiClient.get)
-      renderTicketDetailsPage()
+      renderTicketPage()
 
       expect(screen.queryByText('Failed to load ticket')).not.toBeInTheDocument()
       expect(screen.queryByText('Ticket not found')).not.toBeInTheDocument()
@@ -96,7 +96,7 @@ describe('TicketDetailsPage', () => {
 
     it('shows an error when the fetch fails', async () => {
       mockRejected(apiClient.get, { isAxiosError: true, response: undefined })
-      renderTicketDetailsPage()
+      renderTicketPage()
 
       await waitFor(() => expect(screen.getByText('Failed to load ticket')).toBeInTheDocument())
       expect(screen.queryByRole('heading')).not.toBeInTheDocument()
@@ -107,7 +107,7 @@ describe('TicketDetailsPage', () => {
         isAxiosError: true,
         response: { status: 404, data: { error: 'Ticket not found' } },
       })
-      renderTicketDetailsPage()
+      renderTicketPage()
 
       await waitFor(() => expect(screen.getByText('Ticket not found')).toBeInTheDocument())
     })
@@ -116,7 +116,7 @@ describe('TicketDetailsPage', () => {
   describe('page header', () => {
     it('renders the back link to /tickets', () => {
       mockPending(apiClient.get)
-      renderTicketDetailsPage()
+      renderTicketPage()
 
       const backLink = screen.getByRole('link', { name: '← Tickets' })
       expect(backLink).toBeInTheDocument()
@@ -125,7 +125,7 @@ describe('TicketDetailsPage', () => {
 
     it('renders subject with #id prefix', async () => {
       mockGetTicket()
-      renderTicketDetailsPage()
+      renderTicketPage()
 
       await waitFor(() => {
         expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument()
@@ -139,7 +139,7 @@ describe('TicketDetailsPage', () => {
     describe('static metadata', () => {
       it('renders the sender name and email', async () => {
         mockGetTicket()
-        renderTicketDetailsPage()
+        renderTicketPage()
 
         await waitFor(() => {
           expect(screen.getByText('From')).toBeInTheDocument()
@@ -149,7 +149,7 @@ describe('TicketDetailsPage', () => {
 
       it('renders the received date', async () => {
         mockGetTicket()
-        renderTicketDetailsPage()
+        renderTicketPage()
 
         await waitFor(() => {
           expect(screen.getByText('Received')).toBeInTheDocument()
@@ -159,7 +159,7 @@ describe('TicketDetailsPage', () => {
 
       it('renders the updated date', async () => {
         mockGetTicket()
-        renderTicketDetailsPage()
+        renderTicketPage()
 
         await waitFor(() => {
           expect(screen.getByText('Updated')).toBeInTheDocument()
@@ -172,7 +172,7 @@ describe('TicketDetailsPage', () => {
       describe('status', () => {
         it('renders the current value', async () => {
           mockGetTicket()
-          renderTicketDetailsPage()
+          renderTicketPage()
 
           await waitFor(() => {
             expect(screen.getByTestId('status-select')).toHaveTextContent('Open')
@@ -183,7 +183,7 @@ describe('TicketDetailsPage', () => {
           const user = userEvent.setup()
           mockGetTicket()
           mockPatchTicket(TICKET_RESOLVED_STATUS)
-          renderTicketDetailsPage()
+          renderTicketPage()
           await screen.findByTestId('status-select')
           await findAndClickOption(user, 'status-select', 'Resolved')
 
@@ -199,7 +199,7 @@ describe('TicketDetailsPage', () => {
       describe('category', () => {
         it('renders the current value', async () => {
           mockGetTicket()
-          renderTicketDetailsPage()
+          renderTicketPage()
 
           await waitFor(() => {
             expect(screen.getByTestId('category-select')).toHaveTextContent('Technical')
@@ -208,7 +208,7 @@ describe('TicketDetailsPage', () => {
 
         it('shows "—" when category is null', async () => {
           mockGetTicket(TICKET_NO_CATEGORY)
-          renderTicketDetailsPage()
+          renderTicketPage()
 
           await waitFor(() => {
             expect(screen.getByTestId('category-select')).toHaveTextContent('—')
@@ -219,7 +219,7 @@ describe('TicketDetailsPage', () => {
           const user = userEvent.setup()
           mockGetTicket()
           mockPatchTicket(TICKET_GENERAL_CATEGORY)
-          renderTicketDetailsPage()
+          renderTicketPage()
           await screen.findByTestId('category-select')
           await findAndClickOption(user, 'category-select', 'General')
 
@@ -235,7 +235,7 @@ describe('TicketDetailsPage', () => {
           const user = userEvent.setup()
           mockGetTicket()
           mockPatchTicket(TICKET_NO_CATEGORY)
-          renderTicketDetailsPage()
+          renderTicketPage()
           await screen.findByTestId('category-select')
           await findAndClickOption(user, 'category-select', '—')
 
@@ -249,7 +249,7 @@ describe('TicketDetailsPage', () => {
       describe('assigned to', () => {
         it('renders the assigned agent name', async () => {
           mockGetTicket()
-          renderTicketDetailsPage()
+          renderTicketPage()
 
           await waitFor(() => {
             expect(screen.getByText('Assigned to')).toBeInTheDocument()
@@ -259,7 +259,7 @@ describe('TicketDetailsPage', () => {
 
         it('shows "—" when no agent is assigned', async () => {
           mockGetTicket(TICKET_NO_ASSIGNED)
-          renderTicketDetailsPage()
+          renderTicketPage()
 
           await waitFor(() => {
             expect(screen.getByTestId('assign-to-select')).toHaveTextContent('—')
@@ -270,7 +270,7 @@ describe('TicketDetailsPage', () => {
           const user = userEvent.setup()
           mockGetTicket(TICKET_NO_ASSIGNED)
           mockPatchTicket(DEFAULT_TICKET)
-          renderTicketDetailsPage()
+          renderTicketPage()
           await screen.findByTestId('assign-to-select')
           await findAndClickOption(user, 'assign-to-select', DEFAULT_TICKET.assignedTo!.name)
 
@@ -288,7 +288,7 @@ describe('TicketDetailsPage', () => {
           const user = userEvent.setup()
           mockGetTicket()
           mockPatchTicket(TICKET_NO_ASSIGNED)
-          renderTicketDetailsPage()
+          renderTicketPage()
           await screen.findByTestId('assign-to-select')
           await findAndClickOption(user, 'assign-to-select', '—')
 
@@ -303,7 +303,7 @@ describe('TicketDetailsPage', () => {
         const user = userEvent.setup()
         mockGetTicket()
         mockRejected(apiClient.patch, { isAxiosError: true, response: undefined })
-        renderTicketDetailsPage()
+        renderTicketPage()
         await screen.findByTestId('assign-to-select')
         await findAndClickOption(user, 'assign-to-select', 'Carol Agent')
 
@@ -315,7 +315,7 @@ describe('TicketDetailsPage', () => {
   describe('conversation', () => {
     it('renders the plain text body when htmlBody is null', async () => {
       mockGetTicket()
-      renderTicketDetailsPage()
+      renderTicketPage()
 
       await waitFor(() => {
         expect(screen.getByText('Plain text body content.')).toBeInTheDocument()
@@ -325,7 +325,7 @@ describe('TicketDetailsPage', () => {
 
     it('renders an iframe when htmlBody is present', async () => {
       mockGetTicket(TICKET_WITH_HTML_BODY)
-      renderTicketDetailsPage()
+      renderTicketPage()
 
       await waitFor(() => {
         const iframe = document.querySelector('iframe')
@@ -337,7 +337,7 @@ describe('TicketDetailsPage', () => {
 
     it('does not render the plain text body when htmlBody is present', async () => {
       mockGetTicket(TICKET_WITH_HTML_BODY)
-      renderTicketDetailsPage()
+      renderTicketPage()
 
       await waitFor(() => {
         expect(document.querySelector('iframe')).toBeInTheDocument()

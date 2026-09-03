@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { TICKET_STATUSES, TICKET_CATEGORIES } from '../constants/ticket'
+import { agentSchema } from './user'
 
 export const inboundEmailSchema = z.object({
   from: z.email('Valid sender email is required'),
@@ -18,3 +19,29 @@ export const updateTicketSchema = z.object({
 })
 
 export type UpdateTicketInput = z.infer<typeof updateTicketSchema>
+
+export const ticketSchema = z.object({
+  id: z.number(),
+  fromEmail: z.string(),
+  fromName: z.string(),
+  subject: z.string(),
+  status: z.enum(TICKET_STATUSES),
+  category: z.enum(TICKET_CATEGORIES).nullable(),
+  assignedTo: z.object({ name: z.string() }).nullable(),
+  createdAt: z.date().transform((date) => date.toISOString()),
+})
+export type Ticket = z.infer<typeof ticketSchema>
+
+export const ticketDetailsSchema = ticketSchema.extend({
+  body: z.string(),
+  htmlBody: z.string().nullable(),
+  assignedTo: agentSchema.nullable(),
+  updatedAt: z.date().transform((date) => date.toISOString()),
+})
+export type TicketDetails = z.infer<typeof ticketDetailsSchema>
+
+export const paginatedTicketsSchema = z.object({
+  tickets: z.array(ticketSchema),
+  total: z.number(),
+})
+export type PaginatedTickets = z.infer<typeof paginatedTicketsSchema>

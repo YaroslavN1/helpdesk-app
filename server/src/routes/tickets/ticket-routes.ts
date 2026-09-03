@@ -13,6 +13,8 @@ import {
   TICKET_CATEGORIES,
   UserRole,
   updateTicketSchema,
+  ticketDetailsSchema,
+  paginatedTicketsSchema,
   type TicketStatus,
   type TicketCategory,
 } from '@helpdesk/core'
@@ -75,11 +77,11 @@ export function registerTicketRoutes(router: Router) {
       }),
       prisma.ticket.count({ where }),
     ])
-    res.json({ tickets, total })
+    res.json(paginatedTicketsSchema.parse({ tickets, total }))
   })
 
   router.get('/:id', requireAuth, async (_req, res) => {
-    res.json(res.locals.ticket)
+    res.json(ticketDetailsSchema.parse(res.locals.ticket))
   })
 
   router.patch('/:id', requireAuth, async (req, res) => {
@@ -98,7 +100,7 @@ export function registerTicketRoutes(router: Router) {
       }
     }
 
-    const updated = await prisma.ticket.update({
+    const updatedTicket = await prisma.ticket.update({
       where: { id: res.locals.ticket.id },
       data: {
         ...(assignedToId !== undefined && { assignedToId }),
@@ -108,6 +110,6 @@ export function registerTicketRoutes(router: Router) {
       select: ticketDetailSelect,
     })
 
-    res.json(updated)
+    res.json(ticketDetailsSchema.parse(updatedTicket))
   })
 }

@@ -85,7 +85,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   └── src/
 │       ├── constants/      # Shared constants (e.g. role.ts — UserRole enum)
 │       ├── schemas/        # Zod schemas (one file per domain entity, e.g. user.ts)
-│       ├── types/          # Shared domain/response types (e.g. ticket.ts — Ticket, TicketDetails, AgentOption)
+│       ├── types/          # Shared plain (non-schema) types (e.g. ticket.ts — TicketsSortCriteria, TicketsFilterCriteria)
 │       └── index.ts        # re-exports everything from schemas/, constants/, and types/
 ├── server/               # Express backend
 │   ├── prisma/
@@ -171,9 +171,9 @@ ProtectedRoute             → redirects to /login if no session
 
 Import via `@helpdesk/core` in either the client or server package.
 
-- **Schemas** — Zod schemas shared between client and server go in `core/src/schemas/` (one file per domain entity, e.g. `user.ts`), re-exported from `core/src/index.ts`.
+- **Schemas** — Zod schemas shared between client and server go in `core/src/schemas/` (one file per domain entity, e.g. `user.ts`, `ticket.ts`), re-exported from `core/src/index.ts`. This includes both request schemas (e.g. `createUserSchema`, `updateTicketSchema`) and response schemas (e.g. `userSchema`, `agentSchema`, `ticketSchema`, `ticketDetailsSchema`, `paginatedTicketsSchema`) — every type that models a domain entity or API payload is defined as a Zod schema first, with its TypeScript type derived via `z.infer<typeof theSchema>`, rather than hand-written as a plain type. A schema can extend another (e.g. `ticketDetailsSchema = ticketSchema.extend({ ... })`) and reference another domain's schema (e.g. `ticketDetailsSchema`'s `assignedTo` field reuses `agentSchema` from `user.ts`) instead of duplicating shape.
 - **Constants** — Shared constants/enums go in `core/src/constants/` (one file per domain, e.g. `role.ts`), re-exported from `core/src/index.ts`. Keep this to actual constants/enums — plain data-shape types belong in `types/`.
-- **Types** — Shared domain/response types go in `core/src/types/` (one file per domain entity, e.g. `ticket.ts` — `Ticket`, `TicketDetails`, `AgentOption`, `PaginatedTickets`, `TicketsSortCriteria`, `TicketsFilterCriteria`), re-exported from `core/src/index.ts`.
+- **Types** — `core/src/types/` is only for plain types that aren't validated at a boundary (e.g. `ticket.ts` — `TicketsSortCriteria`, `TicketsFilterCriteria`, which describe client-side URL/query state, not a request or response payload), re-exported from `core/src/index.ts`. Anything representing a request or response payload belongs in `schemas/` as a Zod schema instead (see above).
 - **`UserRole` enum** — Always import from `@helpdesk/core`, never hardcode `'admin'` or `'agent'` strings. Used in client components, server routes, and `auth.ts`.
 - **`TICKET_STATUS_LABELS` / `TICKET_CATEGORY_LABELS`** — Human-readable label maps (`Record<TicketStatus | TicketCategory, string>`). Import from `@helpdesk/core` whenever you need to display a ticket status or category as text. Category labels are short: `'General'`, `'Technical'`, `'Refund'`.
 - **`SENDER_TYPE_LABELS`** — Same convention, for `SenderType` (`Record<SenderType, string>` — `'Agent'` / `'Customer'`). Import whenever displaying who sent a reply.
@@ -196,6 +196,10 @@ Import via `@helpdesk/core` in either the client or server package.
   Never write the `safeParse` / `issues[0].message` block inline — always use this helper.
 
 - **`middleware.ts`** — `requireAuth` and `requireAdmin` Express middleware. Session is stored in `res.locals.session` after `requireAuth`.
+
+## Response Validation
+
+Every route response body is validated on the way out, not just request input: call the matching response schema's `.parse()` (or `z.array(schema).parse()` for a list) on the data right before `res.json(...)`, e.g. `res.json(ticketDetailsSchema.parse(updatedTicket))` or `res.status(201).json(userSchema.parse(user))`. This catches drift between a Prisma query's actual shape and the documented API response shape (e.g. a missing `include`/`select` field) at the point the bug is introduced, instead of surfacing as a silent shape mismatch on the client. Response schemas live in `core/src/schemas/` alongside request schemas (see Shared Code section above) — reuse the same schema a route's JSDoc-equivalent response type is documented as returning; don't hand-roll a one-off inline schema in the route file.
 
 ## Express 5 Error Handling
 
@@ -235,7 +239,7 @@ Fetch a single ticket by numeric ID. Auth required.
 
 **Response**
 
-- `200` — `TicketDetails` (`Ticket` + `body: string`, `htmlBody: string | null`, `assignedTo: AgentOption | null`, `updatedAt: string`)
+- `200` — `TicketDetails` (`Ticket` + `body: string`, `htmlBody: string | null`, `assignedTo: Agent | null`, `updatedAt: string`)
 - `400` — invalid (non-integer) ID
 - `404` — ticket not found
 
@@ -324,7 +328,7 @@ Ingests an inbound email. Requires the `x-webhook-secret` header to match `WEBHO
 
 **Response**
 
-- `201` — either the created `Reply` or the created `Ticket`, depending on which branch fired. Neither response includes an explicit "kind" discriminator field — check for `senderType`'s presence to tell them apart if consuming this response programmatically.
+- `201` — either the created `Reply` or the created `Ticket` (validated against `ticketSchema`, so the `assignedTo: { name }` field is included even though a freshly-created ticket is always unassigned), depending on which branch fired. Neither response includes an explicit "kind" discriminator field — check for `senderType`'s presence to tell them apart if consuming this response programmatically.
 - `400` — invalid payload
 - `401` — missing or incorrect `x-webhook-secret`
 
@@ -334,7 +338,7 @@ Ingests an inbound email. Requires the `x-webhook-secret` header to match `WEBHO
 
 List all non-deleted agents for assignment dropdowns. Auth required (any role).
 
-**Response** `200` — `AgentOption[]` (`{ id: string, name: string }[]`), ordered by name
+**Response** `200` — `Agent[]` (`{ id: string, name: string }[]`), ordered by name
 
 ### `GET /api/users`
 
@@ -357,7 +361,7 @@ Create an agent account. Admin only.
 
 Edit a user's name, email, or password. Admin only.
 
-**Body** (`editUserSchema`) — `name`, `email`, optional `password`
+**Body** (`updateUserSchema`) — `name`, `email`, optional `password`
 
 **Response**
 
@@ -375,7 +379,7 @@ Soft-delete a user (sets `deletedAt`). Admin only. Admins cannot be deleted.
 - `403` — target is an admin
 - `404` — user not found
 
-> All types and schemas (`AgentOption`, `TicketDetails`, `updateTicketSchema`, `createUserSchema`, `editUserSchema`, `Reply`, `createReplySchema`, etc.) are exported from `@helpdesk/core`.
+> All types and schemas (`Agent`, `TicketDetails`, `updateTicketSchema`, `createUserSchema`, `updateUserSchema`, `Reply`, `createReplySchema`, etc.) are exported from `@helpdesk/core`.
 
 ## UI Components
 

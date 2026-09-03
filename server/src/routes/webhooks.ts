@@ -1,5 +1,11 @@
 import { Router } from 'express'
-import { inboundEmailSchema, replySchema, SenderType, TicketStatus } from '@helpdesk/core'
+import {
+  inboundEmailSchema,
+  replySchema,
+  ticketSchema,
+  SenderType,
+  TicketStatus,
+} from '@helpdesk/core'
 import { prisma } from '../lib/prisma'
 import { requireWebhookSecret } from '../lib/middleware'
 import { validate } from '../lib/validate'
@@ -47,8 +53,9 @@ router.post('/inbound-email', requireWebhookSecret, async (req, res) => {
       htmlBody,
       status: TicketStatus.open,
     },
+    include: { assignedTo: { select: { name: true } } },
   })
-  res.status(201).json(createdTicket)
+  res.status(201).json(ticketSchema.parse(createdTicket))
 })
 
 export default router

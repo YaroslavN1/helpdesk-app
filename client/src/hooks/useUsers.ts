@@ -1,9 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { type User } from '@/types/user'
-import { type CreateUserInput, type EditUserInput } from '@helpdesk/core'
-
-type UpdateUserInput = EditUserInput & { id: string }
+import { type CreateUser, type UpdateUser } from '@helpdesk/core'
 
 const usersQueryKey = ['users'] as const
 
@@ -21,7 +19,7 @@ export function useCreateUser() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (input: CreateUserInput) => {
+    mutationFn: async (input: CreateUser) => {
       const response = await apiClient.post<User>('/users', input)
       return response.data
     },
@@ -38,7 +36,7 @@ export function useUpdateUser() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ id, ...body }: UpdateUserInput) => {
+    mutationFn: async ({ id, ...body }: UpdateUser & { id: string }) => {
       const response = await apiClient.patch<User>(`/users/${id}`, body)
       return response.data
     },

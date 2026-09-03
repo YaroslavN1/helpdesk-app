@@ -1,6 +1,13 @@
 import { Router } from 'express'
+import { z } from 'zod'
 import { hashPassword } from 'better-auth/crypto'
-import { createUserSchema, editUserSchema, UserRole } from '@helpdesk/core'
+import {
+  createUserSchema,
+  updateUserSchema,
+  userSchema,
+  UserRole,
+  agentSchema,
+} from '@helpdesk/core'
 import { prisma } from '../lib/prisma'
 import { requireAuth, requireAdmin } from '../lib/middleware'
 import { validate } from '../lib/validate'
@@ -13,7 +20,7 @@ router.get('/agents', requireAuth, async (_req, res) => {
     select: { id: true, name: true },
     orderBy: { name: 'asc' },
   })
-  res.json(agents)
+  res.json(z.array(agentSchema).parse(agents))
 })
 
 router.get('/', requireAuth, requireAdmin, async (_req, res) => {
@@ -22,7 +29,7 @@ router.get('/', requireAuth, requireAdmin, async (_req, res) => {
     select: { id: true, name: true, email: true, role: true, createdAt: true },
     orderBy: { createdAt: 'asc' },
   })
-  res.json(users)
+  res.json(z.array(userSchema).parse(users))
 })
 
 router.post('/', requireAuth, requireAdmin, async (req, res) => {
@@ -55,11 +62,11 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
     },
     select: { id: true, name: true, email: true, role: true, createdAt: true },
   })
-  res.status(201).json(user)
+  res.status(201).json(userSchema.parse(user))
 })
 
 router.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
-  const data = validate(editUserSchema, req.body, res)
+  const data = validate(updateUserSchema, req.body, res)
   if (!data) return
   const { name, email, password } = data
   const id = req.params['id'] as string
@@ -92,7 +99,7 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
     })
   }
 
-  res.json(user)
+  res.json(userSchema.parse(user))
 })
 
 router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {

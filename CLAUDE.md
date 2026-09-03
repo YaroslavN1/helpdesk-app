@@ -131,6 +131,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 bun dev               # start both client and server in parallel
 bun client            # start client only  (http://localhost:5173)
 bun server            # start server only  (http://localhost:3000)
+bun typecheck         # type-check client, server, and core (tsc --noEmit in each)
 bun test:unit         # run Vitest unit tests (one-shot)
 bun test:unit:watch   # run Vitest unit tests in watch mode
 bun test:e2e          # run Playwright E2E tests (headless)

@@ -5,7 +5,7 @@ import { useUpdateTicket } from '@/hooks/useTicket'
 import { getErrorMessage } from '@/lib/api-client'
 import {
   type TicketDetails,
-  type AgentOption,
+  type Agent,
   TICKET_STATUSES,
   TICKET_CATEGORIES,
   TICKET_STATUS_LABELS,
@@ -27,7 +27,7 @@ const CATEGORY_OPTIONS: SelectOption[] = [
   })),
 ]
 
-function mapAgentOptions(agents: AgentOption[]): SelectOption[] {
+function mapAgentOptions(agents: Agent[]): SelectOption[] {
   const defaultOption = { value: null, label: '—' }
   return [defaultOption, ...agents.map((agent) => ({ value: agent.id, label: agent.name }))]
 }

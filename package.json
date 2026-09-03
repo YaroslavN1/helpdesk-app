@@ -11,6 +11,7 @@
     "dev": "bun --filter '*' dev",
     "client": "bun --filter client dev",
     "server": "bun --filter server dev",
+    "typecheck": "bun --filter client typecheck && bun --filter server typecheck && bun --filter @helpdesk/core typecheck",
     "test:unit": "bun --filter client test && bun --filter server test",
     "test:unit:watch": "bun run --cwd client test:watch",
     "test:e2e": "bunx playwright test",

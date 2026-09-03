@@ -1,11 +1,11 @@
 import { useParams, Link } from 'react-router'
-import { TicketDetailsSkeleton } from '@/components/tickets/TicketDetailsSkeleton'
-import { TicketFieldsEditor } from '@/components/tickets/TicketFieldsEditor'
+import { TicketDetailsSkeleton } from '@/components/ticket/TicketDetailsSkeleton'
+import { TicketFieldsEditor } from '@/components/ticket/TicketFieldsEditor'
 import { formatDate } from '@/lib/format-date'
 import { getErrorMessage } from '@/lib/api-client'
 import { useTicket } from '@/hooks/useTicket'
-import { TicketReplies } from '@/components/tickets/TicketReplies'
-import { TicketHtmlBody } from '@/components/tickets/TicketHtmlBody'
+import { TicketReplies } from '@/components/ticket/TicketReplies'
+import { TicketHtmlBody } from '@/components/ticket/TicketHtmlBody'
 
 export default function TicketDetailsPage() {
   const { id } = useParams<{ id: string }>()

@@ -3,8 +3,8 @@ import { SENDER_TYPE_LABELS } from '@helpdesk/core'
 import { useCreateReply, useReplies } from '@/hooks/useReplies'
 import { formatDate } from '@/lib/format-date'
 import { getErrorMessage } from '@/lib/api-client'
-import { TicketReplyForm } from '@/components/tickets/TicketReplyForm'
-import { TicketHtmlBody } from '@/components/tickets/TicketHtmlBody'
+import { TicketReplyForm } from '@/components/ticket/TicketReplyForm'
+import { TicketHtmlBody } from '@/components/ticket/TicketHtmlBody'
 
 interface TicketRepliesProps {
   ticketId: number | undefined

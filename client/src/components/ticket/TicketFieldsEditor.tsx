@@ -1,4 +1,4 @@
-import { TicketSelectField } from '@/components/tickets/TicketSelectField'
+import { TicketSelectField } from '@/components/ticket/TicketSelectField'
 import { type SelectOption } from '@/components/ui/select'
 import { useAgents } from '@/hooks/useAgents'
 import { useUpdateTicket } from '@/hooks/useTicket'

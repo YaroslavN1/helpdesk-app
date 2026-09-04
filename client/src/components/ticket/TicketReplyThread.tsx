@@ -19,7 +19,7 @@ export function TicketReplyThread({ ticketId }: TicketReplyThreadProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium text-muted-foreground">Replies</h3>
+      <h3 className="text-sm font-bold">Replies</h3>
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading replies...</p>}
 

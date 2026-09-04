@@ -11,7 +11,7 @@ import {
 let ticket: SeededTicket
 let htmlTicket: SeededTicket
 
-test.describe('TicketDetailsPage', () => {
+test.describe('TicketPage', () => {
   test.beforeAll(async ({ request }) => {
     ticket = await seedTicket(request, {
       from: 'sender@example.com',

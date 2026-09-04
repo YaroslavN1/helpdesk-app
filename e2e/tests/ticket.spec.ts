@@ -98,7 +98,10 @@ test.describe('TicketPage', () => {
         })
 
         test('renders the Updated date', async ({ page }) => {
-          const expectedDate = new Date(ticket.updatedAt).toLocaleString('en-US', {
+          // ticket.createdAt is used on purpose instead of ticket.updatedAt
+          // seedTicket() helper uses server's webhook to create a ticket where .updatedAt field is not present
+          // For a newly created ticket .createdAt euqals .updatedAt
+          const expectedDate = new Date(ticket.createdAt).toLocaleString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',

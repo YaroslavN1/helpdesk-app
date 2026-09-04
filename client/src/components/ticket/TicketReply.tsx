@@ -17,7 +17,12 @@ export function TicketReply({ reply }: TicketReplyProps) {
         {reply.user?.name && <span>({reply.user.name})</span>}
         <span>{formatDate(reply.createdAt, 'datetime')}</span>
       </div>
-      <TicketBody body={reply.body} htmlBody={reply.htmlBody} iframeTitle="Reply body" />
+      <TicketBody
+        body={reply.body}
+        htmlBody={reply.htmlBody}
+        iframeTitle="Reply body"
+        className="pt-2"
+      />
     </div>
   )
 }

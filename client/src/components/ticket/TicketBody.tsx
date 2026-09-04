@@ -1,11 +1,13 @@
+import { cn } from '@/lib/cn'
 import { useRef } from 'react'
 interface TicketBodyProps {
   body: string
   htmlBody: string | null
   iframeTitle?: string
+  className?: string
 }
 
-export function TicketBody({ body, htmlBody, iframeTitle }: TicketBodyProps) {
+export function TicketBody({ body, htmlBody, iframeTitle, className }: TicketBodyProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   function setIframeHeight() {
@@ -26,6 +28,6 @@ export function TicketBody({ body, htmlBody, iframeTitle }: TicketBodyProps) {
       title={iframeTitle || 'HTML body'}
     />
   ) : (
-    <div className="whitespace-pre-wrap pt-2 text-sm">{body}</div>
+    <div className={cn('whitespace-pre-wrap text-sm', className)}>{body}</div>
   )
 }

@@ -26,7 +26,9 @@ export function TicketDetails({ ticket }: TicketDetailsProps) {
         </div>
       </dl>
 
-      <TicketBody body={ticket.body} htmlBody={ticket.htmlBody} iframeTitle="Email body" />
+      <div className="bg-muted/30 p-4 rounded-lg border shadow-md">
+        <TicketBody body={ticket.body} htmlBody={ticket.htmlBody} iframeTitle="Email body" />
+      </div>
     </>
   )
 }

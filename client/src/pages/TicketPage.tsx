@@ -41,7 +41,7 @@ export default function TicketPage() {
               <TicketReplyThread ticketId={ticket.id} />
             </div>
 
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2">
               <TicketEditableDetails ticket={ticket} />
             </div>
           </div>

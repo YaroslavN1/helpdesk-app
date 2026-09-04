@@ -1,4 +1,3 @@
-import { TicketSelectField } from '@/components/ticket/TicketSelectField'
 import { type SelectOption } from '@/components/ui/select'
 import { useAgents } from '@/hooks/useAgents'
 import { useUpdateTicket } from '@/hooks/useTicket'
@@ -13,6 +12,7 @@ import {
   type TicketStatus,
   type TicketCategory,
 } from '@helpdesk/core'
+import { SelectField } from '@/components/ui/select-field'
 
 const STATUS_OPTIONS: SelectOption[] = TICKET_STATUSES.map((status) => ({
   value: status,
@@ -47,7 +47,7 @@ export function TicketEditableDetails({ ticket }: TicketEditableDetailsProps) {
 
   return (
     <>
-      <TicketSelectField
+      <SelectField
         label="Status"
         value={ticket.status}
         options={STATUS_OPTIONS}
@@ -57,7 +57,7 @@ export function TicketEditableDetails({ ticket }: TicketEditableDetailsProps) {
         className="h-7 w-36 text-sm"
         data-testid="status-select"
       />
-      <TicketSelectField
+      <SelectField
         label="Category"
         value={ticket.category}
         options={CATEGORY_OPTIONS}
@@ -69,7 +69,7 @@ export function TicketEditableDetails({ ticket }: TicketEditableDetailsProps) {
         className="h-7 w-48 text-sm"
         data-testid="category-select"
       />
-      <TicketSelectField
+      <SelectField
         label="Assigned to"
         value={ticket.assignedTo?.id ?? null}
         options={agentOptions}

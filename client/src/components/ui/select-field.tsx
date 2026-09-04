@@ -1,6 +1,7 @@
 import { Select, type SelectOption } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 
-interface TicketSelectFieldProps {
+interface SelectFieldProps {
   label: string
   value: string | null
   options: SelectOption[]
@@ -11,7 +12,7 @@ interface TicketSelectFieldProps {
   'data-testid'?: string
 }
 
-export function TicketSelectField({
+export function SelectField({
   label,
   value,
   options,
@@ -20,11 +21,11 @@ export function TicketSelectField({
   error,
   className,
   'data-testid': testId,
-}: TicketSelectFieldProps) {
+}: SelectFieldProps) {
   return (
     <div className="flex items-center gap-2">
-      <dt className="w-24 shrink-0 text-muted-foreground">{label}</dt>
-      <dd className="flex flex-col gap-1">
+      <Label className="w-24 shrink-0 font-normal text-muted-foreground">{label}</Label>
+      <div className="flex flex-col gap-1">
         <Select
           value={value}
           options={options}
@@ -34,7 +35,7 @@ export function TicketSelectField({
           data-testid={testId}
         />
         {error && <span className="text-xs text-destructive">{error}</span>}
-      </dd>
+      </div>
     </div>
   )
 }

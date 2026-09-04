@@ -31,6 +31,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── input-debounced.tsx    # debounced search input with leading icon
 │   │   │   │   ├── multi-select.tsx       # generic multi-select dropdown (base-ui Menu)
 │   │   │   │   ├── pagination.tsx         # page nav with prev/next and ellipsis range
+│   │   │   │   ├── select-field.tsx       # labeled Select + optional error message (Label + Select); props-driven, owns no mutation
 │   │   │   │   ├── select.tsx             # single-value select (base-ui Select)
 │   │   │   │   ├── sortable-head.tsx      # table <th> with asc/desc/unsorted icon
 │   │   │   │   └── textarea.tsx           # native <textarea>, styled to match Input; no base-ui primitive for this one
@@ -41,16 +42,19 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   ├── routing/
 │   │   │   │   ├── AdminRoute.tsx         # redirects non-admins to /; shows <LoadingScreen /> while pending
 │   │   │   │   └── ProtectedRoute.tsx     # redirects unauthenticated to /login; shows <LoadingScreen /> while pending
-│   │   │   ├── tickets/
+│   │   │   ├── tickets/                      # TicketsPage's own components (list/filter/sort) — see ticket/ below for TicketPage's
 │   │   │   │   ├── TicketsFilters.tsx        # search input + status/category multi-selects
 │   │   │   │   ├── TicketsTable.tsx          # sortable table; clicking a row navigates to /tickets/:id
-│   │   │   │   ├── TicketDetailsSkeleton.tsx # skeleton loader shown while ticket details are fetching
-│   │   │   │   ├── TicketFieldsEditor.tsx    # status/category/agent TicketSelectFields for TicketDetailsPage; owns one useUpdateTicket mutation per field
-│   │   │   │   ├── TicketSelectField.tsx     # labeled Select + optional error message; props-driven, owns no mutation
-│   │   │   │   ├── TicketHtmlBody.tsx        # auto-resizing sandboxed <iframe srcDoc> for an HTML message body; shared by TicketDetailsPage (ticket) and TicketReplies (each reply)
-│   │   │   │   ├── TicketReplies.tsx         # reply thread + form for TicketDetailsPage; owns useReplies/useCreateReply
-│   │   │   │   ├── TicketReplyForm.tsx       # compose box; props-driven, owns no mutation
 │   │   │   │   └── ticket-badges.ts          # TICKET_STATUS_BADGE map (variant + className); labels live in @helpdesk/core
+│   │   │   ├── ticket/                       # TicketPage's own components (detail view) — see tickets/ above for TicketsPage's
+│   │   │   │   ├── TicketBody.tsx            # auto-resizing sandboxed <iframe srcDoc> for an HTML body, or a plain-text fallback; shared by TicketDetails (the ticket's own body) and TicketReply (each reply's body) — takes body/htmlBody/iframeTitle/className directly, not a Ticket or Reply
+│   │   │   │   ├── TicketDetail.tsx          # single labeled metadata row (dt/dd); used by TicketDetails for From/Received/Updated
+│   │   │   │   ├── TicketDetails.tsx         # read-only ticket presentation for TicketPage — TicketDetail metadata rows + TicketBody, the latter wrapped in a bordered card
+│   │   │   │   ├── TicketEditableDetails.tsx # status/category/agent SelectFields for TicketPage; owns one useUpdateTicket mutation per field
+│   │   │   │   ├── TicketPageSkeleton.tsx    # skeleton loader shown while the ticket page is fetching
+│   │   │   │   ├── TicketReply.tsx           # single reply's rendering (sender/date header + TicketBody); used by TicketReplyThread
+│   │   │   │   ├── TicketReplyForm.tsx       # compose box; props-driven, owns no mutation
+│   │   │   │   └── TicketReplyThread.tsx     # reply thread + form for TicketPage; owns useReplies/useCreateReply
 │   │   │   └── users/
 │   │   │       ├── UserForm.tsx           # create/edit dialog + form; exports FormState type (User type lives in @/types/user)
 │   │   │       └── UsersTable.tsx         # users table with loading/error/data states; edit + delete actions
@@ -58,7 +62,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   ├── HomePage.tsx
 │   │   │   ├── LoginPage.tsx
 │   │   │   ├── TicketsPage.tsx        # /tickets — filter/sort/paginate tickets via useTickets; state lives in URL search params via useTicketsUrlParams
-│   │   │   ├── TicketDetailsPage.tsx  # /tickets/:id — fetches a single ticket via useTicket; field edits go through TicketFieldsEditor/useUpdateTicket; replies render via TicketReplies below the message
+│   │   │   ├── TicketPage.tsx         # /tickets/:id — fetches a single ticket via useTicket; details render via TicketDetails, field edits go through TicketEditableDetails/useUpdateTicket, replies render via TicketReplyThread below the message
 │   │   │   └── UsersPage.tsx          # /users — admin only; fetches/creates/edits/deletes users via useUsers hooks
 │   │   ├── hooks/
 │   │   │   ├── useAgents.ts           # useAgents — TanStack Query hook fetching /users/agents, for assignment dropdowns
@@ -115,7 +119,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   ├── global-setup.ts   # creates helpdesk_test DB (or truncates if exists), runs migrations, seeds admin + agent
 │   └── tests/
 │       ├── auth.spec.ts             # authentication, session, route protection, navbar role visibility
-│       ├── ticket-details.spec.ts   # TicketDetailsPage rendering, selectors (status/category/agent), error states
+│       ├── ticket-details.spec.ts   # TicketPage rendering, selectors (status/category/agent), error states
 │       ├── tickets.spec.ts          # TicketsPage rendering, filter/sort/pagination flows
 │       ├── users.spec.ts            # UsersPage rendering, API protection, create / edit / delete flows
 │       └── webhooks.spec.ts         # POST /api/webhooks/inbound-email — payload validation, secret check, subject normalisation
@@ -158,7 +162,7 @@ ProtectedRoute             → redirects to /login if no session
   └── Layout               → renders Navbar + <main><Outlet /></main>
         ├── /              → HomePage (any authenticated user)
         ├── /tickets       → TicketsPage (any authenticated user)
-        ├── /tickets/:id   → TicketDetailsPage (any authenticated user)
+        ├── /tickets/:id   → TicketPage (any authenticated user)
         └── AdminRoute     → redirects to / if role !== 'admin'
               └── /users   → UsersPage
 * → redirect to /
@@ -469,7 +473,7 @@ Key conventions the agent must follow:
 - `createUser(page)` is a local helper in `users.spec.ts` that generates its own unique name/email and returns `{ name, email }`; tests should destructure only what they use
 - When asserting table cells by name or email, always pass `{ exact: true }` to `getByRole` to avoid partial/case-insensitive matches hitting multiple cells
 - **Base UI Select trigger includes a `▼` chevron in its DOM text** — always use `toContainText` (not `toHaveText`) when asserting the current value of a Select trigger
-- `ticket-details.spec.ts` is structured to mirror the unit test file: single top-level `test.describe('TicketDetailsPage')` with nested `route protection`, `error states`, and `data rendering` (which contains `page header`, `ticket metadata → static metadata / metadata selectors`, and `conversation`)
+- `ticket-details.spec.ts` is structured to mirror the unit test file: single top-level `test.describe('TicketPage')` with nested `route protection`, `error states`, and `data rendering` (which contains `page header`, `ticket metadata → static metadata / metadata selectors`, and `conversation`)
 
 ## Code Style
 

@@ -83,7 +83,7 @@ describe('TicketPage', () => {
       mockPending(apiClient.get)
       renderTicketPage()
 
-      expect(screen.getByTestId('ticket-detail-skeleton')).toBeInTheDocument()
+      expect(screen.getByTestId('ticket-page-skeleton')).toBeInTheDocument()
     })
 
     it('does not show an error while fetch is pending', () => {

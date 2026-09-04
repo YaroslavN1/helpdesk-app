@@ -1,10 +1,8 @@
 import { useState } from 'react'
-import { SENDER_TYPE_LABELS } from '@helpdesk/core'
 import { useCreateReply, useReplies } from '@/hooks/useReplies'
-import { formatDate } from '@/lib/format-date'
 import { getErrorMessage } from '@/lib/api-client'
 import { TicketReplyForm } from '@/components/ticket/TicketReplyForm'
-import { TicketHtmlBody } from '@/components/ticket/TicketHtmlBody'
+import { TicketReply } from './TicketReply'
 
 interface TicketReplyThreadProps {
   ticketId: number | undefined
@@ -30,21 +28,7 @@ export function TicketReplyThread({ ticketId }: TicketReplyThreadProps) {
       )}
 
       {replies?.map((reply) => (
-        <div
-          key={reply.id}
-          className="space-y-1 border-border bg-muted/30 p-4 rounded-lg border shadow-md"
-        >
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-medium">{SENDER_TYPE_LABELS[reply.senderType]}</span>
-            {reply.user?.name && <span>({reply.user.name})</span>}
-            <span>{formatDate(reply.createdAt, 'datetime')}</span>
-          </div>
-          {reply.htmlBody ? (
-            <TicketHtmlBody htmlBody={reply.htmlBody} iframeTitle="Reply body" />
-          ) : (
-            <div className="whitespace-pre-wrap pt-2 text-sm">{reply.body}</div>
-          )}
-        </div>
+        <TicketReply key={reply.id} reply={reply} />
       ))}
 
       <TicketReplyForm

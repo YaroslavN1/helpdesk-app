@@ -5,7 +5,7 @@ import { formatDate } from '@/lib/format-date'
 import { getErrorMessage } from '@/lib/api-client'
 import { useTicket } from '@/hooks/useTicket'
 import { TicketReplyThread } from '@/components/ticket/TicketReplyThread'
-import { TicketHtmlBody } from '@/components/ticket/TicketHtmlBody'
+import { TicketBody } from '@/components/ticket/TicketBody'
 
 export default function TicketPage() {
   const { id } = useParams<{ id: string }>()
@@ -54,13 +54,7 @@ export default function TicketPage() {
                 </div>
               </dl>
 
-              {ticket.htmlBody ? (
-                <TicketHtmlBody htmlBody={ticket.htmlBody} iframeTitle="Email body" />
-              ) : (
-                <div className="whitespace-pre-wrap text-sm rounded-lg border p-4 bg-muted/30 shadow-md">
-                  {ticket.body}
-                </div>
-              )}
+              <TicketBody body={ticket.body} htmlBody={ticket.htmlBody} iframeTitle="Email body" />
 
               <TicketReplyThread ticketId={ticket.id} />
             </div>

@@ -1,11 +1,11 @@
 import { useRef } from 'react'
-
-interface TicketHtmlBodyProps {
-  htmlBody: string
+interface TicketBodyProps {
+  body: string
+  htmlBody: string | null
   iframeTitle?: string
 }
 
-export function TicketHtmlBody({ htmlBody, iframeTitle }: TicketHtmlBodyProps) {
+export function TicketBody({ body, htmlBody, iframeTitle }: TicketBodyProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   function setIframeHeight() {
@@ -16,7 +16,7 @@ export function TicketHtmlBody({ htmlBody, iframeTitle }: TicketHtmlBodyProps) {
     }
   }
 
-  return (
+  return htmlBody ? (
     <iframe
       ref={iframeRef}
       srcDoc={htmlBody}
@@ -25,5 +25,7 @@ export function TicketHtmlBody({ htmlBody, iframeTitle }: TicketHtmlBodyProps) {
       className="w-full max-h-96 overflow-y-auto bg-white"
       title={iframeTitle || 'HTML body'}
     />
+  ) : (
+    <div className="whitespace-pre-wrap pt-2 text-sm">{body}</div>
   )
 }

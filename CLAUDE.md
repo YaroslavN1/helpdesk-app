@@ -28,7 +28,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   ├── components/
 │   │   │   ├── ui/                    # shadcn/ui components + custom reusables
 │   │   │   │   ├── confirmation-dialog.tsx # generic alert-dialog for destructive confirmations
-│   │   │   │   ├── input-debounced.tsx    # debounced search input with leading icon
+│   │   │   │   ├── input-debounced.tsx    # debounced search input with leading icon; exposes an `InputDebouncedHandle` ref (`cancel(nextValue)`) so a parent can reset the displayed value and drop a pending debounce without waiting for it to fire
 │   │   │   │   ├── multi-select.tsx       # generic multi-select dropdown (base-ui Menu)
 │   │   │   │   ├── pagination.tsx         # page nav with prev/next and ellipsis range
 │   │   │   │   ├── select-field.tsx       # labeled Select + optional error message (Label + Select); props-driven, owns no mutation
@@ -43,7 +43,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── AdminRoute.tsx         # redirects non-admins to /; shows <LoadingScreen /> while pending
 │   │   │   │   └── ProtectedRoute.tsx     # redirects unauthenticated to /login; shows <LoadingScreen /> while pending
 │   │   │   ├── tickets/                      # TicketsPage's own components (list/filter/sort) — see ticket/ below for TicketPage's
-│   │   │   │   ├── TicketsFilters.tsx        # search input + status/category multi-selects
+│   │   │   │   ├── TicketsFilters.tsx        # search input + status/category multi-selects; "Clear filters" also calls the search input's `cancel()` ref handle, so a pending debounced search doesn't overwrite the just-cleared filters
 │   │   │   │   ├── TicketsTable.tsx          # sortable table; clicking a row navigates to /tickets/:id
 │   │   │   │   └── ticket-badges.ts          # TICKET_STATUS_BADGE map (variant + className); labels live in @helpdesk/core
 │   │   │   ├── ticket/                       # TicketPage's own components (detail view) — see tickets/ above for TicketsPage's
@@ -119,7 +119,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   ├── global-setup.ts   # creates helpdesk_test DB (or truncates if exists), runs migrations, seeds admin + agent
 │   └── tests/
 │       ├── auth.spec.ts             # authentication, session, route protection, navbar role visibility
-│       ├── ticket-details.spec.ts   # TicketPage rendering, selectors (status/category/agent), error states
+│       ├── ticket.spec.ts           # TicketPage rendering, selectors (status/category/agent), error states
 │       ├── tickets.spec.ts          # TicketsPage rendering, filter/sort/pagination flows
 │       ├── users.spec.ts            # UsersPage rendering, API protection, create / edit / delete flows
 │       └── webhooks.spec.ts         # POST /api/webhooks/inbound-email — payload validation, secret check, subject normalisation
@@ -473,7 +473,7 @@ Key conventions the agent must follow:
 - `createUser(page)` is a local helper in `users.spec.ts` that generates its own unique name/email and returns `{ name, email }`; tests should destructure only what they use
 - When asserting table cells by name or email, always pass `{ exact: true }` to `getByRole` to avoid partial/case-insensitive matches hitting multiple cells
 - **Base UI Select trigger includes a `▼` chevron in its DOM text** — always use `toContainText` (not `toHaveText`) when asserting the current value of a Select trigger
-- `ticket-details.spec.ts` is structured to mirror the unit test file: single top-level `test.describe('TicketPage')` with nested `route protection`, `error states`, and `data rendering` (which contains `page header`, `ticket metadata → static metadata / metadata selectors`, and `conversation`)
+- `ticket.spec.ts` is structured to mirror the unit test file: single top-level `test.describe('TicketPage')` with nested `route protection`, `error states`, and `data rendering` (which contains `page header`, `ticket metadata → static metadata / metadata selectors`, and `conversation`)
 
 ## Code Style
 

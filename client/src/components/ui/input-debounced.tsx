@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Ref, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { Input } from '@/components/ui/input'
@@ -11,6 +11,11 @@ interface Props {
   className?: string
   delay?: number
   testId?: string
+  ref?: Ref<InputDebouncedHandle>
+}
+
+export interface InputDebouncedHandle {
+  cancel: (nextValue: string) => void
 }
 
 export function InputDebounced({
@@ -21,6 +26,7 @@ export function InputDebounced({
   className,
   delay = 300,
   testId,
+  ref,
 }: Props) {
   const [localValue, setLocalValue] = useState(value)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -42,6 +48,13 @@ export function InputDebounced({
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => onChange(newValue), delay)
   }
+
+  useImperativeHandle(ref, () => ({
+    cancel(nextValue: string) {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      setLocalValue(nextValue)
+    },
+  }))
 
   return (
     <div className={cn('relative', className)}>

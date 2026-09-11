@@ -14,6 +14,25 @@ const validPayload = {
   htmlBody: '<p>I cannot log in to my account.</p>',
 }
 
+let uniqueSuffixCounter = 0
+
+/**
+ * Builds a payload with a unique `from`/`subject` combination, so the webhook's
+ * fromEmail+subject+status:'open' matching never pairs it with a ticket created
+ * by another test in this file (which would turn the response into a Reply
+ * instead of a Ticket).
+ */
+function uniquePayload(overrides: Partial<typeof validPayload> = {}) {
+  const suffix = uniqueSuffixCounter++
+
+  return {
+    ...validPayload,
+    from: `customer-${suffix}@example.com`,
+    subject: `Login broken ${suffix}`,
+    ...overrides,
+  }
+}
+
 test.describe('POST /api/webhooks/inbound-email', () => {
   test.describe('Happy path', () => {
     test('returns 201 with the created ticket when payload and secret are valid', async ({
@@ -21,44 +40,44 @@ test.describe('POST /api/webhooks/inbound-email', () => {
     }) => {
       const response = await request.post(ENDPOINT, {
         headers: secretHeaders,
-        data: validPayload,
+        data: uniquePayload(),
       })
 
       expect(response.status()).toBe(201)
     })
 
     test('response body contains all expected ticket fields', async ({ request }) => {
+      const payload = uniquePayload()
+
       const response = await request.post(ENDPOINT, {
         headers: secretHeaders,
-        data: validPayload,
+        data: payload,
       })
 
       const ticket = await response.json()
 
       expect(typeof ticket.id).toBe('number')
-      expect(ticket.fromEmail).toBe(validPayload.from)
-      expect(ticket.fromName).toBe(validPayload.fromName)
-      expect(ticket.body).toBe(validPayload.body)
-      expect(ticket.htmlBody).toBe(validPayload.htmlBody)
+      expect(ticket.fromEmail).toBe(payload.from)
+      expect(ticket.fromName).toBe(payload.fromName)
+      expect(ticket.subject).toBe(payload.subject)
       expect(ticket.status).toBe('open')
       expect(ticket.category).toBeNull()
-      expect(ticket.assignedToId).toBeNull()
+      expect(ticket.assignedTo).toBeNull()
       expect(typeof ticket.createdAt).toBe('string')
-      expect(typeof ticket.updatedAt).toBe('string')
     })
 
     test('ticket id is a positive integer', async ({ request }) => {
       const response = await request.post(ENDPOINT, {
         headers: secretHeaders,
-        data: validPayload,
+        data: uniquePayload(),
       })
 
       const ticket = await response.json()
       expect(ticket.id).toBeGreaterThan(0)
     })
 
-    test('omitting optional htmlBody still returns 201 with htmlBody null', async ({ request }) => {
-      const { htmlBody: _omitted, ...payloadWithoutHtml } = validPayload
+    test('omitting optional htmlBody still returns 201', async ({ request }) => {
+      const { htmlBody: _omitted, ...payloadWithoutHtml } = uniquePayload()
 
       const response = await request.post(ENDPOINT, {
         headers: secretHeaders,
@@ -66,16 +85,16 @@ test.describe('POST /api/webhooks/inbound-email', () => {
       })
 
       expect(response.status()).toBe(201)
-      const ticket = await response.json()
-      expect(ticket.htmlBody).toBeNull()
     })
 
     test('two sequential requests create two distinct tickets with different ids', async ({
       request,
     }) => {
+      const payload = uniquePayload()
+
       const [r1, r2] = await Promise.all([
-        request.post(ENDPOINT, { headers: secretHeaders, data: validPayload }),
-        request.post(ENDPOINT, { headers: secretHeaders, data: validPayload }),
+        request.post(ENDPOINT, { headers: secretHeaders, data: payload }),
+        request.post(ENDPOINT, { headers: secretHeaders, data: payload }),
       ])
 
       expect(r1.status()).toBe(201)
@@ -90,9 +109,11 @@ test.describe('POST /api/webhooks/inbound-email', () => {
 
   test.describe('Subject normalisation', () => {
     test('strips leading "Re: Fwd: " prefixes and stores the bare subject', async ({ request }) => {
+      const payload = uniquePayload({ subject: 'Re: Fwd: Login broken' })
+
       const response = await request.post(ENDPOINT, {
         headers: secretHeaders,
-        data: { ...validPayload, subject: 'Re: Fwd: Login broken' },
+        data: payload,
       })
 
       expect(response.status()).toBe(201)

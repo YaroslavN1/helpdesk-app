@@ -10,6 +10,8 @@ import {
   type TicketsFilterCriteria,
 } from '@helpdesk/core'
 import { defaultFilters } from '@/hooks/useTicketsUrlParams'
+import { useRef } from 'react'
+import { InputDebouncedHandle } from '@/components/ui/input-debounced'
 
 interface Props {
   filters: TicketsFilterCriteria
@@ -27,11 +29,19 @@ const categoryOptions = TICKET_CATEGORIES.map((category) => ({
 }))
 
 export function TicketsFilters({ filters, onFiltersChange, loading }: Props) {
+  const searchInputRef = useRef<InputDebouncedHandle>(null)
+
   const isFilter = filters.status.length > 0 || filters.category.length > 0 || !!filters.search
+
+  function handleClearFilters() {
+    onFiltersChange(defaultFilters)
+    searchInputRef.current?.cancel(defaultFilters.search)
+  }
 
   return (
     <div className="mt-6 flex items-center gap-2">
       <InputDebounced
+        ref={searchInputRef}
         value={filters.search}
         onChange={(search) => onFiltersChange({ ...filters, search })}
         placeholder="Search tickets…"
@@ -58,12 +68,7 @@ export function TicketsFilters({ filters, onFiltersChange, loading }: Props) {
       />
 
       {isFilter && (
-        <Button
-          variant="ghost"
-          size="default"
-          onClick={() => onFiltersChange(defaultFilters)}
-          disabled={loading}
-        >
+        <Button variant="ghost" size="default" onClick={handleClearFilters} disabled={loading}>
           <X className="h-3.5 w-3.5" />
           Clear filters
         </Button>

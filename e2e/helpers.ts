@@ -1,5 +1,6 @@
 import { Client } from 'pg'
 import { expect, type Page, type APIRequestContext } from '@playwright/test'
+import { Ticket } from '../core/src/schemas/ticket'
 
 export const ADMIN_NAME = process.env.SEED_ADMIN_NAME!
 export const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL!
@@ -49,17 +50,7 @@ export async function seedTicket(
     throw new Error(`Failed to seed ticket: ${response.status()} ${await response.text()}`)
   }
 
-  return response.json() as Promise<{
-    id: number
-    fromEmail: string
-    fromName: string
-    subject: string
-    status: string
-    category: string | null
-    assignedToId: string | null
-    createdAt: string
-    updatedAt: string
-  }>
+  return response.json() as Promise<Ticket>
 }
 
 export type SeededTicket = Awaited<ReturnType<typeof seedTicket>>

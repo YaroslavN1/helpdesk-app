@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn'
+import DOMPurify from 'dompurify'
 import { useRef } from 'react'
 interface TicketBodyProps {
   body: string
@@ -18,16 +19,32 @@ export function TicketBody({ body, htmlBody, iframeTitle, className }: TicketBod
     }
   }
 
-  return htmlBody ? (
-    <iframe
-      ref={iframeRef}
-      srcDoc={htmlBody}
-      sandbox="allow-same-origin"
-      onLoad={setIframeHeight}
-      className="w-full max-h-96 overflow-y-auto bg-white"
-      title={iframeTitle || 'HTML body'}
-    />
-  ) : (
-    <div className={cn('whitespace-pre-wrap text-sm', className)}>{body}</div>
+  if (htmlBody) {
+    const hasSanitizedContent = DOMPurify.sanitize(htmlBody).trim().length > 0
+
+    if (hasSanitizedContent) {
+      const sanitizedHtmlBody = DOMPurify.sanitize(htmlBody, { WHOLE_DOCUMENT: true })
+      return (
+        <iframe
+          ref={iframeRef}
+          srcDoc={sanitizedHtmlBody}
+          sandbox="allow-same-origin"
+          onLoad={setIframeHeight}
+          className="w-full max-h-96 overflow-y-auto bg-white"
+          title={iframeTitle || 'HTML body'}
+        />
+      )
+    }
+  }
+
+  return (
+    <div className={cn('whitespace-pre-wrap text-sm', className)}>
+      {htmlBody && (
+        <p className="mb-2 text-xs italic text-muted-foreground">
+          The HTML version of this message couldn't be safely displayed.
+        </p>
+      )}
+      {body}
+    </div>
   )
 }

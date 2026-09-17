@@ -10,6 +10,7 @@ import { prisma } from '../lib/prisma'
 import { requireWebhookSecret } from '../lib/middleware'
 import { validate } from '../lib/validate'
 import { createReply } from '../lib/reply'
+import { sanitizeHtml } from '../lib/sanitize-html'
 
 function normalizeSubject(subject: string): string {
   return subject.replace(/^((re|fwd?)\s*:\s*)+/i, '').trim()
@@ -23,6 +24,7 @@ router.post('/inbound-email', requireWebhookSecret, async (req, res) => {
 
   const { from, fromName, subject: rawSubject, body, htmlBody } = data
   const subject = normalizeSubject(rawSubject)
+  const sanitizedHtmlBody = htmlBody ? sanitizeHtml(htmlBody) : htmlBody
 
   const existingTicket = await prisma.ticket.findFirst({
     where: {
@@ -36,7 +38,7 @@ router.post('/inbound-email', requireWebhookSecret, async (req, res) => {
     const createdReply = await createReply({
       ticketId: existingTicket.id,
       body,
-      htmlBody,
+      htmlBody: sanitizedHtmlBody,
       senderType: SenderType.customer,
       userId: null,
     })
@@ -50,7 +52,7 @@ router.post('/inbound-email', requireWebhookSecret, async (req, res) => {
       fromName,
       subject,
       body,
-      htmlBody,
+      htmlBody: sanitizedHtmlBody,
       status: TicketStatus.open,
     },
     include: { assignedTo: { select: { name: true } } },

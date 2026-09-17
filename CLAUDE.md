@@ -47,7 +47,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── TicketsTable.tsx          # sortable table; clicking a row navigates to /tickets/:id
 │   │   │   │   └── ticket-badges.ts          # TICKET_STATUS_BADGE map (variant + className); labels live in @helpdesk/core
 │   │   │   ├── ticket/                       # TicketPage's own components (detail view) — see tickets/ above for TicketsPage's
-│   │   │   │   ├── TicketBody.tsx            # auto-resizing sandboxed <iframe srcDoc> for an HTML body, or a plain-text fallback; shared by TicketDetails (the ticket's own body) and TicketReply (each reply's body) — takes body/htmlBody/iframeTitle/className directly, not a Ticket or Reply
+│   │   │   │   ├── TicketBody.tsx            # three render states: auto-resizing sandboxed <iframe srcDoc> when the DOMPurify-sanitized htmlBody still has content, a plain-text fallback when there is no htmlBody, and that same fallback preceded by a "couldn't be safely displayed" notice when htmlBody sanitized down to nothing; shared by TicketDetails (the ticket's own body) and TicketReply (each reply's body) — takes body/htmlBody/iframeTitle/className directly, not a Ticket or Reply. Sanitizing is wrapped in `useMemo` keyed on `htmlBody`, since each `TicketReply` instance re-renders on every keystroke in `TicketReplyThread`'s reply draft (sibling state, re-renders the whole list) — without it, every reply's HTML would be re-sanitized on every keystroke instead of once per distinct `htmlBody`
 │   │   │   │   ├── TicketDetail.tsx          # single labeled metadata row (dt/dd); used by TicketDetails for From/Received/Updated
 │   │   │   │   ├── TicketDetails.tsx         # read-only ticket presentation for TicketPage — TicketDetail metadata rows + TicketBody, the latter wrapped in a bordered card
 │   │   │   │   ├── TicketEditableDetails.tsx # status/category/agent SelectFields for TicketPage; owns one useUpdateTicket mutation per field
@@ -103,6 +103,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   ├── middleware.ts # requireAuth / requireAdmin Express middleware
 │   │   │   ├── prisma.ts
 │   │   │   ├── reply.ts      # createReply({ ticketId, body, htmlBody, senderType, userId }) — creates a Reply + bumps the ticket's updatedAt in one transaction; shared by reply-routes.ts (agent replies) and webhooks.ts (customer replies via inbound email)
+│   │   │   ├── sanitize-html.ts # sanitizeHtml(dirty) — DOMPurify (over a jsdom window) with WHOLE_DOCUMENT; strips <script>/<iframe>/on* handlers from inbound email HTML before it is stored
 │   │   │   └── validate.ts   # validate(schema, body, res) — Zod validation helper for routes
 │   │   ├── routes/
 │   │   │   ├── tickets/
@@ -201,6 +202,19 @@ Import via `@helpdesk/core` in either the client or server package.
   Never write the `safeParse` / `issues[0].message` block inline — always use this helper.
 
 - **`middleware.ts`** — `requireAuth` and `requireAdmin` Express middleware. Session is stored in `res.locals.session` after `requireAuth`.
+
+- **`sanitize-html.ts`** — `sanitizeHtml(dirty)` returns a DOMPurify-cleaned copy of an HTML string. DOMPurify needs a DOM, and there isn't one on the server, so the module builds a single jsdom window at import time and reuses it for every call. Sanitizing with `WHOLE_DOCUMENT: true` keeps the `<html>`/`<head>`/`<body>` structure intact, which matters because inbound email HTML is usually a full document whose `<head>` carries the `<style>` the message depends on. See HTML Sanitization below for where to call it.
+
+## HTML Sanitization
+
+Customer-supplied HTML reaches the app through `POST /api/webhooks/inbound-email` and is rendered back to agents in `TicketBody`. It is sanitized twice, and both passes are load-bearing:
+
+- **On ingest (server)** — `webhooks.ts` runs `htmlBody` through `sanitizeHtml()` before it reaches either write path, so nothing dangerous is stored in the first place. Sanitize at this boundary, where untrusted input arrives, rather than inside `createReply` or another shared write helper.
+- **On render (client)** — `TicketBody` runs the stored `htmlBody` through DOMPurify again before putting it in the iframe's `srcDoc`. This is not redundant. There is no backfill migration, so every row written before server-side sanitization existed is still unsanitized in the database, and this pass is what makes those rows safe to display.
+
+`createReplySchema` accepts only `body`, so an agent reply can never carry HTML; the webhook is the only route that accepts `htmlBody` at all. If a future route starts accepting HTML, sanitize it at that route, the same way `webhooks.ts` does.
+
+**The iframe's `sandbox="allow-same-origin"` must never gain `allow-scripts`.** `allow-same-origin` is there only so `setIframeHeight` can read `contentWindow.document` to auto-size the iframe — with no `allow-scripts`, there's nothing inside the frame able to act on that same-origin access. Add `allow-scripts` alongside it and that changes: any script that ends up in the frame (a DOMPurify gap, a future config change) would then execute with the app's real origin — reachable cookies, session, and DOM — not a sandboxed one. This is a well-known sandbox-escape pairing, not a hypothetical.
 
 ## Response Validation
 
@@ -326,7 +340,7 @@ Ingests an inbound email. Requires the `x-webhook-secret` header to match `WEBHO
 | `body`     | `string` | plain text, required       |
 | `htmlBody` | `string` | optional                   |
 
-**Behavior:** `subject` is run through `normalizeSubject()` first, which strips leading `Re:`/`Fwd:` prefixes (repeated, case-insensitive). The server then looks for an existing ticket from the same `fromEmail`, with the same normalized `subject` (case-insensitive), and `status: 'open'`:
+**Behavior:** `htmlBody`, when present, is run through `sanitizeHtml()` (`server/src/lib/sanitize-html.ts`) before either write path below, so the stored HTML is already clean — see HTML Sanitization above. `subject` is run through `normalizeSubject()` first, which strips leading `Re:`/`Fwd:` prefixes (repeated, case-insensitive). The server then looks for an existing ticket from the same `fromEmail`, with the same normalized `subject` (case-insensitive), and `status: 'open'`:
 
 - **Match found** — the email is attached as a `Reply` (`senderType: 'customer'`, `userId: null`) via the shared `createReply` helper (`server/src/lib/reply.ts`), which also bumps the matched ticket's `updatedAt` in the same transaction. No new ticket is created.
 - **No match** — a new `Ticket` is created (`status: 'open'`), same as if this feature didn't exist. This also covers the case where a matching ticket exists but isn't `open` (e.g. already resolved) — a new ticket is started rather than reopening or appending to the old one.
@@ -448,11 +462,14 @@ Key conventions owned by the agent:
 
 ### Server unit tests
 
-The `server-unit-test-writer` agent owns all server unit testing knowledge: Vitest config (`node` environment, not jsdom), mocking local modules (`./auth`, `./prisma`) with `vi.mock`, hand-built Express `Request`/`Response`/`NextFunction` fakes, and env var handling via `server/.env.test`.
+The `server-unit-test-writer` agent owns all server unit testing knowledge: Vitest config (`node` environment, not jsdom), mocking local modules (`./auth`, `./prisma`) with `vi.mock`, how to drive the code under test (supertest for routes, hand-built Express fakes for middleware — see below), and env var handling via `server/.env.test`.
 
 Key conventions owned by the agent:
 
 - Test files live next to the source file: `middleware.ts` → `middleware.test.ts`
+- **Routes → supertest.** Mount the router on a throwaway Express app (`app.use(express.json())`, `app.use('/', router)`) and drive it with `request(app).post('/…').send(payload)`, asserting on `response.status` / `response.body`. Don't reach into `router.stack` to pull a handler out and call it directly — that depends on Express internals and skips the route's own middleware chain. See `webhooks.test.ts`.
+- **Middleware and plain helpers → hand-built fakes.** A bare `Request`/`Response`/`NextFunction` object with only the fields under test is enough, and it keeps the assertions about that one function. See `middleware.test.ts`.
+- When a route's middleware isn't what's under test, mock it to a pass-through (`vi.fn((_request, _response, next) => next())`) so requests still reach the handler — e.g. `webhooks.test.ts` does this for `requireWebhookSecret`, whose own behavior is covered in `middleware.test.ts`
 - Never hit a real database or a real Better Auth session — mock at the module boundary with `vi.mock`
 - Restore any `process.env` mutation in `afterEach` so tests don't leak state into each other
 - Env vars a module needs at import time (e.g. `DATABASE_URL`, `BETTER_AUTH_SECRET`) go in `server/.env.test` (gitignored, dummy values only) — never hardcode them in `vitest.config.ts` or a test file

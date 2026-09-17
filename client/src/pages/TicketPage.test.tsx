@@ -331,7 +331,10 @@ describe('TicketPage', () => {
         const iframe = document.querySelector('iframe')
         expect(iframe).toBeInTheDocument()
         expect(iframe).toHaveAttribute('title', 'Email body')
-        expect(iframe).toHaveAttribute('srcDoc', '<p>HTML email body</p>')
+        expect(iframe).toHaveAttribute(
+          'srcDoc',
+          '<html><head></head><body><p>HTML email body</p></body></html>',
+        )
       })
     })
 

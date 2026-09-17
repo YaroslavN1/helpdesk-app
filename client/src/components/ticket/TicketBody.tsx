@@ -1,6 +1,6 @@
 import { cn } from '@/lib/cn'
 import DOMPurify from 'dompurify'
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 interface TicketBodyProps {
   body: string
   htmlBody: string | null
@@ -19,22 +19,26 @@ export function TicketBody({ body, htmlBody, iframeTitle, className }: TicketBod
     }
   }
 
-  if (htmlBody) {
-    const hasSanitizedContent = DOMPurify.sanitize(htmlBody).trim().length > 0
+  const sanitizedHtmlBody = useMemo(() => {
+    if (!htmlBody) return null
 
-    if (hasSanitizedContent) {
-      const sanitizedHtmlBody = DOMPurify.sanitize(htmlBody, { WHOLE_DOCUMENT: true })
-      return (
-        <iframe
-          ref={iframeRef}
-          srcDoc={sanitizedHtmlBody}
-          sandbox="allow-same-origin"
-          onLoad={setIframeHeight}
-          className="w-full max-h-96 overflow-y-auto bg-white"
-          title={iframeTitle || 'HTML body'}
-        />
-      )
-    }
+    const hasSanitizedContent = DOMPurify.sanitize(htmlBody).trim().length > 0
+    return hasSanitizedContent ? DOMPurify.sanitize(htmlBody, { WHOLE_DOCUMENT: true }) : null
+  }, [htmlBody])
+
+  if (sanitizedHtmlBody) {
+    return (
+      // allow-same-origin is here only so setIframeHeight can read
+      // contentWindow.document. Never add allow-scripts alongside it.
+      <iframe
+        ref={iframeRef}
+        srcDoc={sanitizedHtmlBody}
+        sandbox="allow-same-origin"
+        onLoad={setIframeHeight}
+        className="w-full max-h-96 overflow-y-auto bg-white"
+        title={iframeTitle || 'HTML body'}
+      />
+    )
   }
 
   return (

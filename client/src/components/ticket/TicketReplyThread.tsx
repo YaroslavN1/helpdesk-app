@@ -1,6 +1,4 @@
-import { useState } from 'react'
-import { useCreateReply, useReplies } from '@/hooks/useReplies'
-import { getErrorMessage } from '@/lib/api-client'
+import { useReplies } from '@/hooks/useReplies'
 import { TicketReplyForm } from '@/components/ticket/TicketReplyForm'
 import { TicketReply } from './TicketReply'
 
@@ -10,12 +8,6 @@ interface TicketReplyThreadProps {
 
 export function TicketReplyThread({ ticketId }: TicketReplyThreadProps) {
   const { data: replies, isLoading } = useReplies(ticketId)
-  const createReply = useCreateReply(ticketId)
-  const [body, setBody] = useState('')
-
-  function handleSubmit() {
-    createReply.mutate({ body }, { onSuccess: () => setBody('') })
-  }
 
   return (
     <div className="space-y-4">
@@ -31,15 +23,7 @@ export function TicketReplyThread({ ticketId }: TicketReplyThreadProps) {
         <TicketReply key={reply.id} reply={reply} />
       ))}
 
-      <TicketReplyForm
-        value={body}
-        onChange={setBody}
-        onSubmit={handleSubmit}
-        disabled={createReply.isPending}
-        error={
-          createReply.isError ? getErrorMessage(createReply.error, 'Failed to send reply') : null
-        }
-      />
+      <TicketReplyForm ticketId={ticketId} />
     </div>
   )
 }

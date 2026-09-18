@@ -1,39 +1,51 @@
+import { useState } from 'react'
+import { useCreateReply } from '@/hooks/useReplies'
+import { getErrorMessage } from '@/lib/api-client'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 
 interface TicketReplyFormProps {
-  value: string
-  onChange: (value: string) => void
-  onSubmit: () => void
-  disabled?: boolean
-  error?: string | null
+  ticketId: number | undefined
 }
 
-export function TicketReplyForm({
-  value,
-  onChange,
-  onSubmit,
-  disabled,
-  error,
-}: TicketReplyFormProps) {
+export function TicketReplyForm({ ticketId }: TicketReplyFormProps) {
+  const createReply = useCreateReply(ticketId)
+  const [body, setBody] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  function handleSubmit() {
+    createReply.mutate(
+      { body },
+      {
+        onSuccess: () => {
+          setBody('')
+          setError(null)
+        },
+        onError: (mutationError) => {
+          setError(getErrorMessage(mutationError, 'Failed to send reply'))
+        },
+      },
+    )
+  }
+
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault()
-        onSubmit()
+        handleSubmit()
       }}
       className="space-y-2"
     >
       <Textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
+        value={body}
+        onChange={(event) => setBody(event.target.value)}
         placeholder="Write a reply..."
-        disabled={disabled}
+        disabled={createReply.isPending}
         aria-invalid={Boolean(error)}
       />
       {error && <span className="text-xs text-destructive">{error}</span>}
       <div className="flex justify-end">
-        <Button type="submit" disabled={disabled || value.trim().length === 0}>
+        <Button type="submit" disabled={createReply.isPending || body.trim().length === 0}>
           Send reply
         </Button>
       </div>

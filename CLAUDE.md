@@ -390,7 +390,7 @@ Edit a user's name, email, or password. Admin only.
 
 ### `DELETE /api/users/:id`
 
-Soft-delete a user (sets `deletedAt`). Admin only. Admins cannot be deleted.
+Soft-delete a user (sets `deletedAt`). Admin only. Admins cannot be deleted. Any tickets currently assigned to the deleted user are unassigned (`assignedToId` set to `null`). The soft-delete, ticket unassignment, and session cleanup all run in a single `prisma.$transaction` so the deleted user can never be left still assigned to a ticket.
 
 **Response**
 

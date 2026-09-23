@@ -9,3 +9,5 @@ export const SENDER_TYPE_LABELS: Record<SenderType, string> = {
   agent: 'Agent',
   customer: 'Customer',
 }
+
+export const MAX_REPLY_BODY_LENGTH = 1000

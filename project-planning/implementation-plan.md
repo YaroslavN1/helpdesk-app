@@ -70,6 +70,7 @@
 - [ ] Build AI summary service (summarise ticket thread using Claude)
 - [ ] Display AI summary on ticket detail page
 - [ ] Display AI-suggested reply on ticket detail page (agents can edit and send)
+- [x] Build AI reply-polishing feature — "Polish" button on the ticket reply form rewrites an agent's draft via OpenAI `gpt-5-nano` (Vercel AI SDK)
 
 ---
 

@@ -16,7 +16,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 - **Database:** PostgreSQL, Prisma ORM, pgvector extension
 - **Auth:** Better Auth — email/password only, sign-up disabled, database sessions via HTTP-only cookie
 - **Email:** SendGrid or Mailgun (TBD) — inbound webhook + transactional sending
-- **AI:** Anthropic Claude API (`claude-sonnet-4-6`)
+- **AI:** Anthropic Claude API (`claude-sonnet-4-6`) for ticket response generation; OpenAI `gpt-5-nano` via the Vercel AI SDK (`ai` + `@ai-sdk/openai`) for reply polishing — see AI Reply Polishing below
 - **Deployment:** Docker + cloud provider (TBD)
 
 ## Project Structure
@@ -28,6 +28,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   ├── components/
 │   │   │   ├── ui/                    # shadcn/ui components + custom reusables
 │   │   │   │   ├── confirmation-dialog.tsx # generic alert-dialog for destructive confirmations
+│   │   │   │   ├── error-message.tsx      # ErrorMessage({ error }) — renders nothing when error is null, otherwise a small destructive-colored line; shared by any form that needs an inline error slot
 │   │   │   │   ├── input-debounced.tsx    # debounced search input with leading icon; exposes an `InputDebouncedHandle` ref (`cancel(nextValue)`) so a parent can reset the displayed value and drop a pending debounce without waiting for it to fire
 │   │   │   │   ├── multi-select.tsx       # generic multi-select dropdown (base-ui Menu)
 │   │   │   │   ├── pagination.tsx         # page nav with prev/next and ellipsis range
@@ -53,7 +54,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── TicketEditableDetails.tsx # status/category/agent SelectFields for TicketPage; owns one useUpdateTicket mutation per field
 │   │   │   │   ├── TicketPageSkeleton.tsx    # skeleton loader shown while the ticket page is fetching
 │   │   │   │   ├── TicketReply.tsx           # single reply's rendering (sender/date header + TicketBody); used by TicketReplyThread
-│   │   │   │   ├── TicketReplyForm.tsx       # compose box; owns its own useCreateReply mutation (body draft, pending/error state)
+│   │   │   │   ├── TicketReplyForm.tsx       # compose box; owns its own useCreateReply mutation (body draft, pending/error state) plus a Polish button wired to usePolishReply that rewrites the draft in place on success; a shared isPending disables the textarea and both buttons during either mutation, and a character counter (isOverLimit) disables Send once the draft reaches MAX_REPLY_BODY_LENGTH
 │   │   │   │   └── TicketReplyThread.tsx     # reply thread + form for TicketPage; owns useReplies only, passes ticketId through to TicketReplyForm
 │   │   │   └── users/
 │   │   │       ├── UserForm.tsx           # create/edit dialog + form; exports FormState type (User type lives in @/types/user)
@@ -66,7 +67,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   └── UsersPage.tsx          # /users — admin only; fetches/creates/edits/deletes users via useUsers hooks
 │   │   ├── hooks/
 │   │   │   ├── useAgents.ts           # useAgents — TanStack Query hook fetching /users/agents, for assignment dropdowns
-│   │   │   ├── useReplies.ts          # useReplies(ticketId) + useCreateReply(ticketId); create appends to its own cache and invalidates useTicket's ticketQueryKey (reply creation bumps the ticket's updatedAt server-side)
+│   │   │   ├── useReplies.ts          # useReplies(ticketId) + useCreateReply(ticketId); create appends to its own cache and invalidates useTicket's ticketQueryKey (reply creation bumps the ticket's updatedAt server-side). Also usePolishReply(ticketId) — posts a draft body to /tickets/:id/polish-reply and returns the polished text; no cache writes, since nothing is persisted
 │   │   │   ├── useTicket.ts           # useTicket(id) + useUpdateTicket(id); share a ticketQueryKey(id) builder so the mutation's direct cache write always targets the same key the query reads; ticketQueryKey is exported for useReplies.ts to reuse
 │   │   │   ├── useTickets.ts          # useTickets({ sort, filters, page }) — list query; builds its request query string via buildRequestQuery from useTicketsUrlParams
 │   │   │   ├── useTicketsUrlParams.ts # reads/writes TicketsPage's sort/filters/page as URL search params (useSearchParams); exports buildUrlQuery (omits values matching the defaults, for a clean shareable URL) and buildRequestQuery (always includes sortBy/sortOrder/page/pageSize, for the actual API call) — two different serializations of the same TicketsParams, built for different consumers
@@ -99,6 +100,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   └── seed-agent.ts   # creates agent user (SEED_AGENT_EMAIL / SEED_AGENT_PASSWORD / SEED_AGENT_NAME)
 │   ├── src/
 │   │   ├── lib/
+│   │   │   ├── ai.ts         # polishReplyText(draftBody, { contextSubject, contextBody }) — calls gpt-5-nano via the Vercel AI SDK to rewrite an agent's draft reply; see AI Reply Polishing below
 │   │   │   ├── auth.ts       # Better Auth config (Prisma adapter, additionalFields)
 │   │   │   ├── middleware.ts # requireAuth / requireAdmin Express middleware
 │   │   │   ├── prisma.ts
@@ -108,6 +110,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   ├── routes/
 │   │   │   ├── tickets/
 │   │   │   │   ├── index.ts           # assembles the router; router.param('id', ticketIdParam) is registered once here, shared by every :id route below
+│   │   │   │   ├── polish-routes.ts   # POST /:id/polish-reply — registerPolishRoutes(router) called from index.ts; per-user rate limited, fetches ticket subject + latest customer reply (or the ticket's own body) as context, delegates to lib/ai.ts's polishReplyText
 │   │   │   │   ├── reply-routes.ts    # GET/POST /:id/replies — registerReplyRoutes(router) called from index.ts; POST delegates to lib/reply.ts's createReply
 │   │   │   │   ├── ticket-id-param.ts # ticketIdParam — parses/loads the ticket once per :id request, 404s if missing, attaches the result to res.locals.ticket
 │   │   │   │   └── ticket-routes.ts   # GET /, GET /:id, PATCH /:id — registerTicketRoutes(router) called from index.ts
@@ -183,6 +186,7 @@ Import via `@helpdesk/core` in either the client or server package.
 - **`UserRole` enum** — Always import from `@helpdesk/core`, never hardcode `'admin'` or `'agent'` strings. Used in client components, server routes, and `auth.ts`.
 - **`TICKET_STATUS_LABELS` / `TICKET_CATEGORY_LABELS`** — Human-readable label maps (`Record<TicketStatus | TicketCategory, string>`). Import from `@helpdesk/core` whenever you need to display a ticket status or category as text. Category labels are short: `'General'`, `'Technical'`, `'Refund'`.
 - **`SENDER_TYPE_LABELS`** — Same convention, for `SenderType` (`Record<SenderType, string>` — `'Agent'` / `'Customer'`). Import whenever displaying who sent a reply.
+- **`MAX_REPLY_BODY_LENGTH`** (`core/src/constants/reply.ts`, currently `1000`) — the single source of truth for reply body length, reused in three places: `createReplySchema`'s `.max()` validator (and its error message), `TicketReplyForm`'s `Textarea` `maxLength` prop, and its character counter. `polishReplySchema` is `createReplySchema` itself (not a separate schema) — the two accept an identical shape, so there was no reason to duplicate it.
 
 ## Server Utilities (`server/src/lib/`)
 
@@ -202,6 +206,8 @@ Import via `@helpdesk/core` in either the client or server package.
   Never write the `safeParse` / `issues[0].message` block inline — always use this helper.
 
 - **`middleware.ts`** — `requireAuth` and `requireAdmin` Express middleware. Session is stored in `res.locals.session` after `requireAuth`.
+
+- **`ai.ts`** — `polishReplyText(draftBody, { contextSubject, contextBody })` calls `gpt-5-nano` (via the Vercel AI SDK's `generateText`) to rewrite an agent's draft reply. See AI Reply Polishing below for the full behavior and its abuse controls.
 
 - **`sanitize-html.ts`** — `sanitizeHtml(dirty)` returns a DOMPurify-cleaned copy of an HTML string. DOMPurify needs a DOM, and there isn't one on the server, so the module builds a single jsdom window at import time and reuses it for every call. Sanitizing with `WHOLE_DOCUMENT: true` keeps the `<html>`/`<head>`/`<body>` structure intact, which matters because inbound email HTML is usually a full document whose `<head>` carries the `<style>` the message depends on. See HTML Sanitization below for where to call it.
 
@@ -223,6 +229,18 @@ Every route response body is validated on the way out, not just request input: c
 ## Express 5 Error Handling
 
 Express 5 automatically forwards errors thrown (or rejected promises) in async route handlers to the error-handling middleware — no `try/catch` needed in routes. Only catch explicitly when you need to distinguish error types or return a specific status (e.g. 404 vs 500). Never wrap an entire route body in `try/catch` just to return a 500.
+
+## AI Reply Polishing
+
+The "Polish" button on `TicketReplyForm` rewrites an agent's draft reply to sound more professional, via `POST /api/tickets/:id/polish-reply` (see Tickets API below). It calls OpenAI's `gpt-5-nano` through the Vercel AI SDK (`server/src/lib/ai.ts`'s `polishReplyText`), a second, narrowly-scoped AI provider alongside the Anthropic Claude API used for ticket response generation. Requires `OPENAI_API_KEY` in `server/.env` — the default `openai` provider export reads it from `process.env` automatically, no explicit config needed. Without it, `polishReplyText` fails at call time (not at server startup), surfacing as a `500` from the polish endpoint.
+
+**Context, not just the bare draft.** `polishReplyText` also takes `contextSubject`/`contextBody`, fetched in `polish-routes.ts` from `res.locals.ticket` (subject, body) and the latest `senderType: 'customer'` reply if one exists (falling back to the ticket's own body otherwise). Without this, a short draft like `fixed` has nothing for the model to expand into an actual sentence — polishing a bare fragment can only change its capitalization.
+
+**This is the one place a customer's own words reach an LLM call**, unlike ticket response generation, which is server-authored. The draft itself is always agent-authored, but `contextBody` can carry customer-supplied text, so `SYSTEM_PROMPT` explicitly marks that context as untrusted reference material — never instructions, never a source of new claims/links/prices the draft doesn't already contain — and separately tells the model it is not a participant in the conversation and must never respond to the draft as if answering it (an earlier version without this produced a full canned customer-service reply to a draft that just said `fixed`).
+
+**Deliberately no truncation of the AI's output.** `polishedReplySchema` has no `.max()`, and the response is never sliced — if a polished reply comes back longer than `MAX_REPLY_BODY_LENGTH`, the agent sees the full text and decides what to trim, rather than losing content to a silent cut. The character counter turning red and Send disabling (`isOverLimit`) is the signal for this case, not a hard block; `createReplySchema`'s own `.max()` is still the real backstop against an oversized reply ever being persisted.
+
+**Abuse controls**, since this is a publicly-deployable app where any `agent`-role account is a potential bad actor, and the actual risk is cost/API abuse, not code execution (the endpoint calls no tools, and its output only ever lands in the requesting agent's own draft): a per-user rate limit (`express-rate-limit`, 10 requests/minute, keyed by `res.locals.session.user.id` rather than IP), `MAX_REPLY_BODY_LENGTH` capping the input draft, `maxOutputTokens` and `timeout` bounding worst-case cost/latency per call, and `reasoningEffort: 'low'`. None of this replaces a hard spend cap on the `OPENAI_API_KEY` itself in the OpenAI platform's billing settings — that's a manual, one-time step outside the codebase, and the actual backstop for a publicly-reachable deployment.
 
 ## Tickets API
 
@@ -314,15 +332,38 @@ Add a reply to a ticket. Always created as `senderType: 'agent'`, authored by th
 
 **Body** (`createReplySchema`)
 
-| Field  | Type     | Notes               |
-| ------ | -------- | ------------------- |
-| `body` | `string` | required, non-empty |
+| Field  | Type     | Notes                                          |
+| ------ | -------- | ----------------------------------------------- |
+| `body` | `string` | required, non-empty, max `MAX_REPLY_BODY_LENGTH` |
 
 **Response**
 
 - `201` — created `Reply`
 - `400` — invalid ticket ID or invalid body
 - `404` — ticket not found
+
+### `POST /api/tickets/:id/polish-reply`
+
+Rewrite an agent's draft reply to sound more professional, via `gpt-5-nano` — see AI Reply Polishing above for model, context, and abuse-control details. Auth required.
+
+**Path params**
+
+| Param | Type     | Notes                   |
+| ----- | -------- | ----------------------- |
+| `id`  | `number` | must be a valid integer |
+
+**Body** (`polishReplySchema` — same shape as `createReplySchema`)
+
+| Field  | Type     | Notes                                          |
+| ------ | -------- | ----------------------------------------------- |
+| `body` | `string` | required, non-empty, max `MAX_REPLY_BODY_LENGTH` |
+
+**Response**
+
+- `200` — `{ body: string }` (`polishedReplySchema`) — the polished text; not length-capped, see AI Reply Polishing above
+- `400` — invalid ticket ID or invalid body
+- `404` — ticket not found
+- `429` — rate limit exceeded (10 requests/minute per user)
 
 ## Webhooks API
 

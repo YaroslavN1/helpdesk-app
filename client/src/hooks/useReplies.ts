@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
-import type { Reply } from '@helpdesk/core'
+import type { PolishedReply, Reply } from '@helpdesk/core'
 import type { CreateReplyInput } from '@helpdesk/core'
 import { ticketQueryKey } from './useTicket'
 
@@ -33,6 +33,17 @@ export function useCreateReply(ticketId: number | undefined) {
         createdReply,
       ])
       queryClient.invalidateQueries({ queryKey: ticketQueryKey(String(ticketId)) })
+    },
+  })
+}
+
+export function usePolishReply(ticketId: number | undefined) {
+  return useMutation({
+    mutationFn: async (body: string) => {
+      const response = await apiClient.post<PolishedReply>(`/tickets/${ticketId}/polish-reply`, {
+        body,
+      })
+      return response.data
     },
   })
 }

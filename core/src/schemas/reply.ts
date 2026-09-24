@@ -1,8 +1,12 @@
 import { z } from 'zod'
-import { SENDER_TYPES } from '../constants/reply'
+import { MAX_REPLY_BODY_LENGTH, SENDER_TYPES } from '../constants/reply'
 
 export const createReplySchema = z.object({
-  body: z.string().trim().min(1, 'Reply body is required'),
+  body: z
+    .string()
+    .trim()
+    .min(1, 'Reply body is required')
+    .max(MAX_REPLY_BODY_LENGTH, `Reply body must be ${MAX_REPLY_BODY_LENGTH} characters or fewer`),
 })
 export type CreateReplyInput = z.infer<typeof createReplySchema>
 

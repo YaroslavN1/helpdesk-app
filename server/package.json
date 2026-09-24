@@ -13,9 +13,11 @@
     "db:seed": "bun prisma/seed-admin.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.70",
     "@helpdesk/core": "workspace:*",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "ai": "^7.0.106",
     "better-auth": "^1.6.11",
     "cors": "^2.8.5",
     "dompurify": "^3.3.1",

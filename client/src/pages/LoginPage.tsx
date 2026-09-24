@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import LoadingScreen from '@/components/layout/LoadingScreen'
+import { ErrorMessage } from '@/components/ui/error-message'
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
@@ -71,7 +72,7 @@ export default function LoginPage() {
                   placeholder="you@example.com"
                   {...register('email')}
                 />
-                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+                <ErrorMessage error={errors.email?.message} />
               </div>
 
               <div className="space-y-1.5">
@@ -83,9 +84,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   {...register('password')}
                 />
-                {errors.password && (
-                  <p className="text-xs text-destructive">{errors.password.message}</p>
-                )}
+                <ErrorMessage error={errors.password?.message} />
               </div>
 
               {errors.root && (

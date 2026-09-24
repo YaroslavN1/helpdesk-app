@@ -1,5 +1,6 @@
 import { Select, type SelectOption } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { ErrorMessage } from './error-message'
 
 interface SelectFieldProps {
   label: string
@@ -34,7 +35,7 @@ export function SelectField({
           className={className}
           data-testid={testId}
         />
-        {error && <span className="text-xs text-destructive">{error}</span>}
+        <ErrorMessage error={error} />
       </div>
     </div>
   )

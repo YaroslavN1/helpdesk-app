@@ -17,6 +17,7 @@ import { CircleAlert } from 'lucide-react'
 import { useCreateUser, useUpdateUser } from '@/hooks/useUsers'
 import { getErrorMessage } from '@/lib/api-client'
 import { type User } from '@/types/user'
+import { ErrorMessage } from '../ui/error-message'
 
 type FormValues = { name: string; email: string; password: string }
 export type FormState = { mode: 'create'; user: null } | { mode: 'edit'; user: User }
@@ -105,7 +106,7 @@ export function UserForm({ form, onOpenChange }: Props) {
                 aria-invalid={!!errors.name}
                 {...register('name')}
               />
-              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+              <ErrorMessage error={errors.name?.message} />
             </div>
 
             <div className="space-y-1">
@@ -118,7 +119,7 @@ export function UserForm({ form, onOpenChange }: Props) {
                 aria-invalid={!!errors.email}
                 {...register('email')}
               />
-              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+              <ErrorMessage error={errors.email?.message} />
             </div>
 
             <div className="space-y-1">
@@ -139,9 +140,7 @@ export function UserForm({ form, onOpenChange }: Props) {
                 aria-invalid={!!errors.password}
                 {...register('password')}
               />
-              {errors.password && (
-                <p className="text-xs text-destructive">{errors.password.message}</p>
-              )}
+              <ErrorMessage error={errors.password?.message} />
             </div>
 
             {errors.root?.message && (

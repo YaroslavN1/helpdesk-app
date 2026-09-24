@@ -28,7 +28,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   ├── components/
 │   │   │   ├── ui/                    # shadcn/ui components + custom reusables
 │   │   │   │   ├── confirmation-dialog.tsx # generic alert-dialog for destructive confirmations
-│   │   │   │   ├── error-message.tsx      # ErrorMessage({ error }) — renders nothing when error is null, otherwise a small destructive-colored line; shared by any form that needs an inline error slot
+│   │   │   │   ├── error-message.tsx      # ErrorMessage({ error }: { error: string | null | undefined }) — renders nothing when error is null/undefined, otherwise a small destructive-colored line; the `undefined` case supports react-hook-form's `errors.field?.message` directly. Used by TicketReplyForm, SelectField, UserForm, and LoginPage — the shared inline-error slot for any form
 │   │   │   │   ├── input-debounced.tsx    # debounced search input with leading icon; exposes an `InputDebouncedHandle` ref (`cancel(nextValue)`) so a parent can reset the displayed value and drop a pending debounce without waiting for it to fire
 │   │   │   │   ├── multi-select.tsx       # generic multi-select dropdown (base-ui Menu)
 │   │   │   │   ├── pagination.tsx         # page nav with prev/next and ellipsis range
@@ -447,6 +447,7 @@ Soft-delete a user (sets `deletedAt`). Admin only. Admins cannot be deleted. Any
 - Import using the `@/` alias: `import { Button } from '@/components/ui/button'`
 - Use `cn()` from `@/lib/cn` for conditional/merged class names
 - Tailwind tokens (`text-muted-foreground`, `text-destructive`, `bg-background`, etc.) are defined as CSS vars in `src/index.css` — prefer these over hard-coded colors
+- Use `<ErrorMessage error={...} />` (`@/components/ui/error-message`) for any inline field/form error — don't hand-roll a `{error && <span/p className="text-xs text-destructive">...}` conditional inline
 
 ## Client Utilities (`client/src/lib/`)
 

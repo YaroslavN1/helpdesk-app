@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ErrorMessage } from '@/components/ui/error-message'
 import { MAX_REPLY_BODY_LENGTH } from '@helpdesk/core'
-import { LoaderCircle } from 'lucide-react'
+import { Brush, BrushCleaning, BrushCleaningIcon, Feather, LoaderCircle } from 'lucide-react'
 interface TicketReplyFormProps {
   ticketId: number | undefined
 }
@@ -79,6 +79,7 @@ export function TicketReplyForm({ ticketId }: TicketReplyFormProps) {
             onClick={handlePolishReply}
             disabled={isPending || body.trim().length === 0}
           >
+            <Feather />
             Polish
           </Button>
           <Button type="submit" disabled={isPending || isOverLimit || body.trim().length === 0}>

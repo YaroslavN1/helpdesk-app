@@ -1,13 +1,36 @@
 import { z } from 'zod'
-import { TICKET_STATUSES, TICKET_CATEGORIES } from '../constants/ticket'
+import {
+  TICKET_STATUSES,
+  TICKET_CATEGORIES,
+  MAX_TICKET_FROM_NAME_LENGTH,
+  MAX_TICKET_SUBJECT_LENGTH,
+  MAX_TICKET_BODY_LENGTH,
+  MAX_TICKET_HTML_BODY_LENGTH,
+} from '../constants/ticket'
 import { agentSchema } from './user'
 
 export const inboundEmailSchema = z.object({
   from: z.email('Valid sender email is required'),
-  fromName: z.string().trim().min(1, 'Sender name is required'),
-  subject: z.string().trim().min(1, 'Subject is required'),
-  body: z.string().min(1, 'Plain text body is required'),
-  htmlBody: z.string().optional(),
+  fromName: z
+    .string()
+    .trim()
+    .min(1, 'Sender name is required')
+    .transform((value) => value.slice(0, MAX_TICKET_FROM_NAME_LENGTH)),
+  subject: z
+    .string()
+    .trim()
+    .min(1, 'Subject is required')
+    .transform((value) => value.slice(0, MAX_TICKET_SUBJECT_LENGTH)),
+  body: z
+    .string()
+    .min(1, 'Plain text body is required')
+    .transform((value) => value.slice(0, MAX_TICKET_BODY_LENGTH)),
+  htmlBody: z
+    .string()
+    .optional()
+    .transform((value) =>
+      value === undefined ? value : value.slice(0, MAX_TICKET_HTML_BODY_LENGTH),
+    ),
 })
 
 export type InboundEmailInput = z.infer<typeof inboundEmailSchema>

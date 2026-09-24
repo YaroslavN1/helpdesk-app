@@ -187,6 +187,8 @@ Import via `@helpdesk/core` in either the client or server package.
 - **`TICKET_STATUS_LABELS` / `TICKET_CATEGORY_LABELS`** — Human-readable label maps (`Record<TicketStatus | TicketCategory, string>`). Import from `@helpdesk/core` whenever you need to display a ticket status or category as text. Category labels are short: `'General'`, `'Technical'`, `'Refund'`.
 - **`SENDER_TYPE_LABELS`** — Same convention, for `SenderType` (`Record<SenderType, string>` — `'Agent'` / `'Customer'`). Import whenever displaying who sent a reply.
 - **`MAX_REPLY_BODY_LENGTH`** (`core/src/constants/reply.ts`, currently `1000`) — the single source of truth for reply body length, reused in three places: `createReplySchema`'s `.max()` validator (and its error message), `TicketReplyForm`'s `Textarea` `maxLength` prop, and its character counter. `polishReplySchema` is `createReplySchema` itself (not a separate schema) — the two accept an identical shape, so there was no reason to duplicate it.
+- **`MAX_TICKET_FROM_NAME_LENGTH` / `MAX_TICKET_SUBJECT_LENGTH` / `MAX_TICKET_BODY_LENGTH` / `MAX_TICKET_HTML_BODY_LENGTH`** (`core/src/constants/ticket.ts`, currently `255` / `255` / `2000` / `4000`) — bound the fields `inboundEmailSchema` accepts from inbound email. Unlike `createReplySchema`'s `.max()`, these are enforced via `.transform()` (a silent truncate), not `.max()` (a rejection) — see Webhooks API below for why.
+- **`MAX_USER_PASSWORD_LENGTH`** (`core/src/constants/user.ts`, currently `64`) — caps password length on `createUserSchema`/`updateUserSchema`, independent of the `min(8)` lower bound. This guards against an unbounded password being fed into the (comparatively expensive) password hashing function — a DoS vector against the hash itself, not just a storage/consistency concern like the other length caps in this list.
 
 ## Server Utilities (`server/src/lib/`)
 
@@ -373,13 +375,15 @@ Ingests an inbound email. Requires the `x-webhook-secret` header to match `WEBHO
 
 **Body** (`inboundEmailSchema`)
 
-| Field      | Type     | Notes                     |
-| ---------- | -------- | -------------------------- |
-| `from`     | `string` | valid email                |
-| `fromName` | `string` | required                   |
-| `subject`  | `string` | required                   |
-| `body`     | `string` | plain text, required       |
-| `htmlBody` | `string` | optional                   |
+| Field      | Type     | Notes                                                    |
+| ---------- | -------- | --------------------------------------------------------- |
+| `from`     | `string` | valid email                                                |
+| `fromName` | `string` | required, truncated to `MAX_TICKET_FROM_NAME_LENGTH`       |
+| `subject`  | `string` | required, truncated to `MAX_TICKET_SUBJECT_LENGTH`         |
+| `body`     | `string` | plain text, required, truncated to `MAX_TICKET_BODY_LENGTH` |
+| `htmlBody` | `string` | optional, truncated to `MAX_TICKET_HTML_BODY_LENGTH`       |
+
+**Length caps truncate, they don't reject.** `fromName`/`subject`/`body`/`htmlBody` are each capped in `inboundEmailSchema` via `.transform()`, not `.max()` — an oversized field is silently cut to its limit and the ticket/reply is still created, rather than the whole webhook call failing with a `400`. This is deliberately the opposite choice from `createReplySchema`'s `.max()`-and-reject: there's no human in the loop for an inbound email the way there is for an agent submitting a reply, so rejecting risks a legitimate customer email (e.g. one with a long pasted stack trace) silently never becoming a ticket at all. Truncating always produces a ticket an agent can see and follow up on. This also bounds the ticket/reply content that flows into the AI Reply Polishing prompt as context (see above) — closing the previously-unbounded-context finding from that feature's security review.
 
 **Behavior:** `htmlBody`, when present, is run through `sanitizeHtml()` (`server/src/lib/sanitize-html.ts`) before either write path below, so the stored HTML is already clean — see HTML Sanitization above. `subject` is run through `normalizeSubject()` first, which strips leading `Re:`/`Fwd:` prefixes (repeated, case-insensitive). The server then looks for an existing ticket from the same `fromEmail`, with the same normalized `subject` (case-insensitive), and `status: 'open'`:
 
@@ -410,7 +414,7 @@ List all non-deleted users. Admin only.
 
 Create an agent account. Admin only.
 
-**Body** (`createUserSchema`) — `name`, `email`, `password`
+**Body** (`createUserSchema`) — `name`, `email`, `password` (8-`MAX_USER_PASSWORD_LENGTH` characters)
 
 **Response**
 
@@ -421,7 +425,7 @@ Create an agent account. Admin only.
 
 Edit a user's name, email, or password. Admin only.
 
-**Body** (`updateUserSchema`) — `name`, `email`, optional `password`
+**Body** (`updateUserSchema`) — `name`, `email`, optional `password` (8-`MAX_USER_PASSWORD_LENGTH` characters)
 
 **Response**
 

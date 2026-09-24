@@ -1,0 +1,1 @@
+export const MAX_USER_PASSWORD_LENGTH = 64

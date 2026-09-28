@@ -147,6 +147,13 @@ bun test:e2e:ui       # run Playwright E2E tests with interactive UI
 bun test:e2e:debug    # run Playwright E2E tests in debug mode
 ```
 
+## Linting & Formatting
+
+- **`bun lint`** / **`bun lint:fix`** — ESLint over the whole repo (`eslint.config.mjs`). **`bun format`** / **`bun format:check`** — Prettier.
+- **Pre-commit hook** (Husky → `bunx lint-staged`) runs `eslint --fix` + `prettier --write` on staged files before every commit.
+- **`@typescript-eslint/no-unused-vars` is `'error'`, not `'warn'`** — deliberately, so it actually blocks a commit. ESLint's CLI exits `0` when only warnings are present, and `no-unused-vars` isn't auto-fixable, so at `'warn'` the pre-commit hook would print the warning but still let the commit through.
+- **`eslint.config.mjs` uses ESLint core's `defineConfig()` / `globalIgnores()` (from `eslint/config`)**, not `typescript-eslint`'s `tseslint.config()` — the latter has been `@deprecated` since `typescript-eslint@8.42.0` in favor of the former. `tseslint` itself is still imported, for `tseslint.configs.recommended`.
+
 ## Authentication
 
 - **Library:** Better Auth — email/password only, sign-up disabled, HTTP-only cookie sessions

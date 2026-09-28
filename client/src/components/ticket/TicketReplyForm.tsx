@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ErrorMessage } from '@/components/ui/error-message'
 import { MAX_REPLY_BODY_LENGTH } from '@helpdesk/core'
-import { Brush, BrushCleaning, BrushCleaningIcon, Feather, LoaderCircle } from 'lucide-react'
+import { Feather, LoaderCircle } from 'lucide-react'
 interface TicketReplyFormProps {
   ticketId: number | undefined
 }

@@ -16,7 +16,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 - **Database:** PostgreSQL, Prisma ORM, pgvector extension
 - **Auth:** Better Auth — email/password only, sign-up disabled, database sessions via HTTP-only cookie
 - **Email:** SendGrid or Mailgun (TBD) — inbound webhook + transactional sending
-- **AI:** Anthropic Claude API (`claude-sonnet-4-6`) for ticket response generation; OpenAI `gpt-5-nano` via the Vercel AI SDK (`ai` + `@ai-sdk/openai`) for reply polishing — see AI Reply Polishing below
+- **AI:** Anthropic Claude API (`claude-sonnet-4-6`) for ticket response generation; OpenAI `gpt-5-nano` via the Vercel AI SDK (`ai` + `@ai-sdk/openai`) for reply polishing and ticket thread summarization — see AI Reply Polishing and AI Ticket Summarization below
 - **Deployment:** Docker + cloud provider (TBD)
 
 ## Project Structure
@@ -55,7 +55,8 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── TicketPageSkeleton.tsx    # skeleton loader shown while the ticket page is fetching
 │   │   │   │   ├── TicketReply.tsx           # single reply's rendering (sender/date header + TicketBody); used by TicketReplyThread
 │   │   │   │   ├── TicketReplyForm.tsx       # compose box; owns its own useCreateReply mutation (body draft, pending/error state) plus a Polish button wired to usePolishReply that rewrites the draft in place on success; a shared isPending disables the textarea and both buttons during either mutation, and a character counter (isOverLimit) disables Send once the draft reaches MAX_REPLY_BODY_LENGTH
-│   │   │   │   └── TicketReplyThread.tsx     # reply thread + form for TicketPage; owns useReplies only, passes ticketId through to TicketReplyForm
+│   │   │   │   ├── TicketReplyThread.tsx     # reply thread + form for TicketPage; owns useReplies only, passes ticketId through to TicketReplyForm
+│   │   │   │   └── TicketSummary.tsx         # Summarize button + result card for TicketPage; owns its own useSummarizeTicket mutation (summary/error kept in local state, not cached) — see AI Ticket Summarization below
 │   │   │   └── users/
 │   │   │       ├── UserForm.tsx           # create/edit dialog + form; exports FormState type (User type lives in @/types/user)
 │   │   │       └── UsersTable.tsx         # users table with loading/error/data states; edit + delete actions
@@ -68,7 +69,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   ├── hooks/
 │   │   │   ├── useAgents.ts           # useAgents — TanStack Query hook fetching /users/agents, for assignment dropdowns
 │   │   │   ├── useReplies.ts          # useReplies(ticketId) + useCreateReply(ticketId); create appends to its own cache and invalidates useTicket's ticketQueryKey (reply creation bumps the ticket's updatedAt server-side). Also usePolishReply(ticketId) — posts a draft body to /tickets/:id/polish-reply and returns the polished text; no cache writes, since nothing is persisted
-│   │   │   ├── useTicket.ts           # useTicket(id) + useUpdateTicket(id); share a ticketQueryKey(id) builder so the mutation's direct cache write always targets the same key the query reads; ticketQueryKey is exported for useReplies.ts to reuse
+│   │   │   ├── useTicket.ts           # useTicket(id) + useUpdateTicket(id); share a ticketQueryKey(id) builder so the mutation's direct cache write always targets the same key the query reads; ticketQueryKey is exported for useReplies.ts to reuse. Also useSummarizeTicket(id) — posts to /tickets/:id/summarize and returns the summary text; no cache writes, since nothing is persisted (same pattern as usePolishReply)
 │   │   │   ├── useTickets.ts          # useTickets({ sort, filters, page }) — list query; builds its request query string via buildRequestQuery from useTicketsUrlParams
 │   │   │   ├── useTicketsUrlParams.ts # reads/writes TicketsPage's sort/filters/page as URL search params (useSearchParams); exports buildUrlQuery (omits values matching the defaults, for a clean shareable URL) and buildRequestQuery (always includes sortBy/sortOrder/page/pageSize, for the actual API call) — two different serializations of the same TicketsParams, built for different consumers
 │   │   │   └── useUsers.ts            # useUsers/useCreateUser/useUpdateUser/useDeleteUser — TanStack Query hooks; mutations write results directly into the query cache instead of invalidating
@@ -100,7 +101,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   └── seed-agent.ts   # creates agent user (SEED_AGENT_EMAIL / SEED_AGENT_PASSWORD / SEED_AGENT_NAME)
 │   ├── src/
 │   │   ├── lib/
-│   │   │   ├── ai.ts         # polishReplyText(draftBody, { contextSubject, contextBody }) — calls gpt-5-nano via the Vercel AI SDK to rewrite an agent's draft reply; see AI Reply Polishing below
+│   │   │   ├── ai.ts         # polishReplyText(draftBody, { contextSubject, contextBody }) — calls gpt-5-nano via the Vercel AI SDK to rewrite an agent's draft reply; see AI Reply Polishing below. Also summarizeTicketThread(thread) — calls gpt-5-nano to summarize a ticket's full conversation history; see AI Ticket Summarization below. Each has its own system prompt (POLISH_REPLY_SYSTEM_PROMPT / SUMMARIZE_TICKET_THREAD_SYSTEM_PROMPT)
 │   │   │   ├── auth.ts       # Better Auth config (Prisma adapter, additionalFields)
 │   │   │   ├── middleware.ts # requireAuth / requireAdmin Express middleware
 │   │   │   ├── prisma.ts
@@ -112,6 +113,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── index.ts           # assembles the router; router.param('id', ticketIdParam) is registered once here, shared by every :id route below
 │   │   │   │   ├── polish-routes.ts   # POST /:id/polish-reply — registerPolishRoutes(router) called from index.ts; per-user rate limited, fetches ticket subject + latest customer reply (or the ticket's own body) as context, delegates to lib/ai.ts's polishReplyText
 │   │   │   │   ├── reply-routes.ts    # GET/POST /:id/replies — registerReplyRoutes(router) called from index.ts; POST delegates to lib/reply.ts's createReply
+│   │   │   │   ├── summarize-routes.ts # POST /:id/summarize — registerSummarizeRoutes(router) called from index.ts; per-user rate limited, joins the ticket body + its most recent MAX_SUMMARIZE_REPLIES_INCLUDED replies into one prompt via joinConversationHistory, delegates to lib/ai.ts's summarizeTicketThread; see AI Ticket Summarization below
 │   │   │   │   ├── ticket-id-param.ts # ticketIdParam — parses/loads the ticket once per :id request, 404s if missing, attaches the result to res.locals.ticket
 │   │   │   │   └── ticket-routes.ts   # GET /, GET /:id, PATCH /:id — registerTicketRoutes(router) called from index.ts
 │   │   │   ├── users.ts
@@ -251,6 +253,18 @@ The "Polish" button on `TicketReplyForm` rewrites an agent's draft reply to soun
 
 **Abuse controls**, since this is a publicly-deployable app where any `agent`-role account is a potential bad actor, and the actual risk is cost/API abuse, not code execution (the endpoint calls no tools, and its output only ever lands in the requesting agent's own draft): a per-user rate limit (`express-rate-limit`, 10 requests/minute, keyed by `res.locals.session.user.id` rather than IP), `MAX_REPLY_BODY_LENGTH` capping the input draft, `maxOutputTokens` and `timeout` bounding worst-case cost/latency per call, and `reasoningEffort: 'low'`. None of this replaces a hard spend cap on the `OPENAI_API_KEY` itself in the OpenAI platform's billing settings — that's a manual, one-time step outside the codebase, and the actual backstop for a publicly-reachable deployment.
 
+## AI Ticket Summarization
+
+The "Summarize" button on `TicketSummary` (rendered on `TicketPage` above the reply thread) produces a short recap of a ticket's full conversation so far, via `POST /api/tickets/:id/summarize` (see Tickets API below). It calls the same OpenAI `gpt-5-nano` provider as AI Reply Polishing, through its own function in `server/src/lib/ai.ts` — `summarizeTicketThread(thread)` — with its own system prompt (`SUMMARIZE_TICKET_THREAD_SYSTEM_PROMPT`), not a shared one; the two features' prompts were split into separately-named constants (`POLISH_REPLY_SYSTEM_PROMPT` / `SUMMARIZE_TICKET_THREAD_SYSTEM_PROMPT`) when this feature was added, since a single generic `SYSTEM_PROMPT` constant can't describe two different tasks.
+
+**The whole thread is customer- and agent-authored, unlike polishing.** `summarize-routes.ts`'s `joinConversationHistory` builds the prompt from `res.locals.ticket` (the original subject + body) plus its most recent `MAX_SUMMARIZE_REPLIES_INCLUDED` (25) replies — oldest first — each prefixed with `SENDER_TYPE_LABELS[reply.senderType]` ("Agent"/"Customer") so the model can distinguish who said what. Every line in that thread is untrusted conversation content, including agent-authored replies, so `SUMMARIZE_TICKET_THREAD_SYSTEM_PROMPT` explicitly tells the model to treat the whole thread as literal text to summarize, never as instructions, and never to respond to it as a participant — the same prompt-injection posture as AI Reply Polishing's `contextBody`, just applied to the entire history instead of one reply.
+
+**`MAX_SUMMARIZE_REPLIES_INCLUDED`** (`server/src/routes/tickets/summarize-routes.ts`, currently `25`) bounds the request to the most recent 25 replies rather than the full history, so a long-running ticket can't grow the prompt — and its cost — without limit. A ticket with more replies than that still gets a summary; it just loses the oldest exchanges, on the assumption that an agent getting up to speed cares more about recent state than the full transcript.
+
+**Abuse controls** mirror AI Reply Polishing's: a per-user rate limit (`express-rate-limit`, 10 requests/minute, keyed by `res.locals.session.user.id`), `maxOutputTokens`/`timeout` bounding worst-case cost/latency, `reasoningEffort: 'low'`, and the reply/ticket length caps already enforced at write time (`MAX_REPLY_BODY_LENGTH`, `MAX_TICKET_BODY_LENGTH`) plus `MAX_SUMMARIZE_REPLIES_INCLUDED` bounding how much of that content one request can pull in. Same manual backstop applies: a hard spend cap on `OPENAI_API_KEY` in the OpenAI platform's billing settings.
+
+**No request body.** Unlike polish-reply, this endpoint takes nothing from the client beyond the ticket ID in the path — the thread it summarizes is built entirely server-side from `res.locals.ticket` and the ticket's own replies, so there's no `validate()` call in `summarize-routes.ts`.
+
 ## Tickets API
 
 ### `GET /api/tickets`
@@ -374,6 +388,23 @@ Rewrite an agent's draft reply to sound more professional, via `gpt-5-nano` — 
 - `404` — ticket not found
 - `429` — rate limit exceeded (10 requests/minute per user)
 
+### `POST /api/tickets/:id/summarize`
+
+Summarize a ticket's full conversation (original message + replies) for an agent catching up — see AI Ticket Summarization above for model, context, and abuse-control details. Auth required. No request body.
+
+**Path params**
+
+| Param | Type     | Notes                   |
+| ----- | -------- | ----------------------- |
+| `id`  | `number` | must be a valid integer |
+
+**Response**
+
+- `200` — `{ body: string }` (`ticketSummarySchema`) — the summary text
+- `400` — invalid (non-integer) ticket ID
+- `404` — ticket not found
+- `429` — rate limit exceeded (10 requests/minute per user)
+
 ## Webhooks API
 
 ### `POST /api/webhooks/inbound-email`
@@ -450,7 +481,7 @@ Soft-delete a user (sets `deletedAt`). Admin only. Admins cannot be deleted. Any
 - `403` — target is an admin
 - `404` — user not found
 
-> All types and schemas (`Agent`, `TicketDetails`, `updateTicketSchema`, `createUserSchema`, `updateUserSchema`, `Reply`, `createReplySchema`, etc.) are exported from `@helpdesk/core`.
+> All types and schemas (`Agent`, `TicketDetails`, `updateTicketSchema`, `createUserSchema`, `updateUserSchema`, `Reply`, `createReplySchema`, `polishedReplySchema`, `ticketSummarySchema`, etc.) are exported from `@helpdesk/core`.
 
 ## UI Components
 

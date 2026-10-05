@@ -5,6 +5,7 @@ import { getErrorMessage } from '@/lib/api-client'
 import { useTicket } from '@/hooks/useTicket'
 import { TicketReplyThread } from '@/components/ticket/TicketReplyThread'
 import { TicketDetails } from '@/components/ticket/TicketDetails'
+import { TicketSummary } from '@/components/ticket/TicketSummary'
 
 export default function TicketPage() {
   const { id } = useParams<{ id: string }>()
@@ -37,7 +38,7 @@ export default function TicketPage() {
           <div className="grid grid-cols-[1fr_auto] gap-8 items-start">
             <div className="space-y-6 min-w-0">
               <TicketDetails ticket={ticket} />
-
+              <TicketSummary ticketId={ticket.id} />
               <TicketReplyThread ticketId={ticket.id} />
             </div>
 

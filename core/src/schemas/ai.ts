@@ -8,3 +8,9 @@ export const polishedReplySchema = z.object({
   body: z.string(),
 })
 export type PolishedReply = z.infer<typeof polishedReplySchema>
+
+export const ticketSummarySchema = z.object({
+  body: z.string(),
+})
+
+export type TicketSummary = z.infer<typeof ticketSummarySchema>

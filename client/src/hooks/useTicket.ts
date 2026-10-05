@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
-import { type TicketDetails, type UpdateTicketInput } from '@helpdesk/core'
+import { type TicketSummary, type TicketDetails, type UpdateTicketInput } from '@helpdesk/core'
 
 export function ticketQueryKey(id: string | undefined) {
   return ['ticket', id] as const
@@ -27,6 +27,15 @@ export function useUpdateTicket(id: string | undefined) {
     },
     onSuccess: (updatedTicket) => {
       queryClient.setQueryData(ticketQueryKey(id), updatedTicket)
+    },
+  })
+}
+
+export function useSummarizeTicket(id: number | undefined) {
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.post<TicketSummary>(`/tickets/${id}/summarize`)
+      return response.data
     },
   })
 }

@@ -11,6 +11,7 @@ import { requireWebhookSecret } from '../lib/middleware'
 import { validate } from '../lib/validate'
 import { createReply } from '../lib/reply'
 import { sanitizeHtml } from '../lib/sanitize-html'
+import { classifyTicketInBackground } from '../lib/classify-ticket'
 
 function normalizeSubject(subject: string): string {
   return subject.replace(/^((re|fwd?)\s*:\s*)+/i, '').trim()
@@ -58,6 +59,7 @@ router.post('/inbound-email', requireWebhookSecret, async (req, res) => {
     include: { assignedTo: { select: { name: true } } },
   })
   res.status(201).json(ticketSchema.parse(createdTicket))
+  void classifyTicketInBackground(createdTicket.id, subject, body)
 })
 
 export default router

@@ -16,7 +16,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 - **Database:** PostgreSQL, Prisma ORM, pgvector extension
 - **Auth:** Better Auth — email/password only, sign-up disabled, database sessions via HTTP-only cookie
 - **Email:** SendGrid or Mailgun (TBD) — inbound webhook + transactional sending
-- **AI:** Anthropic Claude API (`claude-sonnet-4-6`) for ticket response generation; OpenAI `gpt-5-nano` via the Vercel AI SDK (`ai` + `@ai-sdk/openai`) for reply polishing and ticket thread summarization — see AI Reply Polishing and AI Ticket Summarization below
+- **AI:** Anthropic Claude API (`claude-sonnet-4-6`) for ticket response generation; OpenAI `gpt-5-nano` via the Vercel AI SDK (`ai` + `@ai-sdk/openai`) for reply polishing, ticket thread summarization, and inbound-email ticket category classification — see AI Reply Polishing, AI Ticket Summarization, and AI Ticket Classification below
 - **Deployment:** Docker + cloud provider (TBD)
 
 ## Project Structure
@@ -101,8 +101,9 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   └── seed-agent.ts   # creates agent user (SEED_AGENT_EMAIL / SEED_AGENT_PASSWORD / SEED_AGENT_NAME)
 │   ├── src/
 │   │   ├── lib/
-│   │   │   ├── ai.ts         # polishReplyText(draftBody, { contextSubject, contextBody }) — calls gpt-5-nano via the Vercel AI SDK to rewrite an agent's draft reply; see AI Reply Polishing below. Also summarizeTicketThread(thread) — calls gpt-5-nano to summarize a ticket's full conversation history; see AI Ticket Summarization below. Each has its own system prompt (POLISH_REPLY_SYSTEM_PROMPT / SUMMARIZE_TICKET_THREAD_SYSTEM_PROMPT)
+│   │   │   ├── ai.ts         # polishReplyText(draftBody, { contextSubject, contextBody }) — calls gpt-5-nano via the Vercel AI SDK to rewrite an agent's draft reply; see AI Reply Polishing below. Also summarizeTicketThread(thread) — calls gpt-5-nano to summarize a ticket's full conversation history; see AI Ticket Summarization below. Also classifyTicketCategory(subject, body) — calls gpt-5-nano with structured output (generateText's `output: Output.object(...)`, not the deprecated `generateObject`) to assign one of the three TicketCategory values; see AI Ticket Classification below. Each has its own system prompt (POLISH_REPLY_SYSTEM_PROMPT / SUMMARIZE_TICKET_THREAD_SYSTEM_PROMPT / CLASSIFY_TICKET_CATEGORY_SYSTEM_PROMPT)
 │   │   │   ├── auth.ts       # Better Auth config (Prisma adapter, additionalFields)
+│   │   │   ├── classify-ticket.ts # classifyTicketInBackground(ticketId, subject, body) — calls lib/ai.ts's classifyTicketCategory and writes the result onto the ticket; catches and logs its own errors so it's safe to call without awaiting. Used by webhooks.ts, fire-and-forget, so classification never delays the inbound-email response — see AI Ticket Classification below
 │   │   │   ├── middleware.ts # requireAuth / requireAdmin Express middleware
 │   │   │   ├── prisma.ts
 │   │   │   ├── reply.ts      # createReply({ ticketId, body, htmlBody, senderType, userId }) — creates a Reply + bumps the ticket's updatedAt in one transaction; shared by reply-routes.ts (agent replies) and webhooks.ts (customer replies via inbound email)
@@ -117,7 +118,7 @@ See `project-planning/` for full scope, tech stack decisions, and implementation
 │   │   │   │   ├── ticket-id-param.ts # ticketIdParam — parses/loads the ticket once per :id request, 404s if missing, attaches the result to res.locals.ticket
 │   │   │   │   └── ticket-routes.ts   # GET /, GET /:id, PATCH /:id — registerTicketRoutes(router) called from index.ts
 │   │   │   ├── users.ts
-│   │   │   └── webhooks.ts    # POST /inbound-email — creates a Ticket, or attaches as a Reply (via createReply) to a matching open ticket from the same sender+subject if one exists
+│   │   │   └── webhooks.ts    # POST /inbound-email — creates a Ticket, or attaches as a Reply (via createReply) to a matching open ticket from the same sender+subject if one exists. A freshly-created ticket also kicks off classifyTicketInBackground, fire-and-forget (not awaited), after the response is sent — see AI Ticket Classification below
 │   │   └── index.ts
 │   └── tsconfig.json
 ├── e2e/                  # Playwright end-to-end tests
@@ -264,6 +265,20 @@ The "Summarize" button on `TicketSummary` (rendered on `TicketPage` above the re
 **Abuse controls** mirror AI Reply Polishing's: a per-user rate limit (`express-rate-limit`, 10 requests/minute, keyed by `res.locals.session.user.id`), `maxOutputTokens`/`timeout` bounding worst-case cost/latency, `reasoningEffort: 'low'`, and the reply/ticket length caps already enforced at write time (`MAX_REPLY_BODY_LENGTH`, `MAX_TICKET_BODY_LENGTH`) plus `MAX_SUMMARIZE_REPLIES_INCLUDED` bounding how much of that content one request can pull in. Same manual backstop applies: a hard spend cap on `OPENAI_API_KEY` in the OpenAI platform's billing settings.
 
 **No request body.** Unlike polish-reply, this endpoint takes nothing from the client beyond the ticket ID in the path — the thread it summarizes is built entirely server-side from `res.locals.ticket` and the ticket's own replies, so there's no `validate()` call in `summarize-routes.ts`.
+
+## AI Ticket Classification
+
+A newly-created ticket's `category` is assigned automatically by `gpt-5-nano`, right after `POST /api/webhooks/inbound-email` creates it — see Webhooks API below. It calls the same OpenAI provider as AI Reply Polishing and AI Ticket Summarization, through its own function in `server/src/lib/ai.ts` — `classifyTicketCategory(subject, body)` — with its own system prompt (`CLASSIFY_TICKET_CATEGORY_SYSTEM_PROMPT`) that defines the three `TicketCategory` values for the model, since the Zod enum's own values (`general_question` / `technical_question` / `refund_request`) aren't self-explanatory from the wire-format strings alone.
+
+**Structured output, not free text.** Unlike `polishReplyText`/`summarizeTicketThread`, which return prose via `generateText`'s plain `text` field, `classifyTicketCategory` constrains the response to one of the three enum values via `generateText`'s `output: Output.object({ schema })` option, reading the result back off `output.category`. This is deliberately not `generateObject` — the AI SDK's JSDoc marks `generateObject`/`streamObject` deprecated in favor of `generateText`/`streamText` with an `output` setting, so this feature was the first in the codebase to use the newer API; if `polishReplyText`/`summarizeTicketThread` are ever touched again, prefer bringing them onto `output: Output.object(...)` too rather than introducing a second structured-output pattern.
+
+**Fire-and-forget, not request/response.** Unlike polishing and summarization, nothing here is user-triggered or awaited by its caller. `webhooks.ts` calls `classifyTicketInBackground(createdTicket.id, subject, body)` (`server/src/lib/classify-ticket.ts`) without `await`, after the webhook has already sent its `201` response — classification latency never delays the inbound-email ack. `classifyTicketInBackground` wraps its own work in try/catch and only logs on failure; it must never throw, since there is no caller left waiting to handle a rejection. On failure (timeout, malformed model output, API error), the ticket simply keeps `category: null`, exactly as it would have before this feature existed — an agent can still set it manually via `TicketEditableDetails`, the same selector used for any other ticket.
+
+**Only fires for a brand-new ticket**, not for a customer reply that attaches to an existing open ticket — a ticket is classified once, at creation, and is never reclassified by later replies.
+
+**Same untrusted-content posture as the other two features**, applied to the ticket's own subject/body instead of a reply draft or thread: `CLASSIFY_TICKET_CATEGORY_SYSTEM_PROMPT` treats the inbound email as literal text to classify, never as instructions, even if it tries to look like one.
+
+**No per-caller rate limit, unlike polishing and summarization.** Those two are triggered directly by an authenticated agent clicking a button, so they're rate-limited per `res.locals.session.user.id`. Classification is triggered by the webhook itself, already gated by `requireWebhookSecret`, with no end user in the loop to key a limit on — the existing `maxOutputTokens`/`timeout`/`reasoningEffort: 'low'` bounds, plus `inboundEmailSchema`'s length caps on `subject`/`body`, are what bound this feature's worst-case cost per call. Same manual backstop applies: a hard spend cap on `OPENAI_API_KEY` in the OpenAI platform's billing settings.
 
 ## Tickets API
 
@@ -426,7 +441,7 @@ Ingests an inbound email. Requires the `x-webhook-secret` header to match `WEBHO
 **Behavior:** `htmlBody`, when present, is run through `sanitizeHtml()` (`server/src/lib/sanitize-html.ts`) before either write path below, so the stored HTML is already clean — see HTML Sanitization above. `subject` is run through `normalizeSubject()` first, which strips leading `Re:`/`Fwd:` prefixes (repeated, case-insensitive). The server then looks for an existing ticket from the same `fromEmail`, with the same normalized `subject` (case-insensitive), and `status: 'open'`:
 
 - **Match found** — the email is attached as a `Reply` (`senderType: 'customer'`, `userId: null`) via the shared `createReply` helper (`server/src/lib/reply.ts`), which also bumps the matched ticket's `updatedAt` in the same transaction. No new ticket is created.
-- **No match** — a new `Ticket` is created (`status: 'open'`), same as if this feature didn't exist. This also covers the case where a matching ticket exists but isn't `open` (e.g. already resolved) — a new ticket is started rather than reopening or appending to the old one.
+- **No match** — a new `Ticket` is created (`status: 'open'`), same as if this feature didn't exist. This also covers the case where a matching ticket exists but isn't `open` (e.g. already resolved) — a new ticket is started rather than reopening or appending to the old one. After the response is sent, `classifyTicketInBackground` is kicked off (not awaited) to assign the new ticket's `category` — see AI Ticket Classification above.
 
 **Response**
 
